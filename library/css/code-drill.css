@@ -1,0 +1,321 @@
+/* ============================================================
+   CODE DRILL — styles
+   Matched to reviewer.php's actual loaded fonts/palette:
+   Orbitron (display) + Rajdhani (body), --cyan:#55F1F8 / --pink:#3096C7,
+   #080b14 / #03030f backgrounds, .window-card glass-panel look.
+   Add JetBrains Mono to reviewer.php's Google Fonts <link> for the
+   code editor/terminal — it isn't loaded there yet, see note below.
+   ============================================================ */
+
+.acd-shell {
+  /* --subject is the one real, confirmed token — set by AghiLib.applySubjectTheme()
+     in shared.js (CP = #55F1F8). Everything else mirrors reviewer.php's own
+     :root vars and .window-card styling directly. */
+  --acd-bg: #080b14;
+  --acd-bg-deep: #03030f;
+  --acd-border: #1c2b45;
+  --acd-cyan: var(--subject, #55F1F8);
+  --acd-cyan-dim: #3096C7;
+  --acd-text: #ffffff;
+  --acd-text-dim: rgba(255, 255, 255, 0.6);
+  --acd-green: #55e59a;
+  --acd-red: #ff6b7a;
+  --acd-yellow: #f5c95d;
+  --acd-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --acd-sans: 'Rajdhani', sans-serif;
+  --acd-display: 'Orbitron', sans-serif;
+
+  font-family: var(--acd-sans);
+  color: var(--acd-text);
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.acd-section-title {
+  font-family: var(--acd-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  color: var(--acd-text);
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--acd-border);
+}
+
+.acd-drill {
+  background: rgba(10, 15, 30, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(85, 241, 248, 0.2);
+  border-radius: 14px;
+  padding: 20px 22px 22px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.acd-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.acd-badge {
+  font-family: var(--acd-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--acd-cyan);
+  border: 1px solid var(--acd-cyan-dim);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.acd-drill-title {
+  font-family: var(--acd-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--acd-text);
+}
+
+.acd-prompt {
+  color: var(--acd-text-dim);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  margin: 6px 0 16px;
+}
+
+.acd-prompt code {
+  font-family: var(--acd-mono);
+  color: var(--acd-cyan);
+  background: rgba(56, 231, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ---------------- editor ---------------- */
+
+.acd-editor-frame {
+  border: 1px solid var(--acd-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--acd-bg-deep);
+}
+
+.acd-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--acd-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.acd-tab {
+  font-family: var(--acd-mono);
+  font-size: 12.5px;
+  color: var(--acd-text-dim);
+  padding: 8px 14px;
+  border-bottom: 2px solid var(--acd-cyan);
+  color: var(--acd-text);
+}
+
+.acd-editor-body {
+  display: flex;
+  align-items: stretch;
+}
+
+.acd-gutter {
+  font-family: var(--acd-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--acd-text-dim);
+  text-align: right;
+  padding: 14px 10px 14px 0;
+  user-select: none;
+  opacity: 0.55;
+  white-space: pre;
+  overflow: hidden;
+  min-width: 28px;
+}
+
+.acd-editor {
+  flex: 1;
+  min-height: 130px;
+  resize: vertical;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--acd-text);
+  font-family: var(--acd-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 14px 14px 14px 6px;
+  caret-color: var(--acd-cyan);
+  tab-size: 4;
+}
+
+.acd-editor::placeholder {
+  color: var(--acd-text-dim);
+  opacity: 0.6;
+}
+
+/* ---------------- terminal / checklist ---------------- */
+
+.acd-terminal {
+  margin-top: 14px;
+  border: 1px solid var(--acd-border);
+  border-radius: 10px;
+  background: var(--acd-bg-deep);
+  overflow: hidden;
+}
+
+.acd-terminal-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--acd-border);
+}
+
+.acd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.85;
+}
+.acd-dot-r { background: var(--acd-red); }
+.acd-dot-y { background: var(--acd-yellow); }
+.acd-dot-g { background: var(--acd-green); }
+
+.acd-terminal-label {
+  font-family: var(--acd-mono);
+  font-size: 11.5px;
+  color: var(--acd-text-dim);
+  margin-left: 6px;
+}
+
+.acd-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px;
+  font-family: var(--acd-mono);
+  font-size: 13px;
+}
+
+.acd-check {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  align-items: flex-start;
+}
+
+.acd-check-icon {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.acd-check.is-pass { color: var(--acd-green); }
+.acd-check.is-pass .acd-check-text { color: var(--acd-text-dim); }
+.acd-check.is-fail { color: var(--acd-red); }
+.acd-check.is-fail .acd-check-text { color: var(--acd-text); }
+
+.acd-console {
+  border-top: 1px solid var(--acd-border);
+  padding: 10px 14px 14px;
+  font-family: var(--acd-mono);
+  font-size: 13px;
+}
+
+.acd-console-label {
+  color: var(--acd-text-dim);
+  margin-bottom: 4px;
+}
+
+.acd-console-line {
+  color: var(--acd-cyan);
+  text-shadow: 0 0 10px rgba(56, 231, 255, 0.35);
+}
+
+/* ---------------- hints ---------------- */
+
+.acd-hint-box {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px dashed var(--acd-cyan-dim);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--acd-text-dim);
+}
+.acd-hint-line { padding: 2px 0; }
+.acd-hint-line b { color: var(--acd-cyan); }
+
+/* ---------------- controls ---------------- */
+
+.acd-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.acd-btn {
+  font-family: var(--acd-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--acd-cyan-dim);
+  background: rgba(56, 231, 255, 0.08);
+  color: var(--acd-cyan);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.acd-btn:hover { background: rgba(56, 231, 255, 0.16); }
+.acd-btn:active { transform: translateY(1px); }
+
+.acd-btn-ghost {
+  background: transparent;
+  color: var(--acd-text-dim);
+  border-color: var(--acd-border);
+}
+
+.acd-btn-next {
+  background: var(--acd-cyan);
+  color: #04141a;
+  border-color: var(--acd-cyan);
+  box-shadow: 0 0 18px -4px rgba(56, 231, 255, 0.6);
+}
+
+.acd-finish {
+  display: inline-block;
+  text-decoration: none;
+  background: var(--acd-cyan);
+  color: #04141a;
+  border-color: var(--acd-cyan);
+  box-shadow: 0 0 18px -4px rgba(56, 231, 255, 0.6);
+  font-family: var(--acd-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--acd-cyan);
+  cursor: pointer;
+}
+.acd-finish:hover { filter: brightness(1.1); }
+
+.acd-status {
+  font-family: var(--acd-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-left: auto;
+}
+.acd-status.is-success {
+  color: var(--acd-green);
+  text-shadow: 0 0 10px rgba(85, 229, 154, 0.4);
+}
+.acd-status.is-fail { color: var(--acd-red); }
+
+@media (max-width: 560px) {
+  .acd-drill { padding: 16px 14px 18px; }
+  .acd-controls { flex-wrap: wrap; }
+  .acd-status { margin-left: 0; width: 100%; order: 3; }
+}

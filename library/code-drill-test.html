@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Drill Engine — Test Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="library/css/code-drill.css" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(85,241,248,0.08), transparent 45%),
+      #060912;
+    min-height: 100vh;
+    padding: 40px 16px 80px;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .acd-page-head {
+    max-width: 760px;
+    margin: 0 auto 28px;
+    color: #d8e6f5;
+  }
+  .acd-page-head .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--subject);
+    text-transform: uppercase;
+  }
+  .acd-page-head h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    margin: 6px 0 4px;
+  }
+  .acd-page-head p {
+    color: #7e93b3;
+    font-size: 0.92rem;
+    max-width: 60ch;
+  }
+  #drill-mount { margin-top: 24px; }
+</style>
+</head>
+<body>
+
+  <div class="acd-page-head">
+    <div class="eyebrow">Aghimuan Library · Engine Test Harness</div>
+    <h1>Code Drill Engine</h1>
+    <p>CP11 · Grade 11 · Quarter 1 · Week 2 — Setting Up Java &amp; Basic Structure/Syntax.
+       Type real Java. Checks run live, no JVM — pattern-matched and shown as fake compiler output.</p>
+  </div>
+
+  <div id="drill-mount"></div>
+
+  <script src="library/js/shared.js"></script>
+  <script src="library/js/engine/code-drill-engine.js"></script>
+  <script>
+    // matches the real bootstrap: subject/grade pages call this before
+    // rendering, which sets --subject on <html> for every themed component
+    AghiLib.applySubjectTheme('CP');
+
+    const drills = [
+      {
+        id: 'add-comment',
+        title: 'Add a Comment',
+        prompt: 'Warm-up. Write a single-line comment that says <code>this is my first program</code>.',
+        starter: '',
+        filename: 'Practice.java',
+        checks: [
+          {
+            id: 'has-slash-slash',
+            label: 'Uses // for a single-line comment',
+            errorLabel: "error: no single-line comment found (expected //)",
+            test: (code) => /\/\/.+/.test(code),
+          },
+        ],
+        successOutput: [],
+      },
+      {
+        id: 'declare-int',
+        title: 'Declare a Variable',
+        prompt: 'Declare a variable named <code>age</code> that stores a whole number, initialized to <code>16</code>. Don\u2019t forget the semicolon.',
+        starter: '',
+        filename: 'Practice.java',
+        checks: [
+          {
+            id: 'has-type',
+            label: 'Uses a whole-number type (int, short, byte, or long)',
+            errorLabel: 'error: no integer data type found',
+            test: (code) => /\b(int|short|byte|long)\s+age\b/.test(code),
+          },
+          {
+            id: 'has-value',
+            label: 'Initialized to 16',
+            errorLabel: "error: expected '= 16'",
+            test: (code) => /age\s*=\s*16\s*;/.test(code),
+          },
+          {
+            id: 'has-semicolon',
+            label: 'Statement ends with a semicolon',
+            errorLabel: "error: ';' expected",
+            test: (code) => /age\s*=\s*16\s*;/.test(code),
+          },
+        ],
+        hints: [
+          'Java\u2019s default whole-number type is `int`.',
+          'The full line should look like: `int age = 16;`',
+        ],
+        successOutput: [],
+      },
+      {
+        id: 'fix-the-bug',
+        title: 'Fix the Class Name',
+        prompt: 'This file is named <code>Greeting.java</code>, but it won\u2019t compile. Fix the class declaration so the class name matches the filename exactly.',
+        starter: 'public class greeting {\n    public static void main(String[] args) {\n        System.out.println("Hi there!");\n    }\n}',
+        filename: 'Greeting.java',
+        checks: [
+          {
+            id: 'class-name-matches',
+            label: 'Class is named Greeting (matches the filename)',
+            errorLabel: "error: class greeting is public, should be declared in a file named greeting.java",
+            test: (code) => /public\s+class\s+Greeting\b/.test(code),
+          },
+          {
+            id: 'main-still-there',
+            label: 'main method signature is intact',
+            errorLabel: 'error: main method missing or malformed',
+            test: (code) => /public\s+static\s+void\s+main\s*\(\s*String\[\]\s+args\s*\)/.test(code),
+          },
+        ],
+        hints: [
+          'Class names should start with an uppercase letter.',
+          'The filename is Greeting.java \u2014 the public class name has to match it exactly, including case.',
+        ],
+        successOutput: ['Hi there!'],
+      },
+      {
+        id: 'hello-world',
+        title: 'Write the Whole Program',
+        prompt: 'Write a complete Java program in a file named <code>Greeting.java</code> whose class is named <code>Greeting</code>, with a proper main method, that prints exactly <code>Hello, Java!</code> to the console.',
+        starter: '',
+        filename: 'Greeting.java',
+        checks: [
+          {
+            id: 'has-class',
+            label: 'public class Greeting declared',
+            errorLabel: 'error: class Greeting not found',
+            test: (code) => /public\s+class\s+Greeting\s*\{/.test(code),
+          },
+          {
+            id: 'has-main',
+            label: 'main method present with correct signature',
+            errorLabel: "error: main method not found",
+            test: (code) => /public\s+static\s+void\s+main\s*\(\s*String\[\]\s+args\s*\)\s*\{/.test(code),
+          },
+          {
+            id: 'has-println',
+            label: 'Prints exactly "Hello, Java!"',
+            errorLabel: 'error: expected System.out.println("Hello, Java!");',
+            test: (code) => /System\.out\.println\(\s*"Hello,\s*Java!"\s*\)\s*;/.test(code),
+          },
+        ],
+        hints: [
+          'Structure: public class Greeting { public static void main(String[] args) { ... } }',
+          'Inside main, use System.out.println("Hello, Java!");',
+        ],
+        successOutput: ['Hello, Java!'],
+      },
+    ];
+
+    window.AghiCodeDrillEngine.mount(document.getElementById('drill-mount'), {
+      storageKey: 'cp-g11-q1w2-code-drills-test',
+      drills: drills,
+    });
+  </script>
+</body>
+</html>

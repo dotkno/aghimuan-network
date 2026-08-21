@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AghiClaw 3D</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { --bg:#1F1F1F; --bg2:#03037E; --pink:#3096C7; --cyan:#55F1F8; --yellow:#F1F2F5; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; height:100%; overflow:hidden; }
+  body { font-family:'Rajdhani',sans-serif; background:radial-gradient(ellipse at 50% 30%, var(--bg2) 0%, var(--bg) 70%); color:#fff; }
+  .font-display { font-family:'Orbitron',sans-serif; letter-spacing:0.05em; }
+  .neon-pink { color:var(--pink); text-shadow:0 0 8px var(--pink),0 0 16px rgba(48,150,199,0.6); }
+  .neon-cyan { color:var(--cyan); text-shadow:0 0 8px var(--cyan),0 0 16px rgba(85,241,248,0.6); }
+  .neon-yellow { color:var(--yellow); text-shadow:0 0 8px var(--yellow),0 0 16px rgba(241,242,245,0.6); }
+  .neon-border-pink { border-color:var(--pink)!important; box-shadow:0 0 14px rgba(48,150,199,0.5), inset 0 0 14px rgba(48,150,199,0.12); }
+  .neon-border-cyan { border-color:var(--cyan)!important; box-shadow:0 0 14px rgba(85,241,248,0.5), inset 0 0 14px rgba(85,241,248,0.12); }
+  .neon-border-yellow { border-color:var(--yellow)!important; box-shadow:0 0 18px rgba(241,242,245,0.6), inset 0 0 14px rgba(241,242,245,0.15); }
+  .bg-grid { background-image:linear-gradient(rgba(48,150,199,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(85,241,248,0.06) 1px,transparent 1px); background-size:50px 50px; }
+  .scanlines::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.18) 2px,rgba(0,0,0,0.18) 4px); pointer-events:none; z-index:5; mix-blend-mode:multiply; }
+  .vignette::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,0.7) 100%); pointer-events:none; z-index:4; }
+  .btn-neon { transition:transform .1s, filter .15s; user-select:none; cursor:pointer; }
+  .btn-neon:hover { transform:translateY(-1px); filter:brightness(1.18); }
+  .btn-neon:active { transform:translateY(1px) scale(.97); }
+  @keyframes pulse-glow { 0%,100%{filter:brightness(1) drop-shadow(0 0 8px var(--pink));} 50%{filter:brightness(1.3) drop-shadow(0 0 18px var(--pink));} }
+  .pulse-glow { animation:pulse-glow 2.2s ease-in-out infinite; }
+  @keyframes flicker { 0%,100%{opacity:1;} 47%{opacity:1;} 48%{opacity:.4;} 49%{opacity:1;} 50%{opacity:.7;} 51%{opacity:1;} }
+  .flicker { animation:flicker 4s infinite; }
+  @keyframes modal-in { from{opacity:0; transform:scale(.92) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);} }
+  .modal-enter { animation:modal-in .35s cubic-bezier(.34,1.56,.64,1); }
+  canvas { display:block; touch-action:none; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+  .hidden { display:none!important; }
+</style>
+</head>
+<body class="bg-grid">
+
+<header class="fixed top-0 inset-x-0 z-30 px-4 md:px-6 py-3 flex items-center justify-between bg-black/50 backdrop-blur-md border-b border-[#3096C7]/30">
+  <div class="flex items-center gap-3">
+    <div id="logo" class="text-2xl md:text-4xl font-display font-black neon-pink cursor-pointer select-none">AGHICLAW</div>
+    <div class="hidden sm:flex flex-col leading-tight">
+      <div class="text-[10px] font-display neon-cyan tracking-[0.3em]">3D EDITION</div>
+      <div class="text-[10px] text-white/40 tracking-widest">NEON ARCADE</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 md:gap-8">
+    <div id="dev-badge" class="hidden px-2 py-1 text-[10px] font-display font-bold text-[#F1F2F5] border border-[#F1F2F5]/60 rounded bg-[#F1F2F5]/10 flicker">DEV MODE</div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-[#F1F2F5]/70">Time</div>
+      <div class="text-xl md:text-3xl font-display font-bold neon-yellow" id="time-display">--</div>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-[#55F1F8]/70">Tries</div>
+      <div class="text-xl md:text-3xl font-display font-bold neon-cyan" id="coin-display">0</div>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-[#3096C7]/70">Prizes</div>
+      <div class="text-xl md:text-3xl font-display font-bold neon-pink" id="prize-display">0</div>
+    </div>
+  </div>
+</header>
+
+<main class="pt-16 md:pt-20 h-screen w-full relative overflow-hidden">
+  <div class="absolute inset-0 scanlines vignette">
+    <canvas id="game-canvas" class="w-full h-full block"></canvas>
+  </div>
+
+  <div class="absolute top-3 left-3 z-10 bg-black/70 backdrop-blur px-3 py-1.5 rounded border border-[#55F1F8]/50 pointer-events-none">
+    <div class="text-[10px] uppercase tracking-widest text-[#55F1F8]/70">Status</div>
+    <div id="status-text" class="text-sm font-display neon-cyan">INSERT COIN</div>
+  </div>
+
+  <div class="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur px-3 py-1.5 rounded border border-[#3096C7]/50 pointer-events-none">
+    <div class="text-[10px] uppercase tracking-widest text-[#3096C7]/70">Claw Sway</div>
+    <div class="flex items-center gap-2 mt-0.5">
+      <div class="w-20 h-1.5 bg-black/60 rounded-full overflow-hidden">
+        <div id="sway-bar" class="h-full transition-all duration-100" style="width:0%;background:linear-gradient(90deg,#55F1F8,#3096C7,#F1F2F5);"></div>
+      </div>
+      <span id="sway-val" class="text-xs font-mono neon-yellow">0°</span>
+    </div>
+  </div>
+
+  <div class="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 text-center text-[11px] text-white/50 max-w-md px-4 pointer-events-none hidden md:block">
+    <span class="neon-yellow font-display">⚠</span> The claw sways with momentum — depth is deceiving! <br>
+    Drag screen to rotate view
+  </div>
+
+  <div class="absolute bottom-8 inset-x-0 z-20 p-4 md:p-6 flex items-end justify-between pointer-events-none">
+    <div class="grid grid-cols-3 grid-rows-3 gap-1.5 w-32 md:w-44 shrink-0 pointer-events-auto bg-black/40 p-2 rounded-xl backdrop-blur border border-[#55F1F8]/20">
+      <div></div>
+      <button data-dir="forward" class="btn-neon border-2 neon-border-cyan rounded-lg h-10 md:h-12 text-[#55F1F8] font-bold text-lg md:text-xl flex items-center justify-center bg-black/40">▲</button>
+      <div></div>
+      <button data-dir="left" class="btn-neon border-2 neon-border-cyan rounded-lg h-10 md:h-12 text-[#55F1F8] font-bold text-lg md:text-xl flex items-center justify-center bg-black/40">◀</button>
+      <div class="flex items-center justify-center text-[#3096C7]/70 font-display text-[9px] tracking-widest select-none">MOVE</div>
+      <button data-dir="right" class="btn-neon border-2 neon-border-cyan rounded-lg h-10 md:h-12 text-[#55F1F8] font-bold text-lg md:text-xl flex items-center justify-center bg-black/40">▶</button>
+      <div></div>
+      <button data-dir="back" class="btn-neon border-2 neon-border-cyan rounded-lg h-10 md:h-12 text-[#55F1F8] font-bold text-lg md:text-xl flex items-center justify-center bg-black/40">▼</button>
+      <div></div>
+    </div>
+
+    <div class="hidden md:block text-center pointer-events-none bg-black/60 backdrop-blur px-4 py-2 rounded-xl border border-white/10 mb-2">
+      <div class="text-xs uppercase tracking-widest text-[#55F1F8]/70 mb-1">Controls</div>
+      <div class="text-sm text-white/70 font-medium">Arrow Keys / WASD to move</div>
+      <div class="text-sm text-white/70 font-medium">Space / GRAB button to drop</div>
+    </div>
+
+    <div class="flex flex-col gap-2 items-stretch pointer-events-auto">
+      <div id="credit-queue" class="flex gap-1 flex-wrap justify-end max-w-[220px] min-h-[22px] px-1"></div>
+      <div class="relative">
+        <button id="insert-btn" class="btn-neon w-full px-4 py-2 border border-[#F1F2F5]/50 rounded text-[#F1F2F5] font-display font-bold text-xs md:text-sm tracking-widest bg-black/60 backdrop-blur">INSERT COIN</button>
+        <div id="coin-select" class="hidden absolute bottom-full mb-2 left-0 right-0 flex gap-2 bg-black/90 border border-[#F1F2F5]/40 rounded-lg p-2 backdrop-blur z-30">
+          <button data-coin="5" class="coin-opt btn-neon flex-1 flex flex-col items-center justify-center gap-0.5 border border-[#55F1F8]/50 rounded-lg py-2 bg-black/40 text-[#55F1F8]">
+            <span class="font-display font-bold text-sm">₱5</span>
+            <span class="text-[9px] text-white/50 tracking-wide">1.0x LUCK</span>
+          </button>
+          <button data-coin="10" class="coin-opt btn-neon flex-1 flex flex-col items-center justify-center gap-0.5 border border-[#F1F2F5]/60 rounded-lg py-2 bg-black/40 text-[#F1F2F5]">
+            <span class="font-display font-bold text-sm">₱10</span>
+            <span class="text-[9px] text-white/50 tracking-wide">1.5x LUCK</span>
+          </button>
+        </div>
+      </div>
+      <div class="relative h-14 md:h-16">
+        <button id="start-btn" class="btn-neon absolute inset-0 w-full h-full border-2 neon-border-cyan rounded-lg font-display font-black text-xl md:text-2xl neon-cyan tracking-widest bg-black/50 pulse-glow flex items-center justify-center">START</button>
+        <button id="grab-btn" class="hidden btn-neon absolute inset-0 w-full h-full border-2 neon-border-pink rounded-lg font-display font-black text-xl md:text-2xl neon-pink tracking-widest bg-black/50 pulse-glow flex items-center justify-center">GRAB</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Win Modal -->
+<div id="win-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+  <div class="modal-enter bg-gradient-to-br from-[#2B438E]/90 to-black/95 border-2 neon-border-yellow rounded-2xl p-8 max-w-md w-full text-center">
+    <div class="text-6xl mb-3">🎉</div>
+    <div class="text-3xl font-display font-black neon-yellow mb-2">JACKPOT</div>
+    <div class="text-white/70 mb-3">You grabbed:</div>
+    <div id="win-prize-name" class="text-2xl font-display font-bold neon-pink mb-6">Prize</div>
+    <button id="continue-btn" class="btn-neon border-2 neon-border-cyan rounded-lg px-8 py-3 font-display font-bold neon-cyan bg-black/40">CONTINUE</button>
+  </div>
+</div>
+
+<!-- Miss Modal -->
+<div id="miss-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+  <div class="modal-enter bg-gradient-to-br from-[#1F1F1F]/90 to-black/95 border-2 neon-border-pink rounded-2xl p-8 max-w-md w-full text-center">
+    <div class="text-5xl mb-3">💫</div>
+    <div class="text-2xl font-display font-bold neon-pink mb-2">MISSED</div>
+    <div id="miss-reason" class="text-white/70 mb-6">The prize slipped away...</div>
+    <button id="miss-continue" class="btn-neon border-2 neon-border-cyan rounded-lg px-8 py-3 font-display font-bold neon-cyan bg-black/40">TRY AGAIN</button>
+  </div>
+</div>
+
+<!-- Game Over Modal -->
+<div id="over-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+  <div class="modal-enter bg-gradient-to-br from-[#1F1F1F]/90 to-black/95 border-2 neon-border-pink rounded-2xl p-8 max-w-md w-full text-center">
+    <div class="text-5xl mb-3">🎰</div>
+    <div class="text-3xl font-display font-black neon-pink mb-2">GAME OVER</div>
+    <div class="text-white/70 mb-2">You won <span id="over-prizes" class="neon-cyan font-bold">0</span> prizes</div>
+    <div class="text-white/50 text-sm mb-6">Thanks for playing AghiClaw 3D</div>
+    <button id="restart-btn" class="btn-neon border-2 neon-border-cyan rounded-lg px-8 py-3 font-display font-bold neon-cyan bg-black/40">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+// ================== AghiClaw 3D — Full Implementation ==================
+
+// --- Physics constants ---
+const TROLLEY_ACCEL    = 45;
+const TROLLEY_FRICTION = 0.75;
+const TROLLEY_MAX_VEL  = 5.5;
+const PENDULUM_DAMPING = 4.2;
+const GRAVITY          = 24.0;
+const RAIL_Y           = 8.0;
+const TROLLEY_LIMIT    = 4.0;
+const DEFAULT_CABLE    = 3.0;
+const MAX_CABLE        = 6.5;
+const MAX_SWING        = 0.35;
+const FLOOR_Y          = 0;
+
+// --- Three.js globals ---
+let scene, camera, renderer, clock;
+let gantry, trolley, cable, clawAssembly, clawTipsGroup;
+let prizes = [];
+let heldPrize = null;
+let grabLight;
+
+// --- Physics state ---
+const phys = {
+  trolley: { x: 0, z: 0, vx: 0, vz: 0 },
+  pendulum: { thetaX: 0, thetaZ: 0, omegaX: 0, omegaZ: 0 },
+  cableLength: DEFAULT_CABLE,
+};
+
+// --- Game state ---
+const game = {
+  state: 'WAITING',
+  coinQueue: [],      // FIFO queue of {value:5|10, luck:1.0|1.5} — each coin remembers what it is
+  currentLuck: 1.0,    // luck multiplier of the coin currently being played
+  prizesWon: 0,
+  easterEgg: false,
+  stateTimer: 0,
+  timeLeft: 0,
+  chutePos: { x: 3.7, z: 3.7 },
+  lastPrizeName: '',
+  lastMissReason: '',
+  slipChecked: false,
+};
+
+const COIN_TYPES = {
+  5:  { value: 5,  luck: 1.0, label: '₱5' },
+  10: { value: 10, luck: 1.5, label: '₱10' },
+};
+
+const input = { left:false, right:false, forward:false, back:false };
+
+// --- Camera Orbit ---
+let cameraAngle = 0;
+let targetCameraAngle = 0;
+let cameraPitch = 0;
+let targetCameraPitch = 0;
+let isDragging = false;
+let prevMouseX = 0;
+let prevMouseY = 0;
+
+// --- Prize tiers ---
+const PRIZE_TYPES = [
+  { id:'mini_box',   name:'Mystery Box',   size:[0.55,0.55,0.55], color:0x3096c7, weight:0.30, grabRate:0.15, slipRate:0.50 },
+  { id:'plush',      name:'Plushie',       size:[0.7,0.8,0.7],    color:0x55f1f8, weight:0.30, grabRate:0.20, slipRate:0.35 },
+  { id:'drone',      name:'Mini Drone',    size:[0.85,0.35,0.85], color:0xf1f2f5, weight:0.30, grabRate:0.35, slipRate:0.20 },
+  { id:'big_box',    name:'Big Box',       size:[1.1,1.0,1.1],    color:0x2b438e, weight:0.10, grabRate:0.50, slipRate:0.15 },
+];
+
+// --- Init ---
+function init() {
+  const canvas = document.getElementById('game-canvas');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1f1f1f);
+  scene.fog = new THREE.Fog(0x1f1f1f, 22, 55);
+
+  const w = canvas.clientWidth || window.innerWidth;
+  const h = canvas.clientHeight || window.innerHeight;
+
+  camera = new THREE.PerspectiveCamera(48, w/h, 0.1, 100);
+  updateCameraPosition();
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+  renderer.setSize(w, h, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.25;
+
+  clock = new THREE.Clock();
+
+  setupLights();
+  buildCabinet();
+  buildClawSystem();
+  spawnPrizes();
+  setupCameraControls();
+
+  // Set initial trolley to chute
+  phys.trolley.x = game.chutePos.x;
+  phys.trolley.z = game.chutePos.z;
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x767ca1, 0.8));
+
+  const key = new THREE.DirectionalLight(0xf1f2f5, 0.9);
+  key.position.set(8, 18, 10);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.camera.left = -8; key.shadow.camera.right = 8;
+  key.shadow.camera.top = 8;   key.shadow.camera.bottom = -8;
+  key.shadow.camera.near = 1;  key.shadow.camera.far = 40;
+  key.shadow.bias = -0.001;
+  scene.add(key);
+
+  const pinkLight = new THREE.PointLight(0x3096c7, 2.5, 20, 1.5);
+  pinkLight.position.set(-5, 4, 4); scene.add(pinkLight);
+  const cyanLight = new THREE.PointLight(0x55f1f8, 2.5, 20, 1.5);
+  cyanLight.position.set(5, 4, -4); scene.add(cyanLight);
+  const topLight = new THREE.PointLight(0xf1f2f5, 1.5, 14);
+  topLight.position.set(0, 7, 0); scene.add(topLight);
+
+  grabLight = new THREE.PointLight(0xf1f2f5, 0, 4);
+  scene.add(grabLight);
+}
+
+function buildCabinet() {
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 0.3, 10),
+    new THREE.MeshStandardMaterial({ color:0x03037e, metalness:0.5, roughness:0.5, emissive:0x1f1f1f, emissiveIntensity:0.5 })
+  );
+  floor.position.y = -0.15; floor.receiveShadow = true; scene.add(floor);
+
+  const grid = new THREE.GridHelper(10, 20, 0x3096c7, 0x55f1f8);
+  grid.position.y = 0.02; 
+  grid.material.transparent = true; 
+  grid.material.opacity = 0.5;
+  scene.add(grid);
+
+  const baseMat = new THREE.MeshStandardMaterial({ color:0x03037e, roughness:0.5, metalness:0.2 });
+  const lowerBase = new THREE.Mesh(new THREE.BoxGeometry(10.4, 5.0, 10.4), baseMat);
+  lowerBase.position.y = -2.65;
+  lowerBase.receiveShadow = true;
+  scene.add(lowerBase);
+
+  const prizeDoorMat = new THREE.MeshStandardMaterial({ color:0x03037e, emissive:0x55f1f8, emissiveIntensity:0.4, roughness:0.2 });
+  const prizeDoor = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.0, 0.15), prizeDoorMat);
+  prizeDoor.position.set(3.5, -2.5, 5.25);
+  scene.add(prizeDoor);
+
+  const marquee = new THREE.Mesh(new THREE.BoxGeometry(10.4, 1.8, 10.4), baseMat);
+  marquee.position.y = 8.9;
+  scene.add(marquee);
+
+  const signMat = new THREE.MeshStandardMaterial({ color:0x03037e, emissive:0x3096c7, emissiveIntensity:0.8, roughness:0.3 });
+  const marqueeSign = new THREE.Mesh(new THREE.BoxGeometry(8.5, 1.0, 0.15), signMat);
+  marqueeSign.position.set(0, 8.9, 5.25);
+  scene.add(marqueeSign);
+
+  const pillarMat = new THREE.MeshStandardMaterial({ color:0x03037e, roughness:0.4, metalness:0.3 });
+  const pillarGeo = new THREE.BoxGeometry(0.5, 8.2, 0.5);
+  const pillarPositions = [ [-5.05, 4.0, -5.05], [5.05, 4.0, -5.05], [-5.05, 4.0, 5.05], [5.05, 4.0, 5.05] ];
+  pillarPositions.forEach(pos => {
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.set(pos[0], pos[1], pos[2]);
+    pillar.castShadow = true;
+    scene.add(pillar);
+  });
+
+  const backWallMat = new THREE.MeshStandardMaterial({ color:0x1f1f1f, metalness:0.9, roughness:0.1 });
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(9.8, 8.0, 0.1), backWallMat);
+  backWall.position.set(0, 4.0, -4.9);
+  scene.add(backWall);
+
+  const glassMat = new THREE.MeshStandardMaterial({ color:0x55f1f8, transparent:true, opacity:0.08, roughness:0.1, metalness:0.9, side:THREE.DoubleSide });
+  const leftGlass = new THREE.Mesh(new THREE.BoxGeometry(0.05, 8.0, 9.8), glassMat);
+  leftGlass.position.set(-4.9, 4.0, 0); scene.add(leftGlass);
+  const rightGlass = leftGlass.clone();
+  rightGlass.position.x = 4.9; scene.add(rightGlass);
+
+  const edgeMat = new THREE.MeshStandardMaterial({ color:0x3096c7, emissive:0x3096c7, emissiveIntensity:1.5 });
+  const edgeGeoH = new THREE.BoxGeometry(10.5, 0.1, 0.1);
+  const edgeGeoD = new THREE.BoxGeometry(0.1, 0.1, 10.5);
+  const horizontalEdges = [
+    [edgeGeoH, 0, 8.0, -5.2], [edgeGeoH, 0, 8.0, 5.2], [edgeGeoH, 0, 0, -5.2], [edgeGeoH, 0, 0, 5.2],
+    [edgeGeoD, -5.2, 8.0, 0], [edgeGeoD, 5.2, 8.0, 0], [edgeGeoD, -5.2, 0, 0], [edgeGeoD, 5.2, 0, 0]
+  ];
+  horizontalEdges.forEach(e => { const m = new THREE.Mesh(e[0], edgeMat); m.position.set(e[1],e[2],e[3]); scene.add(m); });
+
+  const railXMat = new THREE.MeshStandardMaterial({ color:0x3096c7, emissive:0x3096c7, emissiveIntensity:0.6, metalness:0.6, roughness:0.3 });
+  const railX = new THREE.Mesh(new THREE.BoxGeometry(9, 0.18, 0.18), railXMat);
+  railX.position.set(0, RAIL_Y, 0); railX.castShadow = true; scene.add(railX);
+
+  gantry = new THREE.Group(); scene.add(gantry);
+
+  const railZMat = new THREE.MeshStandardMaterial({ color:0x55f1f8, emissive:0x55f1f8, emissiveIntensity:0.6, metalness:0.6, roughness:0.3 });
+  const railZ1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 9), railZMat);
+  railZ1.position.set(-0.5, RAIL_Y, 0); gantry.add(railZ1);
+  const railZ2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 9), railZMat);
+  railZ2.position.set(0.5, RAIL_Y, 0); gantry.add(railZ2);
+
+  const chuteMat = new THREE.MeshStandardMaterial({ color:0x03037e, emissive:0x3096c7, emissiveIntensity:0.25, metalness:0.5, roughness:0.4 });
+  const chute = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 2.2), chuteMat);
+  chute.position.set(game.chutePos.x, 0.15, game.chutePos.z); chute.receiveShadow = true; scene.add(chute);
+  
+  const ringMat = new THREE.MeshBasicMaterial({ color:0xf1f2f5, transparent:true, opacity:0.8 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.06, 8, 24), ringMat);
+  ring.rotation.x = Math.PI/2; ring.position.set(game.chutePos.x, 0.42, game.chutePos.z); scene.add(ring);
+}
+
+function buildClawSystem() {
+  trolley = new THREE.Group(); gantry.add(trolley); 
+  
+  const trolleyBody = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.6, 1.0),
+    new THREE.MeshStandardMaterial({ color:0x2b438e, metalness:0.8, roughness:0.25, emissive:0x55f1f8, emissiveIntensity:0.15 })
+  );
+  trolleyBody.castShadow = true; trolley.add(trolleyBody);
+  
+  const wheelMat = new THREE.MeshStandardMaterial({ color:0x3096c7, emissive:0x3096c7, emissiveIntensity:0.8 });
+  for (const dx of [-0.6, 0.6]) {
+    const w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.12, 12), wheelMat);
+    w1.rotation.z = Math.PI/2; w1.position.set(dx, 0.05, 0.45); trolley.add(w1);
+    const w2 = w1.clone(); w2.position.z = -0.45; trolley.add(w2);
+  }
+  trolley.position.set(0, RAIL_Y, 0);
+
+  cable = new THREE.Group();
+  const cableMat = new THREE.MeshStandardMaterial({ color:0x1f1f1f, metalness:0.9, roughness:0.4 });
+  const mainCable = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 8), cableMat);
+  cable.add(mainCable);
+  
+  const powerLineMat = new THREE.MeshStandardMaterial({ color:0x3096c7, emissive:0x3096c7, emissiveIntensity:0.8 });
+  const powerLine = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1, 6), powerLineMat);
+  powerLine.position.set(0.08, 0, 0); cable.add(powerLine);
+  trolley.add(cable);
+
+  clawAssembly = new THREE.Group();
+  clawAssembly.scale.set(0.8, 0.8, 0.8);
+  
+  const cableJoint = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshStandardMaterial({ color:0x767ca1, metalness:1, roughness:0.1 }));
+  clawAssembly.add(cableJoint);
+  
+  const motor = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.35), new THREE.MeshStandardMaterial({ color:0x1f1f1f, metalness:0.9, roughness:0.2 }));
+  motor.position.y = 0.2; motor.castShadow = true; clawAssembly.add(motor);
+  
+  const housingMat = new THREE.MeshStandardMaterial({ color:0x2b438e, metalness:0.6, roughness:0.3, emissive:0x03037e, emissiveIntensity:0.4 });
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.38, 0.4, 12), housingMat);
+  housing.position.y = -0.15; housing.castShadow = true; clawAssembly.add(housing);
+  
+  const stripMat = new THREE.MeshStandardMaterial({ color:0x55f1f8, emissive:0x55f1f8, emissiveIntensity:1.5 });
+  const stripPositions = [ [0.35, -0.15, 0, 0], [-0.35, -0.15, 0, 0], [0, -0.15, 0.35, Math.PI/2], [0, -0.15, -0.35, Math.PI/2] ];
+  stripPositions.forEach(p => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.05), stripMat); s.position.set(p[0], p[1], p[2]); s.rotation.y = p[3]; clawAssembly.add(s); });
+  
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 0.15, 12), new THREE.MeshStandardMaterial({ color:0x2b438e, metalness:0.8, roughness:0.2 }));
+  plate.position.y = -0.4; clawAssembly.add(plate);
+  
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 24), new THREE.MeshStandardMaterial({ color:0x55f1f8, emissive:0x55f1f8, emissiveIntensity:1.5 }));
+  ring.rotation.x = Math.PI/2; ring.position.y = -0.4; clawAssembly.add(ring);
+  
+  const grabLed = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color:0xf1f2f5, emissive:0xf1f2f5, emissiveIntensity:2 }));
+  grabLed.position.y = -0.4; clawAssembly.add(grabLed);
+  
+  const grabCenter = new THREE.Object3D(); grabCenter.position.set(0, -1.1, 0);
+  clawAssembly.add(grabCenter); clawAssembly.userData.grabCenter = grabCenter;
+  
+  const fingers = [];
+  const fingerMat = new THREE.MeshStandardMaterial({ color:0xaeb7c0, metalness:0.95, roughness:0.15, emissive:0x55f1f8, emissiveIntensity:0.05 });
+  const tipMat = new THREE.MeshStandardMaterial({ color:0xf1f2f5, metalness:0.8, roughness:0.2, emissive:0xf1f2f5, emissiveIntensity:0.6 });
+  
+  for (let i = 0; i < 3; i++) {
+    const angle = (i / 3) * Math.PI * 2;
+    const pivot = new THREE.Group();
+    pivot.position.set(Math.cos(angle) * 0.3, -0.4, Math.sin(angle) * 0.3);
+    pivot.lookAt(0, -0.4, 0);
+    clawAssembly.add(pivot);
+    
+    const rotator = new THREE.Group(); pivot.add(rotator); fingers.push(rotator);
+    
+    const joint1 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), fingerMat);
+    joint1.castShadow = true; rotator.add(joint1);
+    
+    const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 12), fingerMat);
+    seg1.position.y = -0.25; seg1.castShadow = true; rotator.add(seg1);
+    
+    const joint2 = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), fingerMat);
+    joint2.position.y = -0.5; rotator.add(joint2);
+    
+    const seg2Pivot = new THREE.Group(); seg2Pivot.position.y = -0.5; seg2Pivot.rotation.x = -1.0; rotator.add(seg2Pivot);
+    const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 0.4, 12), fingerMat);
+    seg2.position.y = -0.2; seg2.castShadow = true; seg2Pivot.add(seg2);
+    
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 8), tipMat);
+    tip.position.y = -0.45; seg2Pivot.add(tip);
+  }
+  
+  clawAssembly.userData.fingers = fingers; trolley.add(clawAssembly);
+}
+
+function spawnPrizes() {
+  prizes.forEach(p => scene.remove(p.mesh));
+  prizes = [];
+
+  const count = 9;
+  for (let i = 0; i < count; i++) {
+    let r = Math.random(), cumulative = 0, type = PRIZE_TYPES[0];
+    for (const t of PRIZE_TYPES) { cumulative += t.weight; if (r <= cumulative) { type = t; break; } }
+
+    const geo = new THREE.BoxGeometry(type.size[0], type.size[1], type.size[2]);
+    const mat = new THREE.MeshStandardMaterial({ color: type.color, metalness:0.4, roughness:0.5, emissive: type.color, emissiveIntensity: 0.25 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+
+    let px, pz, tries = 0;
+    do {
+      px = (Math.random() - 0.5) * 7.5;
+      pz = (Math.random() - 0.5) * 7.5;
+      tries++;
+    } while (tries < 20 && Math.hypot(px - game.chutePos.x, pz - game.chutePos.z) < 2.0);
+
+    mesh.position.set(px, type.size[1]/2 + 0.05, pz);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+    scene.add(mesh);
+
+    prizes.push({ mesh, type, size: type.size, grabbed: false, delivered: false, falling: false, fallVel: 0 });
+  }
+}
+
+function setClawClose(amount) {
+  const fingers = clawAssembly.userData.fingers;
+  if (!fingers) return;
+  const openRot = 0.8; const closedRot = -0.4; 
+  const rot = openRot - amount * (openRot - closedRot);
+  fingers.forEach(rotator => { rotator.rotation.x = rot; });
+}
+
+function updatePhysics(dt) {
+  dt = Math.min(dt, 0.033);
+  const t = phys.trolley;
+  const p = phys.pendulum;
+
+  let ax = 0, az = 0;
+  if (game.state === 'IDLE') {
+    if (input.left)  ax -= TROLLEY_ACCEL;
+    if (input.right) ax += TROLLEY_ACCEL;
+    if (input.forward) az -= TROLLEY_ACCEL;
+    if (input.back)    az += TROLLEY_ACCEL;
+  }
+
+  t.vx += ax * dt; t.vz += az * dt;
+  const fr = Math.pow(TROLLEY_FRICTION, dt * 60);
+  t.vx *= fr; t.vz *= fr;
+
+  const sp = Math.hypot(t.vx, t.vz);
+  if (sp > TROLLEY_MAX_VEL) { t.vx = (t.vx / sp) * TROLLEY_MAX_VEL; t.vz = (t.vz / sp) * TROLLEY_MAX_VEL; }
+
+  t.x += t.vx * dt; t.z += t.vz * dt;
+
+  if (t.x > TROLLEY_LIMIT) { const dv = t.vx; t.x = TROLLEY_LIMIT; t.vx = -t.vx * 0.3; p.omegaX += dv * 0.9; } 
+  else if (t.x < -TROLLEY_LIMIT) { const dv = t.vx; t.x = -TROLLEY_LIMIT; t.vx = -t.vx * 0.3; p.omegaX += dv * 0.9; }
+  if (t.z > TROLLEY_LIMIT) { const dv = t.vz; t.z = TROLLEY_LIMIT; t.vz = -t.vz * 0.3; p.omegaZ += dv * 0.9; } 
+  else if (t.z < -TROLLEY_LIMIT) { const dv = t.vz; t.z = -TROLLEY_LIMIT; t.vz = -t.vz * 0.3; p.omegaZ += dv * 0.9; }
+
+  const effAx = ax - t.vx * 3.0; const effAz = az - t.vz * 3.0;
+  const L = Math.max(0.5, phys.cableLength);
+
+  const alphaX = -(GRAVITY/L) * Math.sin(p.thetaX) - PENDULUM_DAMPING * p.omegaX - (effAx/L) * Math.cos(p.thetaX);
+  const alphaZ = -(GRAVITY/L) * Math.sin(p.thetaZ) - PENDULUM_DAMPING * p.omegaZ - (effAz/L) * Math.cos(p.thetaZ);
+
+  p.omegaX += alphaX * dt; p.omegaZ += alphaZ * dt;
+  p.thetaX += p.omegaX * dt; p.thetaZ += p.omegaZ * dt;
+
+  if (p.thetaX >  MAX_SWING) { p.thetaX =  MAX_SWING; p.omegaX *= -0.3; }
+  if (p.thetaX < -MAX_SWING) { p.thetaX = -MAX_SWING; p.omegaX *= -0.3; }
+  if (p.thetaZ >  MAX_SWING) { p.thetaZ =  MAX_SWING; p.omegaZ *= -0.3; }
+  if (p.thetaZ < -MAX_SWING) { p.thetaZ = -MAX_SWING; p.omegaZ *= -0.3; }
+
+  gantry.position.x = t.x; trolley.position.z = t.z;
+
+  const sinX = Math.sin(p.thetaX), cosX = Math.cos(p.thetaX);
+  const sinZ = Math.sin(p.thetaZ), cosZ = Math.cos(p.thetaZ);
+  clawAssembly.position.x = L * sinX; clawAssembly.position.z = L * sinZ; clawAssembly.position.y = -L * cosX * cosZ;
+  clawAssembly.rotation.z = p.thetaX; clawAssembly.rotation.x = -p.thetaZ;
+
+  const cableLen = clawAssembly.position.length();
+  cable.scale.y = cableLen;
+  cable.position.copy(clawAssembly.position).multiplyScalar(0.5);
+  const cableDir = new THREE.Vector3().copy(clawAssembly.position).normalize();
+  cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cableDir);
+}
+
+function getClawTipWorld() {
+  const v = new THREE.Vector3();
+  clawAssembly.userData.grabCenter.getWorldPosition(v);
+  return v;
+}
+
+function getDropStopY() {
+  const tip = getClawTipWorld();
+  let stopY = FLOOR_Y - 0.5; 
+  for (const p of prizes) {
+    if (p.delivered || p.grabbed) continue;
+    const dx = p.mesh.position.x - tip.x;
+    const dz = p.mesh.position.z - tip.z;
+    const halfX = p.size[0]/2 + 0.15;
+    const halfZ = p.size[2]/2 + 0.15;
+    if (Math.abs(dx) < halfX && Math.abs(dz) < halfZ) {
+      const prizeTopY = p.mesh.position.y + p.size[1]/2;
+      if (prizeTopY > stopY) stopY = prizeTopY;
+    }
+  }
+  return stopY;
+}
+
+function updateState(dt) {
+  game.stateTimer += dt;
+  const t = phys.trolley;
+
+  prizes.forEach(p => {
+    if (p.falling) {
+      p.fallVel += 15 * dt;
+      p.mesh.position.y -= p.fallVel * dt;
+      const floorY = p.size[1]/2 + 0.05;
+      if (p.mesh.position.y < floorY) { p.mesh.position.y = floorY; p.falling = false; p.fallVel = 0; }
+    }
+  });
+
+  switch (game.state) {
+    case 'WAITING':
+      setClawClose(0);
+      break;
+
+    case 'IDLE':
+      if (game.timeLeft > 0) {
+        game.timeLeft -= dt;
+        document.getElementById('time-display').textContent = Math.ceil(game.timeLeft);
+        if (game.timeLeft <= 0) {
+          game.timeLeft = 0;
+          document.getElementById('time-display').textContent = '0';
+          triggerGrab();
+        }
+      }
+      setClawClose(0);
+      break;
+
+    case 'DROPPING':
+      phys.cableLength += 4.5 * dt;
+      const stopY = getDropStopY();
+      const currentTipY = getClawTipWorld().y;
+      
+      if (currentTipY <= stopY || phys.cableLength >= MAX_CABLE) {
+        game.state = 'GRABBING'; game.stateTimer = 0; setStatus('GRABBING...');
+        grabLight.position.copy(getClawTipWorld()); grabLight.position.y += 0.5;
+      }
+      break;
+
+    case 'GRABBING':
+      grabLight.intensity = 2 + Math.sin(game.stateTimer * 20) * 1.5;
+      const closeAmt = Math.min(1, game.stateTimer * 3);
+      setClawClose(closeAmt);
+      clawAssembly.rotation.z += (Math.random() - 0.5) * 0.03 * closeAmt;
+      clawAssembly.rotation.x += (Math.random() - 0.5) * 0.03 * closeAmt;
+      
+      if (game.stateTimer > 0.8) attemptGrab();
+      break;
+
+    case 'LIFTING':
+      phys.cableLength -= 4.0 * dt;
+      
+      if (heldPrize) {
+        const tip = getClawTipWorld();
+        heldPrize.mesh.position.set(tip.x, tip.y - heldPrize.size[1]/2 - 0.1, tip.z);
+        
+        if (!game.slipChecked && phys.cableLength < (MAX_CABLE + DEFAULT_CABLE) / 2) {
+          game.slipChecked = true;
+          const slipChance = Math.max(0, heldPrize.type.slipRate / game.currentLuck);
+          if (!game.easterEgg && Math.random() < slipChance) {
+            game.lastMissReason = `The ${heldPrize.type.name} slipped from the weak grip!`;
+            heldPrize.falling = true; heldPrize.fallVel = 0; heldPrize.grabbed = false; heldPrize = null;
+            setClawClose(0.4); 
+          }
+        }
+      }
+      
+      if (phys.cableLength <= DEFAULT_CABLE) {
+        phys.cableLength = DEFAULT_CABLE;
+        if (heldPrize) { game.state = 'DELIVERING'; game.stateTimer = 0; setStatus('DELIVERING...'); } 
+        else { finishRound(); }
+      }
+      break;
+
+    case 'DELIVERING':
+      setClawClose(1);
+      const dx = game.chutePos.x - t.x; const dz = game.chutePos.z - t.z;
+      const dist = Math.hypot(dx, dz);
+      
+      if (dist > 0.3) { t.vx = (dx / dist) * 3.5; t.vz = (dz / dist) * 3.5; } 
+      else {
+        t.vx *= 0.5; t.vz *= 0.5;
+        if (dist < 0.3 && Math.hypot(t.vx, t.vz) < 0.2) {
+          if (heldPrize) {
+            scene.remove(heldPrize.mesh);
+            heldPrize.delivered = true;
+            game.prizesWon++;
+            updateHUD();
+            game.lastPrizeName = heldPrize.type.name;
+            heldPrize = null;
+          }
+          
+          document.getElementById('grab-btn').classList.add('hidden');
+          document.getElementById('start-btn').classList.remove('hidden');
+
+          game.state = 'WIN'; game.stateTimer = 0; showWinModal();
+        }
+      }
+      t.x += t.vx * dt; t.z += t.vz * dt;
+      t.x = Math.max(-TROLLEY_LIMIT, Math.min(TROLLEY_LIMIT, t.x));
+      t.z = Math.max(-TROLLEY_LIMIT, Math.min(TROLLEY_LIMIT, t.z));
+      break;
+  }
+}
+
+function attemptGrab() {
+  const tip = getClawTipWorld();
+  const swayMag = Math.hypot(phys.pendulum.thetaX, phys.pendulum.thetaZ);
+
+  let closest = null, closestDist = Infinity;
+  for (const p of prizes) {
+    if (p.delivered || p.grabbed || p.falling) continue;
+    const dx = p.mesh.position.x - tip.x; const dz = p.mesh.position.z - tip.z;
+    const d = Math.hypot(dx, dz);
+    if (d < closestDist) { closestDist = d; closest = p; }
+  }
+
+  const grabRadius = closest ? Math.max(closest.size[0], closest.size[2]) * 0.5 + 0.2 : 0.3;
+
+  if (closest && closestDist < grabRadius) {
+    const swayPenalty = Math.min(0.5, swayMag * 0.8);
+    let rate = Math.min(1, closest.type.grabRate * game.currentLuck * (1 - swayPenalty));
+    if (game.easterEgg) rate = 1.0;
+
+    if (Math.random() < rate) {
+      heldPrize = closest; heldPrize.grabbed = true; game.slipChecked = false;
+      setStatus('GOT IT! LIFTING...'); game.state = 'LIFTING'; game.stateTimer = 0;
+      return;
+    } else { game.lastMissReason = `Claw touched the ${closest.type.name} but couldn't grip!`; }
+  } else {
+    game.lastMissReason = swayMag > 0.3 ? 'Swayed off target — depth tricked you!' : 'No prize at grab point.';
+  }
+
+  game.state = 'LIFTING'; game.stateTimer = 0; setStatus('LIFTING...');
+}
+
+function finishRound() {
+  grabLight.intensity = 0;
+  setClawClose(0);
+
+  document.getElementById('grab-btn').classList.add('hidden');
+  document.getElementById('start-btn').classList.remove('hidden');
+
+  if (!heldPrize) {
+    game.state = 'MISS';
+    setStatus('MISSED');
+    showMissModal();
+  }
+}
+
+function resetTrolleyToChute() {
+  phys.trolley.x = game.chutePos.x;
+  phys.trolley.z = game.chutePos.z;
+  phys.trolley.vx = 0;
+  phys.trolley.vz = 0;
+  phys.cableLength = DEFAULT_CABLE;
+}
+
+function setupCameraControls() {
+  const canvas = document.getElementById('game-canvas');
+  const onStart = (x, y) => { isDragging = true; prevMouseX = x; prevMouseY = y; };
+  const onMove = (x, y) => {
+    if (!isDragging) return;
+    const dx = x - prevMouseX; prevMouseX = x;
+    const dy = y - prevMouseY; prevMouseY = y;
+    targetCameraAngle -= dx * 0.005;
+    targetCameraAngle = Math.max(-1.745, Math.min(1.745, targetCameraAngle));
+    targetCameraPitch += dy * 0.005;
+    targetCameraPitch = Math.max(-0.32, Math.min(0.45, targetCameraPitch));
+  };
+  const onEnd = () => { isDragging = false; };
+
+  canvas.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', onEnd);
+  
+  canvas.addEventListener('touchstart', e => { if(e.touches.length>0) onStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  canvas.addEventListener('touchmove', e => { if(e.touches.length>0) onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  canvas.addEventListener('touchend', onEnd);
+}
+
+function updateCameraPosition() {
+  cameraAngle += (targetCameraAngle - cameraAngle) * 0.1;
+  cameraPitch += (targetCameraPitch - cameraPitch) * 0.1;
+  const isPortrait = camera.aspect < 1;
+  const dynamicZoom = isPortrait ? Math.min(1.6, 1.3 / camera.aspect) : 1.0;
+  const radius = 13.5 * dynamicZoom; const height = 4.8 * (isPortrait ? 1.1 : 1.0);
+
+  const flatRadius = radius * Math.cos(cameraPitch);
+  camera.position.x = Math.sin(cameraAngle) * flatRadius;
+  camera.position.z = Math.cos(cameraAngle) * flatRadius;
+  camera.position.y = height + radius * Math.sin(cameraPitch);
+  camera.lookAt(0, isPortrait ? 2.2 : 1.8, 0);
+}
+
+function setStatus(s) { document.getElementById('status-text').textContent = s; }
+function updateHUD() {
+  document.getElementById('coin-display').textContent = game.easterEgg ? '∞' : game.coinQueue.length;
+  document.getElementById('prize-display').textContent = game.prizesWon;
+  renderCreditQueue();
+}
+function renderCreditQueue() {
+  const el = document.getElementById('credit-queue');
+  if (!el) return;
+  if (game.easterEgg) {
+    el.innerHTML = `<div class="px-2 py-0.5 rounded border border-[#F1F2F5]/60 bg-[#F1F2F5]/10 text-[#F1F2F5] text-[10px] font-display font-bold">∞ DEV COIN</div>`;
+    return;
+  }
+  el.innerHTML = game.coinQueue.map((c, i) => {
+    const isTen = c.value === 10;
+    const border = isTen ? 'border-[#F1F2F5]/70 text-[#F1F2F5]' : 'border-[#55F1F8]/60 text-[#55F1F8]';
+    const nextTag = i === 0 ? 'ring-2 ring-white/60' : '';
+    return `<div class="px-1.5 py-0.5 rounded border ${border} ${nextTag} bg-black/50 text-[10px] font-display font-bold leading-tight text-center">₱${c.value}<br><span class="text-[8px] font-normal opacity-70">${c.luck}x</span></div>`;
+  }).join('');
+}
+function updateSwayHUD() {
+  const mag = Math.hypot(phys.pendulum.thetaX, phys.pendulum.thetaZ);
+  const deg = Math.round(mag * 180 / Math.PI);
+  const pct = Math.min(100, (mag / MAX_SWING) * 100);
+  document.getElementById('sway-bar').style.width = pct + '%';
+  document.getElementById('sway-val').textContent = deg + '°';
+}
+
+function showWinModal() { document.getElementById('win-prize-name').textContent = game.lastPrizeName; document.getElementById('win-modal').classList.remove('hidden'); }
+function showMissModal() { document.getElementById('miss-reason').textContent = game.lastMissReason; document.getElementById('miss-modal').classList.remove('hidden'); }
+function showOverModal() { document.getElementById('over-prizes').textContent = game.prizesWon; document.getElementById('over-modal').classList.remove('hidden'); }
+function hideAllModals() { ['win-modal','miss-modal','over-modal'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+
+function triggerStart() {
+  if (game.state !== 'WAITING') return;
+  if (game.coinQueue.length <= 0 && !game.easterEgg) {
+    setStatus('INSERT COIN FIRST');
+    const btn = document.getElementById('insert-btn');
+    btn.classList.add('flicker');
+    setTimeout(() => btn.classList.remove('flicker'), 500);
+    return;
+  }
+
+  if (game.easterEgg) {
+    game.currentLuck = 1.0; // rate is forced to 1.0 anyway in easter egg mode
+  } else {
+    const coin = game.coinQueue.shift(); // machine uses the FIRST credit in queue
+    game.currentLuck = coin.luck;
+  }
+  updateHUD();
+
+  game.state = 'IDLE';
+  game.timeLeft = 45; // always 45s, regardless of coin value
+  document.getElementById('time-display').textContent = '45';
+
+  setStatus(game.currentLuck > 1 ? `READY — ${game.currentLuck}x LUCK ACTIVE` : 'READY — MOVE & GRAB');
+  document.getElementById('start-btn').classList.add('hidden');
+  document.getElementById('grab-btn').classList.remove('hidden');
+}
+
+function triggerGrab() {
+  if (game.state !== 'IDLE') return;
+  game.state = 'DROPPING'; game.stateTimer = 0; setStatus('DROPPING...');
+  document.getElementById('grab-btn').classList.add('hidden');
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  updatePhysics(dt); updateState(dt); updateSwayHUD(); updateCameraPosition();
+  if (grabLight.intensity > 0) grabLight.position.copy(getClawTipWorld());
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  const canvas = document.getElementById('game-canvas');
+  const w = canvas.clientWidth || window.innerWidth;
+  const h = canvas.clientHeight || window.innerHeight;
+  camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h, false);
+}
+
+function setupInput() {
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ') {
+      if (game.state === 'WAITING') triggerStart();
+      else if (game.state === 'IDLE') triggerGrab();
+      e.preventDefault();
+    }
+    
+    if (game.state !== 'IDLE') return;
+    switch (e.key.toLowerCase()) {
+      case 'arrowleft': case 'a': input.left = true; e.preventDefault(); break;
+      case 'arrowright': case 'd': input.right = true; e.preventDefault(); break;
+      case 'arrowup': case 'w': input.forward = true; e.preventDefault(); break;
+      case 'arrowdown': case 's': input.back = true; e.preventDefault(); break;
+    }
+  });
+  
+  window.addEventListener('keyup', (e) => {
+    switch (e.key.toLowerCase()) {
+      case 'arrowleft': case 'a': input.left = false; break;
+      case 'arrowright': case 'd': input.right = false; break;
+      case 'arrowup': case 'w': input.forward = false; break;
+      case 'arrowdown': case 's': input.back = false; break;
+    }
+  });
+
+  document.querySelectorAll('[data-dir]').forEach(btn => {
+    const dir = btn.dataset.dir;
+    const press = (e) => { e.preventDefault(); if (dir==='left') input.left=true; if (dir==='right') input.right=true; if (dir==='forward') input.forward=true; if (dir==='back') input.back=true; };
+    const release = (e) => { e.preventDefault(); input.left=false; input.right=false; input.forward=false; input.back=false; };
+    btn.addEventListener('mousedown', press); btn.addEventListener('mouseup', release); btn.addEventListener('mouseleave', release);
+    btn.addEventListener('touchstart', press, {passive:false}); btn.addEventListener('touchend', release);
+  });
+
+  document.getElementById('start-btn').addEventListener('click', triggerStart);
+  document.getElementById('grab-btn').addEventListener('click', triggerGrab);
+  const insertBtn = document.getElementById('insert-btn');
+  const coinSelect = document.getElementById('coin-select');
+
+  insertBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    coinSelect.classList.toggle('hidden');
+  });
+
+  document.querySelectorAll('.coin-opt').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const val = parseInt(btn.dataset.coin, 10);
+      const coinType = COIN_TYPES[val];
+      game.coinQueue.push({ value: coinType.value, luck: coinType.luck }); // each coin remembers what it is
+      updateHUD();
+      if (game.state === 'WAITING') setStatus('PRESS START');
+      coinSelect.classList.add('hidden');
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!coinSelect.classList.contains('hidden') && !coinSelect.contains(e.target) && e.target !== insertBtn) {
+      coinSelect.classList.add('hidden');
+    }
+  });
+
+  document.getElementById('continue-btn').addEventListener('click', () => {
+    hideAllModals();
+    resetTrolleyToChute();
+    if (game.coinQueue.length <= 0 && !game.easterEgg) { game.state = 'OVER'; showOverModal(); } 
+    else { game.state = 'WAITING'; document.getElementById('time-display').textContent = '--'; setStatus('PRESS START'); }
+  });
+  
+  document.getElementById('miss-continue').addEventListener('click', () => {
+    hideAllModals();
+    resetTrolleyToChute();
+    if (game.coinQueue.length <= 0 && !game.easterEgg) { game.state = 'OVER'; showOverModal(); } 
+    else { game.state = 'WAITING'; document.getElementById('time-display').textContent = '--'; setStatus('PRESS START'); }
+  });
+  
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    hideAllModals();
+    document.getElementById('time-display').textContent = '--';
+    game.state = 'WAITING'; game.prizesWon = 0; updateHUD(); setStatus('INSERT COIN');
+    spawnPrizes();
+    
+    resetTrolleyToChute();
+    
+    document.getElementById('grab-btn').classList.add('hidden');
+    document.getElementById('start-btn').classList.remove('hidden');
+  });
+
+  let logoClicks = 0, logoTimer = null;
+  document.getElementById('logo').addEventListener('click', () => {
+    logoClicks++;
+    clearTimeout(logoTimer);
+    logoTimer = setTimeout(() => logoClicks = 0, 2000);
+    if (logoClicks >= 5) {
+      game.easterEgg = true;
+      for (let i = 0; i < 999; i++) game.coinQueue.push({ value: 10, luck: 1.5 });
+      updateHUD();
+      document.getElementById('dev-badge').classList.remove('hidden');
+      if (game.state === 'WAITING') setStatus('DEV MODE - PRESS START');
+      logoClicks = 0;
+    }
+  });
+}
+
+window.addEventListener('load', () => {
+  setupInput();
+  init();
+});
+</script>
+</body>
+</html>

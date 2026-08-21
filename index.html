@@ -1,0 +1,714 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/session.php';
+// csrf_token() starts the session (if needed) and returns the token,
+// generating one on first visit. This MUST run before any HTML output,
+// which is why it's at the very top of the file rather than inline
+// further down -- session_start() cannot fire after headers/output begin.
+$aghiCsrfToken = csrf_token();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/js/reactions.js" defer></script>
+<script src="js/emoji-picker-core.js"></script>
+<script src="js/comment-reactions.js"></script>
+<script src="js/comments.js"></script>
+<script>
+  function getTwemojiUrl(emoji) {
+    const codePoints = Array.from(emoji)
+      .map((c) => c.codePointAt(0).toString(16))
+      .filter((c) => c !== 'fe0f')
+      .join('-');
+    return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codePoints}.png`;
+  }
+</script>
+<meta name="csrf-token" content="<?php echo htmlspecialchars($aghiCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aghimuan Network PCU-D</title>
+<meta name="description" content="Aghimuan is the ICT student organization of Philippine Christian University - Dasmariñas, focused on robotics, programming, and system servicing.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="Aghimuan Network PCU-D">
+<meta property="og:description" content="The ICT student organization of Philippine Christian University - Dasmariñas, focused on robotics, programming, and system servicing.">
+<meta property="og:url" content="https://aghimuan.renyuzaki.me/">
+<meta property="og:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Aghimuan Network PCU-D">
+<meta name="twitter:description" content="The ICT student organization of Philippine Christian University - Dasmariñas, focused on robotics, programming, and system servicing.">
+<meta name="twitter:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css?v=4">
+<style>
+  .mobile-tab-bar {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .mobile-tab-bar {
+      display: flex;
+      gap: 6px;
+      margin: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      background: var(--bg-dark, #0d0d10);
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mobile-tab-bar .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-faint, #888);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .mobile-tab-bar .tab-btn.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .grid-col.tab-hidden-mobile {
+      display: none !important;
+    }
+  }
+
+  /* Monogram avatar for "post as <user>" announcements — same box as
+     .fb-avatar (img), just a colored circle + initial instead of an image.
+     Sizing intentionally NOT hardcoded here beyond what .fb-avatar already
+     sets in the main stylesheet; only the parts an <img> can't do (centering
+     the letter, font) are added. */
+  .fb-avatar-mono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .fb-post-name[data-aghi-username] {
+    cursor: pointer;
+  }
+  .fb-post-name[data-aghi-username]:hover {
+    text-decoration: underline;
+  }
+
+  /* Pinned announcements — subtle accent border + small badge above the
+     post head, reusing the site's cyan accent. */
+  .fb-post-is-pinned {
+    border: 1px solid rgba(85, 241, 248, 0.3) !important;
+    background: linear-gradient(135deg, rgba(85, 241, 248, 0.05) 0%, transparent 100%) !important;
+    box-shadow: 0 0 20px rgba(85, 241, 248, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fb-post-is-pinned::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: #55F1F8;
+    box-shadow: 0 0 8px #55F1F8;
+  }
+
+  .fb-post-pinned {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #55F1F8;
+    background: rgba(85, 241, 248, 0.08);
+    border: 1px solid rgba(85, 241, 248, 0.25);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+
+  .fb-post-pinned .pin-pulse {
+    width: 6px;
+    height: 6px;
+    background-color: #55F1F8;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #55F1F8;
+    animation: pinPulse 2s infinite ease-in-out;
+  }
+
+  @keyframes pinPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a href="index.html" class="brand-block" style="display:flex;flex-direction:column;gap:2px;">
+        <span class="brand">AGHIMUAN<span class="brand-dot">.</span> NETWORK</span>
+        <span class="motto">Connect &middot; Innovate &middot; Explore</span>
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&times;</button>
+    </div>
+
+    <nav class="sidebar-rail" aria-label="Primary">
+      <a href="index.html" class="rail-link" aria-current="page"><span class="node"></span>Home</a>
+      <a href="about.html" class="rail-link"><span class="node"></span>About</a>
+      <a href="faq.html" class="rail-link"><span class="node"></span>FAQ</a>
+      <a href="reviewers.html" class="rail-link"><span class="node"></span>Reviewers</a>
+      <a href="games/index.html" class="rail-link"><span class="node"></span>Games</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);">PCU-D · ICT ORG</span>
+      <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+      </a>
+    </div>
+  </aside>
+
+  <div class="app-main">
+
+    <header class="app-topbar">
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="appSidebar">menu</button>
+      <div class="topbar-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-line"><span id="bootText"></span><span class="caret"></span></span>
+      </div>
+      <div class="topbar-clock" id="topbarClock" aria-hidden="true"></div>
+      <div id="aghi-account-widget"></div>
+      <script src="/js/account-widget.js" defer></script>
+      <script src="/js/user-profile-popup.js"></script>
+      <script src="/js/comments.js" defer></script>
+      <script src="/js/member-list.js" defer></script>
+    </header>
+
+    <main id="main">
+
+      <section class="welcome-banner">
+        <span class="eyebrow">PCU-Dasmariñas · ICT Student Organization</span>
+        <h1>Building the <span class="accent">circuits</span> behind PCU-D's next builders.</h1>
+        <p class="lede">Aghimuan is the home base for students working in robotics, programming, and system servicing — a place to learn by building, and to build alongside people who already speak the same language.</p>
+        <div class="banner-cta">
+          <a href="about.html" class="btn btn-solid">Meet the club</a>
+          <a href="reviewers.html" class="btn">Browse reviewers</a>
+        </div>
+      </section>
+
+      <div class="mobile-tab-bar" id="mobileTabBar">
+        <button type="button" class="tab-btn active" data-tab="announcements">Announcements</button>
+        <button type="button" class="tab-btn" data-tab="events">Events & Links</button>
+      </div>
+
+      <div class="dashboard-grid">
+
+        <div class="grid-col" id="colAnnouncements">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Announcements</h2>
+              <span class="panel-tag">Latest updates</span>
+            </div>
+            <div id="announcements-container"></div>
+          </section>
+        </div>
+
+        <div class="grid-col tab-hidden-mobile" id="colEvents">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Upcoming Events</h2>
+              <span class="panel-tag">Schedule</span>
+            </div>
+            <div id="events-container"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Focus Areas</h2>
+              <span class="panel-tag">3 disciplines</span>
+            </div>
+            <div class="focus-list">
+              <div class="focus-row">
+                <div class="icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="8" width="12" height="10" rx="2"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M12 8V4M9 4h6"/></svg>
+                </div>
+                <div>
+                  <h3>Robotics</h3>
+                  <p>Hands-on builds, sensor logic, and competition prep.</p>
+                </div>
+              </div>
+              <div class="focus-row">
+                <div class="icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12"/></svg>
+                </div>
+                <div>
+                  <h3>Computer Programming</h3>
+                  <p>Workshops and project sprints, first-year to team builds.</p>
+                </div>
+              </div>
+              <div class="focus-row">
+                <div class="icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg>
+                </div>
+                <div>
+                  <h3>System Servicing</h3>
+                  <p>Hardware diagnostics, networking, and maintenance skills.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Quick Links</h2>
+            </div>
+            <div class="quicklinks">
+              <a href="about.html">&rarr; About Aghimuan</a>
+              <a href="faq.html">&rarr; FAQ</a>
+              <a href="reviewers.html">&rarr; ICT Reviewers</a>
+              <a href="games/index.html">&rarr; Games</a>
+            </div>
+          </section>
+        </div>
+
+      </div>
+
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-brand">AGHIMUAN</div>
+        <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+        <div class="foot-social">
+          <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+            Facebook
+          </a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox">
+  <div class="lightbox-stage">
+    <button type="button" class="lightbox-arrow prev" id="lightboxPrev" aria-label="Previous photo">&#8249;</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="Announcement photo, full size">
+    <button type="button" class="lightbox-arrow next" id="lightboxNext" aria-label="Next photo">&#8250;</button>
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+
+<script>
+  // ---------- mobile tab switching ----------
+  const tabBtns = document.querySelectorAll('#mobileTabBar .tab-btn');
+  const colAnnouncements = document.getElementById('colAnnouncements');
+  const colEvents = document.getElementById('colEvents');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const selected = btn.dataset.tab;
+      if (selected === 'announcements') {
+        colAnnouncements.classList.remove('tab-hidden-mobile');
+        colEvents.classList.add('tab-hidden-mobile');
+      } else {
+        colAnnouncements.classList.add('tab-hidden-mobile');
+        colEvents.classList.remove('tab-hidden-mobile');
+      }
+    });
+  });
+
+  // ---------- sidebar drawer (mobile) ----------
+  const appSidebar = document.getElementById('appSidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebarClose = document.getElementById('sidebarClose');
+
+  function openDrawer() {
+    appSidebar.classList.add('open');
+    sidebarBackdrop.classList.add('open');
+    menuToggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeDrawer() {
+    appSidebar.classList.remove('open');
+    sidebarBackdrop.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  }
+  menuToggle.addEventListener('click', () => {
+    appSidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  sidebarClose.addEventListener('click', closeDrawer);
+  sidebarBackdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // ---------- topbar status line (former boot terminal, now a quiet status readout) ----------
+  const lines = [
+    "aghimuan.net // status: online",
+  ];
+  const el = document.getElementById('bootText');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion) {
+    el.textContent = lines[0];
+  } else {
+    let charIndex = 0;
+    const current = lines[0];
+    function typeStep() {
+      if (charIndex <= current.length) {
+        el.textContent = current.slice(0, charIndex);
+        charIndex++;
+        setTimeout(typeStep, 28);
+      }
+    }
+    typeStep();
+  }
+
+  // ---------- topbar live clock ----------
+  const clockEl = document.getElementById('topbarClock');
+  function updateClock() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    clockEl.textContent = `${dateStr} · ${timeStr}`;
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  // ---------- announcements ----------
+  let galleryStore = [];
+
+  // Matches user-profile-popup.js's PFP_PRESETS exactly, so a "post as <user>"
+  // announcement's monogram avatar renders the same color as it would in
+  // that user's popup/profile elsewhere on the site.
+  const PFP_PRESETS = [
+    { id: 'default',      color: '#5F5E5A' },
+    { id: 'circuit-blue', color: '#185FA5' },
+    { id: 'circuit-cyan', color: '#0F6E56' },
+    { id: 'node-teal',    color: '#04342C' },
+    { id: 'spark-orange', color: '#993C1D' },
+    { id: 'wire-purple',  color: '#534AB7' },
+    { id: 'chip-green',   color: '#3B6D11' },
+    { id: 'signal-pink',  color: '#993556' },
+  ];
+  const PRESET_IDS = PFP_PRESETS.map(p => p.id);
+
+  function presetColor(pfpId) {
+    const match = PFP_PRESETS.find((p) => p.id === pfpId);
+    return (match || PFP_PRESETS[0]).color;
+  }
+
+  // Mirrors basename() in api/user-profile.php — strips any directory
+  // component so a stored pfp_id can only ever resolve inside /uploads/pfp/.
+  function jsBasename(path) {
+    return String(path).split(/[\\/]/).pop();
+  }
+
+  // Same resolution rule as api/user-profile.php: a null/empty pfp_id is
+  // 'default'; a value in PRESET_IDS is a color preset (monogram); anything
+  // else is an uploaded avatar filename under /uploads/pfp/.
+  function resolveAvatar(pfpId) {
+    const id = (pfpId !== null && pfpId !== undefined && pfpId !== '') ? pfpId : 'default';
+    const isPreset = PRESET_IDS.includes(id);
+    return {
+      isPreset,
+      color: isPreset ? presetColor(id) : null,
+      url: isPreset ? null : ('/uploads/pfp/' + jsBasename(id)),
+    };
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function getPostImages(post) {
+    if (Array.isArray(post.images) && post.images.length) return post.images;
+    if (post.image) return [post.image];
+    return [];
+  }
+
+  function renderGallery(images) {
+    if (!images.length) return '';
+
+    const galleryIndex = galleryStore.length;
+    galleryStore.push(images);
+
+    const count = images.length;
+    const countClass =
+      count === 1 ? 'gallery-count-1' :
+      count === 2 ? 'gallery-count-2' :
+      count === 3 ? 'gallery-count-3' :
+      count === 4 ? 'gallery-count-4' : 'gallery-count-5plus';
+
+    const visible = count > 4 ? images.slice(0, 4) : images;
+
+    const items = visible.map((src, i) => {
+      const overlay = (count > 4 && i === 3)
+        ? `<div class="gallery-more-overlay">+${count - 4}</div>`
+        : '';
+      return `
+        <div class="gallery-item" data-gallery="${galleryIndex}" data-index="${i}" onclick="openLightbox(this)">
+          <img src="${src}" alt="Announcement photo ${i + 1}" loading="lazy">
+          ${overlay}
+        </div>`;
+    }).join('');
+
+    return `<div class="announcement-gallery ${countClass}">${items}</div>`;
+  }
+
+  async function loadAnnouncements() {
+  const container = document.getElementById('announcements-container');
+  galleryStore = [];
+  try {
+    const response = await fetch('announcements.json?v=' + Date.now());
+    const posts = await response.json();
+
+    if (!posts || posts.length === 0) {
+      container.innerHTML = '<p class="empty-state">No announcements posted yet.</p>';
+      return;
+    }
+
+    // Pinned announcements float to the top (most recently pinned first);
+    // everything else keeps the normal newest-first order below them.
+    posts.sort((a, b) => {
+      const aPinned = !!a.pinned;
+      const bPinned = !!b.pinned;
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      if (aPinned) return (b.pinned_at || 0) - (a.pinned_at || 0);
+      return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+
+    container.innerHTML = posts.map(post => {
+      const isUserPost = !!(post.poster_user_id && post.poster_username);
+      const avatar = isUserPost ? resolveAvatar(post.poster_pfp_id) : null;
+      const avatarHtml = isUserPost
+        ? (avatar.isPreset
+            ? `<div class="fb-avatar fb-avatar-mono" style="background-color:${avatar.color}" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">${escapeHtml(post.poster_username.charAt(0).toUpperCase())}</div>`
+            : `<img class="fb-avatar" src="${avatar.url}" alt="${escapeHtml(post.poster_username)}" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">`)
+        : '';
+      const headHtml = isUserPost ? `
+          ${avatarHtml}
+          <div class="fb-post-meta">
+            <span class="fb-post-name" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">${escapeHtml(post.poster_username)}</span>
+            <span class="fb-post-sub">
+              <span>${post.date_formatted}</span>
+              <svg class="fb-globe" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c2.1 1.9 2.1 10.7 0 12.6M8 1.7c-2.1 1.9-2.1 10.7 0 12.6"/></svg>
+            </span>
+          </div>` : `
+          <img class="fb-avatar" src="favicon-32.png" alt="Aghimuan logo">
+          <div class="fb-post-meta">
+            <span class="fb-post-name">Aghimuan Club</span>
+            <span class="fb-post-sub">
+              <span>${post.date_formatted}</span>
+              <svg class="fb-globe" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c2.1 1.9 2.1 10.7 0 12.6M8 1.7c-2.1 1.9-2.1 10.7 0 12.6"/></svg>
+            </span>
+          </div>`;
+
+      const pinnedBadge = post.pinned ? `
+        <div class="fb-post-pinned">
+          <span class="pin-pulse"></span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+          Pinned
+        </div>` : '';
+
+      return `
+      <article class="fb-post${post.pinned ? ' fb-post-is-pinned' : ''}">
+        ${pinnedBadge}
+        <div class="fb-post-head">
+          ${headHtml}
+          <span class="fb-post-dots" aria-hidden="true">&#8942;</span>
+        </div>
+        ${post.text ? `<div class="fb-post-text">${post.text}</div>` : ''}
+        ${renderGallery(getPostImages(post))}
+        ${typeof renderPostReactionSection === 'function' ? renderPostReactionSection(post.id) : ''}
+        <div class="fb-comments" data-post-id="${post.id}"></div>
+      </article>
+    `;
+    }).join('');
+
+    requestAnimationFrame(setupTextTruncation);
+    posts.forEach(post => {
+      if (window.initPostReactions) window.initPostReactions(post.id);
+    });
+    if (window.AghiComments) window.AghiComments.init();
+  } catch (err) {
+    container.innerHTML = '<p class="empty-state">Unable to load updates at this time.</p>';
+  }
+}
+
+  function setupTextTruncation() {
+    document.querySelectorAll('.fb-post-text').forEach(el => {
+      if (el.scrollHeight <= el.clientHeight + 4) return;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fb-see-more';
+      btn.textContent = 'See more';
+      btn.addEventListener('click', () => {
+        const expanded = el.classList.toggle('expanded');
+        btn.textContent = expanded ? 'See less' : 'See more';
+      });
+      el.insertAdjacentElement('afterend', btn);
+    });
+  }
+
+  loadAnnouncements();
+
+  // ---------- upcoming events ----------
+  const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  async function loadEvents() {
+    const container = document.getElementById('events-container');
+    try {
+      const response = await fetch('events.json?v=' + Date.now());
+      const events = await response.json();
+
+      if (!events || !Array.isArray(events) || events.length === 0) {
+        container.innerHTML = '<p class="empty-state">No upcoming events scheduled.</p>';
+        return;
+      }
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const upcoming = events
+        .filter(e => e.date && e.date >= todayStr)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 6);
+
+      if (upcoming.length === 0) {
+        container.innerHTML = '<p class="empty-state">No upcoming events scheduled.</p>';
+        return;
+      }
+
+      const soonCutoff = new Date();
+      soonCutoff.setDate(soonCutoff.getDate() + 7);
+
+      container.innerHTML = `<div class="events-list">${upcoming.map(ev => {
+        const d = new Date(ev.date + 'T00:00:00');
+        const isSoon = d <= soonCutoff;
+        const metaParts = [];
+        if (ev.time) metaParts.push(ev.time);
+        if (ev.location) metaParts.push(ev.location);
+        return `
+          <div class="event-row${isSoon ? ' soon' : ''}">
+            <div class="event-date-badge">
+              <span class="day">${d.getDate()}</span>
+              <span class="mon">${MONTH_ABBR[d.getMonth()]}</span>
+            </div>
+            <div class="event-body">
+              <div class="event-title">${ev.title || 'Untitled event'}</div>
+              ${metaParts.length ? `<div class="event-meta">${metaParts.map(p => `<span>${p}</span>`).join('')}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('')}</div>`;
+    } catch (err) {
+      container.innerHTML = '<p class="empty-state">Unable to load events at this time.</p>';
+    }
+  }
+
+  loadEvents();
+
+  // ---------- lightbox ----------
+  const lightboxEl = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCounter = document.getElementById('lightboxCounter');
+  const prevArrow = document.getElementById('lightboxPrev');
+  const nextArrow = document.getElementById('lightboxNext');
+
+  let currentGallery = [];
+  let currentIndex = 0;
+
+  function openLightbox(el) {
+    const galleryIndex = Number(el.dataset.gallery);
+    currentGallery = galleryStore[galleryIndex] || [];
+    currentIndex = Number(el.dataset.index);
+    updateLightbox();
+    lightboxEl.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lightboxEl.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function updateLightbox() {
+    lightboxImg.src = currentGallery[currentIndex];
+    lightboxCounter.textContent = `${currentIndex + 1} / ${currentGallery.length}`;
+    const single = currentGallery.length <= 1;
+    prevArrow.classList.toggle('hidden', single);
+    nextArrow.classList.toggle('hidden', single);
+  }
+
+  function showNext() {
+    currentIndex = (currentIndex + 1) % currentGallery.length;
+    updateLightbox();
+  }
+
+  function showPrev() {
+    currentIndex = (currentIndex - 1 + currentGallery.length) % currentGallery.length;
+    updateLightbox();
+  }
+
+  lightboxEl.addEventListener('click', (e) => {
+    if (e.target === lightboxEl) closeLightbox();
+  });
+  document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  nextArrow.addEventListener('click', showNext);
+  prevArrow.addEventListener('click', showPrev);
+
+  document.addEventListener('keydown', (e) => {
+    if (!lightboxEl.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') showNext();
+    if (e.key === 'ArrowLeft') showPrev();
+  });
+
+  // swipe support for mobile
+  let touchStartX = null;
+  lightboxEl.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  lightboxEl.addEventListener('touchend', (e) => {
+    if (touchStartX === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(deltaX) > 40) {
+      deltaX < 0 ? showNext() : showPrev();
+    }
+    touchStartX = null;
+  }, { passive: true });
+</script>
+</body>
+</html>

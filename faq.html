@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — Aghimuan</title>
+<meta name="description" content="Frequently asked questions about joining and participating in Aghimuan, the ICT student organization at PCU-D.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="FAQ — Aghimuan">
+<meta property="og:description" content="Answers to the questions members and prospective members ask most about Aghimuan.">
+<meta property="og:url" content="https://aghimuan.renyuzaki.me/faq.html">
+<meta property="og:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FAQ — Aghimuan">
+<meta name="twitter:description" content="Answers to the questions members and prospective members ask most about Aghimuan.">
+<meta name="twitter:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a href="index.html" class="brand-block" style="display:flex;flex-direction:column;gap:2px;">
+        <span class="brand">AGHIMUAN<span class="brand-dot">.</span> NETWORK</span>
+        <span class="motto">Connect &middot; Innovate &middot; Explore</span>
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&times;</button>
+    </div>
+
+    <nav class="sidebar-rail" aria-label="Primary">
+      <a href="index.html" class="rail-link"><span class="node"></span>Home</a>
+      <a href="about.html" class="rail-link"><span class="node"></span>About</a>
+      <a href="faq.html" class="rail-link" aria-current="page"><span class="node"></span>FAQ</a>
+      <a href="reviewers.html" class="rail-link"><span class="node"></span>Reviewers</a>
+      <a href="games/index.html" class="rail-link"><span class="node"></span>Games</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);">PCU-D · ICT ORG</span>
+      <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+      </a>
+    </div>
+  </aside>
+
+  <div class="app-main">
+
+    <header class="app-topbar">
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="appSidebar">menu</button>
+      <div class="topbar-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-line"><span id="bootText"></span><span class="caret"></span></span>
+      </div>
+      <div class="topbar-clock" id="topbarClock" aria-hidden="true"></div>
+      <div id="aghi-account-widget"></div>
+      <script src="/js/account-widget.js" defer></script>
+      <script src="/js/member-list.js" defer></script>
+    </header>
+
+    <main id="main">
+
+      <div class="page-head wrap">
+        <span class="eyebrow">Frequently asked</span>
+        <h1>Questions, answered.</h1>
+        <p>Everything members and prospective members ask most.</p>
+      </div>
+
+      <section>
+        <div class="wrap">
+          <div class="faq-list" id="faqList"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-brand">AGHIMUAN</div>
+        <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+        <div class="foot-social">
+          <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+            Facebook
+          </a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<script>
+  // ---------- sidebar drawer (mobile) ----------
+  const appSidebar = document.getElementById('appSidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebarClose = document.getElementById('sidebarClose');
+
+  function openDrawer() {
+    appSidebar.classList.add('open');
+    sidebarBackdrop.classList.add('open');
+    menuToggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeDrawer() {
+    appSidebar.classList.remove('open');
+    sidebarBackdrop.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  }
+  menuToggle.addEventListener('click', () => {
+    appSidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  sidebarClose.addEventListener('click', closeDrawer);
+  sidebarBackdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // ---------- topbar status line ----------
+  const lines = [
+    "aghimuan.net // status: online",
+  ];
+  const el = document.getElementById('bootText');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion) {
+    el.textContent = lines[0];
+  } else {
+    let charIndex = 0;
+    const current = lines[0];
+    function typeStep() {
+      if (charIndex <= current.length) {
+        el.textContent = current.slice(0, charIndex);
+        charIndex++;
+        setTimeout(typeStep, 28);
+      }
+    }
+    typeStep();
+  }
+
+  // ---------- topbar live clock ----------
+  const clockEl = document.getElementById('topbarClock');
+  function updateClock() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    clockEl.textContent = `${dateStr} · ${timeStr}`;
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  // ---- FAQ data: edit this array directly to update the page. ----
+  const FAQ_DATA = [
+    {
+      q: "Who can join Aghimuan?",
+      a: "Membership is open to all PCU-D students, not limited to Senior High School — the club welcomes anyone across year levels who wants to learn and build in ICT."
+    },
+    {
+      q: "Do I need prior programming or robotics experience to join?",
+      a: "No. Aghimuan runs workshops and hands-on sessions built for beginners as well as members with existing experience, so you can start wherever you are."
+    },
+    {
+      q: "What kinds of activities does the club run?",
+      a: "Workshops, hands-on project builds, robotics sessions, and collaborative work across programming and system servicing — with members often mixing all three on a single project."
+    },
+    {
+      q: "What resources are available to members?",
+      a: "A growing library of ICT reviewers covering programming, system servicing, robotics, and networking, plus peer support from members already working in those areas."
+    },
+    {
+      q: "How is the club organized?",
+      a: "Aghimuan operates as the official ICT student organization of PCU-D, with activities and resources centered on its core focus areas: robotics, programming, and computer system servicing."
+    },
+    {
+      q: "Can I contribute my own projects or resources to the club?",
+      a: "Yes — Aghimuan is built as an open-source-minded community. Bring project ideas or resource suggestions to an officer, and they can be added to the club's materials directly."
+    }
+  ];
+
+  const list = document.getElementById('faqList');
+  FAQ_DATA.forEach((item, i) => {
+    const wrapDiv = document.createElement('div');
+    wrapDiv.className = 'faq-item';
+    wrapDiv.dataset.open = 'false';
+    wrapDiv.innerHTML = `
+      <button class="faq-q" aria-expanded="false" aria-controls="faq-a-${i}" id="faq-q-${i}">
+        <span>${item.q}</span>
+        <span class="plus" aria-hidden="true">+</span>
+      </button>
+      <div class="faq-a" id="faq-a-${i}" role="region" aria-labelledby="faq-q-${i}">${item.a}</div>
+    `;
+    list.appendChild(wrapDiv);
+  });
+
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.faq-q');
+    if (!btn) return;
+    const item = btn.closest('.faq-item');
+    const answer = item.querySelector('.faq-a');
+    const isOpen = item.dataset.open === 'true';
+
+    item.dataset.open = String(!isOpen);
+    btn.setAttribute('aria-expanded', String(!isOpen));
+    answer.style.maxHeight = !isOpen ? answer.scrollHeight + 'px' : '0px';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+/* ============================================================
+   QUIZ + FLASHCARD ENGINE STYLES
+   Scoped under .quiz-shell / .flash-shell so these can sit
+   alongside sim.css on the same subject page without clashing.
+   ============================================================ */
+
+/* ---------- shared progress bar ---------- */
+.lib-progress-track {
+  width: 100%; height: 6px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.lib-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--pink), var(--subject));
+  box-shadow: 0 0 8px var(--subject);
+  transition: width .35s ease;
+}
+
+/* ============ QUIZ (MCQ) ============ */
+.quiz-shell { max-width: 640px; margin: 0 auto; }
+
+.quiz-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: 'Orbitron', sans-serif; font-size: .7rem;
+  letter-spacing: .15em; text-transform: uppercase; color: rgba(255,255,255,.5);
+  margin-bottom: .5rem;
+}
+
+.quiz-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--subject) 30%, transparent);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  padding: 1.5rem;
+}
+
+.quiz-question {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.quiz-options { display: flex; flex-direction: column; gap: .65rem; }
+
+.quiz-option {
+  display: flex; align-items: center; gap: .75rem;
+  text-align: left;
+  padding: .8rem 1rem;
+  border-radius: .6rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.03);
+  color: #fff; font-size: .95rem;
+  font-family: 'Rajdhani', sans-serif;
+}
+.quiz-option:hover:not(:disabled) { border-color: color-mix(in srgb, var(--subject) 60%, transparent); background: rgba(255,255,255,0.06); }
+.quiz-option-letter {
+  flex: none; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', sans-serif; font-size: .75rem;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.quiz-option.is-correct { border-color: #4ade80; background: rgba(74,222,128,0.12); }
+.quiz-option.is-correct .quiz-option-letter { border-color: #4ade80; color: #4ade80; }
+.quiz-option.is-wrong { border-color: #f87171; background: rgba(248,113,113,0.12); }
+.quiz-option.is-wrong .quiz-option-letter { border-color: #f87171; color: #f87171; }
+.quiz-option:disabled { cursor: default; }
+
+.quiz-explanation {
+  margin-top: 1rem; padding: .85rem 1rem;
+  border-left: 3px solid var(--subject);
+  background: rgba(255,255,255,0.04);
+  font-size: .85rem; color: rgba(255,255,255,.8);
+  border-radius: 0 .5rem .5rem 0;
+}
+
+.quiz-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
+
+.quiz-btn {
+  font-family: 'Orbitron', sans-serif; font-size: .75rem; letter-spacing: .1em;
+  padding: .65rem 1.4rem; border-radius: .5rem;
+  border: 1px solid var(--subject); color: var(--subject);
+  background: rgba(0,0,0,0.3);
+}
+.quiz-btn.is-solid { background: var(--subject); color: #03030f; }
+
+.quiz-results { text-align: center; padding: 2rem 1rem; }
+.quiz-score-ring {
+  width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 1.25rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 4px solid color-mix(in srgb, var(--subject) 40%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--subject) 45%, transparent);
+  font-family: 'Orbitron', sans-serif; font-size: 1.6rem; color: var(--subject);
+}
+.quiz-review-list { text-align: left; margin-top: 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
+.quiz-review-item { padding: .6rem .8rem; border-radius: .5rem; background: rgba(255,255,255,0.04); font-size: .85rem; }
+.quiz-review-item .tag { font-family:'Orbitron',sans-serif; font-size:.65rem; letter-spacing:.1em; }
+.quiz-review-item.missed { border-left: 3px solid #f87171; }
+.quiz-review-item.correct { border-left: 3px solid #4ade80; }
+
+/* ============ FLASHCARDS ============ */
+.flash-shell { max-width: 520px; margin: 0 auto; }
+
+.flash-stage { perspective: 1400px; margin-bottom: 1.25rem; }
+.flash-card {
+  position: relative;
+  height: 300px;
+  border-radius: 1rem;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.flash-card.is-flipped { transform: rotateY(180deg); }
+
+.flash-face {
+  position: absolute; inset: 0;
+  border-radius: 1rem;
+  backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--subject) 35%, transparent);
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  font-size: 1.1rem; line-height: 1.5;
+}
+.flash-face.back { transform: rotateY(180deg); background: rgba(3,3,20,0.75); }
+.flash-face .hint { position:absolute; bottom: .9rem; font-family:'Orbitron',sans-serif; font-size:.6rem; letter-spacing:.15em; color: rgba(255,255,255,.35); }
+
+.flash-controls { display: flex; gap: .75rem; justify-content: center; }
+.flash-btn {
+  flex: 1; max-width: 180px;
+  font-family: 'Orbitron', sans-serif; font-size: .7rem; letter-spacing: .08em;
+  padding: .75rem 1rem; border-radius: .6rem;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; background: rgba(255,255,255,0.04);
+}
+.flash-btn.know { border-color: #4ade80; color: #4ade80; }
+.flash-btn.learning { border-color: #f87171; color: #f87171; }
+
+.flash-toolbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: .75rem; }
+.flash-count { font-family:'Orbitron',sans-serif; font-size:.65rem; letter-spacing:.12em; color: rgba(255,255,255,.5); }
+
+.flash-summary { text-align:center; padding: 2rem 1rem; }
+.flash-summary .stat { display:inline-block; margin: 0 1rem; }
+.flash-summary .stat .num { font-family:'Orbitron',sans-serif; font-size:1.8rem; display:block; }
+.flash-summary .stat .label { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color: rgba(255,255,255,.5); }

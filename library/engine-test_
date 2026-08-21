@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Engine Test — Aghimuan Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/library-core.css">
+<link rel="stylesheet" href="css/quiz.css">
+<link rel="stylesheet" href="css/sim.css">
+<style>
+  body { overflow-y: auto; overflow-x: hidden; }
+  .demo-section { max-width: 900px; margin: 0 auto; padding: 3rem 1.25rem; }
+  .demo-tabs { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center;
+    padding: .75rem; background: rgba(3,3,15,0.85); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .demo-tab { font-family:'Orbitron',sans-serif; font-size:.7rem; letter-spacing:.1em; padding:.55rem 1rem;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,.6); white-space: nowrap; }
+  .demo-tab.active { border-color: var(--subject); color: var(--subject); box-shadow: 0 0 10px color-mix(in srgb, var(--subject) 50%, transparent); }
+  .demo-pane { display: none; }
+  .demo-pane.active { display: block; }
+  .demo-heading { font-family:'Orbitron',sans-serif; text-align:center; margin-bottom: 1.5rem; font-size: 1.1rem; letter-spacing:.1em; }
+  #sim-pane-inner { height: min(640px, 80vh); min-height: 380px; border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+  .mode-switch { display:flex; gap:.5rem; justify-content:center; margin-bottom: 1.25rem; }
+  .mode-btn { font-family:'Orbitron',sans-serif; font-size:.65rem; letter-spacing:.08em; padding:.5rem 1rem; border-radius:.4rem;
+    border:1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,.6); }
+  .mode-btn.active { border-color: var(--subject); color: var(--subject); }
+
+  /* On mobile, the fixed .lib-back-btn (top:1rem;left:1rem, from shared.js/library-core.css)
+     sits in the same top-left corner as this page's own sticky tab bar. Push the tab bar
+     down far enough to clear it, and keep it pinned there (not just at top:0) so it doesn't
+     slide back under the button once scrolled. */
+  @media (max-width: 640px) {
+    .demo-tabs { margin-top: 4rem; top: 4rem; }
+  }
+</style>
+</head>
+<body class="bg-grid">
+
+<div class="demo-tabs">
+  <button class="demo-tab btn-neon active" data-pane="quiz">QUIZ</button>
+  <button class="demo-tab btn-neon" data-pane="flash">FLASHCARDS</button>
+  <button class="demo-tab btn-neon" data-pane="sim">SIMULATION</button>
+</div>
+
+<div class="demo-section">
+
+  <div class="demo-pane active" id="pane-quiz">
+    <div class="demo-heading neon-subject">QUIZ ENGINE — placeholder PC hardware questions</div>
+    <div id="quiz-mount"></div>
+  </div>
+
+  <div class="demo-pane" id="pane-flash">
+    <div class="demo-heading neon-subject">FLASHCARD ENGINE — placeholder PC hardware terms</div>
+    <div id="flash-mount"></div>
+  </div>
+
+  <div class="demo-pane" id="pane-sim">
+    <div class="demo-heading neon-subject">SIM ENGINE — build / disassemble a basic PC</div>
+    <div class="mode-switch">
+      <button class="mode-btn btn-neon active" data-mode="assemble">ASSEMBLE</button>
+      <button class="mode-btn btn-neon" data-mode="disassemble">DISASSEMBLE</button>
+    </div>
+    <div id="sim-pane-inner"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/shared.js"></script>
+<script src="js/engine/quiz-engine.js"></script>
+<script src="js/engine/flashcard-engine.js"></script>
+<script src="js/engine/sim-engine.js"></script>
+<script>
+  // Demo page defaults to CSS's accent color since this is the CSS pilot
+  AghiLib.applySubjectTheme('CSS');
+  AghiLib.injectBackNav('../reviewers.html', 'LIBRARY');
+
+  /* ---------------- QUIZ DEMO DATA ---------------- */
+  const demoQuestions = [
+    { id: 'q1', question: 'Which component is considered the "brain" of the computer?', options: ['RAM', 'CPU', 'PSU', 'HDD'], correct: 1, explanation: 'The CPU (Central Processing Unit) executes instructions and performs calculations.' },
+    { id: 'q2', question: 'What happens to the data stored in RAM when the computer is powered off?', options: ['It stays saved permanently', 'It is erased (volatile memory)', 'It moves to the CPU', 'It moves to the GPU'], correct: 1, explanation: 'RAM is volatile — its contents are lost once power is cut.' },
+    { id: 'q3', question: 'Which part supplies electricity to all other components?', options: ['GPU', 'Motherboard', 'PSU', 'Cooler'], correct: 2, explanation: 'The Power Supply Unit (PSU) converts wall power into usable DC power for the system.' },
+    { id: 'q4', question: 'A thermal paste is applied between the CPU and the:', options: ['RAM stick', 'Cooler/heatsink', 'Storage drive', 'GPU'], correct: 1, explanation: 'Thermal paste improves heat transfer between the CPU\'s surface and the cooler.' },
+  ];
+
+  QuizEngine.init(document.getElementById('quiz-mount'), demoQuestions, {
+    title: 'CSS · Sample Quiz',
+    storageKey: 'demo-css-quiz',
+    shuffleQuestions: true,
+    shuffleOptions: true,
+  });
+
+  /* ---------------- FLASHCARD DEMO DATA ---------------- */
+  const demoCards = [
+    { id: 'f1', front: 'CPU', back: 'Central Processing Unit — executes instructions and performs calculations.' },
+    { id: 'f2', front: 'RAM', back: 'Random Access Memory — fast, volatile working memory for active programs.' },
+    { id: 'f3', front: 'PSU', back: 'Power Supply Unit — converts AC wall power into DC power for components.' },
+    { id: 'f4', front: 'GPU', back: 'Graphics Processing Unit — handles rendering images, video, and 3D graphics.' },
+    { id: 'f5', front: 'SSD', back: 'Solid State Drive — fast, non-volatile storage with no moving parts.' },
+  ];
+
+  FlashcardEngine.init(document.getElementById('flash-mount'), demoCards, {
+    title: 'CSS · Sample Deck',
+    storageKey: 'demo-css-flash',
+    shuffle: true,
+  });
+
+  /* ---------------- SIM DEMO SCENARIO ----------------
+     Trimmed to parts that mount directly on the motherboard —
+     no PSU (lives in its own case bay, connects via cable)
+     and no storage (connects via SATA/M.2, not a board-mount part). */
+  function buildScenario(mode) {
+    return {
+      title: 'Build a Basic PC',
+      subtitle: mode === 'disassemble' ? 'Disassemble mode' : 'Assemble mode',
+      mode,
+      parts: [
+        { id: 'cpu-1', type: 'cpu', label: 'CPU' },
+        { id: 'cooler-1', type: 'cooler', label: 'CPU Cooler', requires: ['cpu-1'] },
+        { id: 'ram-1', type: 'ram', label: 'RAM Stick A' },
+        { id: 'ram-2', type: 'ram', label: 'RAM Stick B' },
+        { id: 'gpu-1', type: 'gpu', label: 'GPU' },
+      ],
+      slots: [
+        { id: 'cpu-socket', accepts: 'cpu', label: 'CPU Socket', position: [-0.2, 0.08, -0.3] },
+        { id: 'cooler-mount', accepts: 'cooler', label: 'CPU Fan & Heatsink Mount', position: [-0.2, 0.35, -0.3] },
+        { id: 'ram-a1', accepts: 'ram', label: 'DIMM Slot 1', position: [0.55, 0.06, -0.3] },
+        { id: 'ram-a2', accepts: 'ram', label: 'DIMM Slot 2', position: [0.8, 0.06, -0.3] },
+        { id: 'pcie-slot', accepts: 'gpu', label: 'PCI Express Slot', position: [-0.1, 0.2, 0.6] },
+      ],
+      order: ['cpu-1', 'cooler-1', 'ram-1', 'ram-2', 'gpu-1'],
+    };
+  }
+
+  let sim = SimEngine.init(document.getElementById('sim-pane-inner'), buildScenario('assemble'), {
+    onComplete: (stats) => console.log('Sim complete', stats),
+  });
+
+  /* ---------------- TAB / MODE SWITCHING ---------------- */
+  document.querySelectorAll('.demo-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.demo-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('sim-pane-inner').innerHTML = '';
+      sim = SimEngine.init(document.getElementById('sim-pane-inner'), buildScenario(btn.dataset.mode), {
+        onComplete: (stats) => console.log('Sim complete', stats),
+      });
+    });
+  });
+</script>
+</body>
+</html>

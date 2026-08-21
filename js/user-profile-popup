@@ -1,0 +1,557 @@
+/**
+ * user-profile-popup.js
+ *
+ * Discord-style "click a user, see a small popup" — pfp / name / activity /
+ * status / bio, styled to match account-widget.js's own popup (banner +
+ * accent line, glowing avatar ring, gradient section panels). Bio/status
+ * are view-only, but the icon row (Add Friend + overflow menu) is a real
+ * action bar now — friend requests, block, report.
+ *
+ * Any element anywhere on the site can trigger it by carrying either:
+ *   data-aghi-username="theirUsername"   (used by comments.js — no id available there)
+ *   data-aghi-userid="123"               (used wherever a real user id is on hand)
+ * One delegated document-level click listener handles all of them, so new
+ * call sites (friends list, DM sidebar, etc.) never need extra JS wiring.
+ *
+ * API CONTRACT (api/user-profile.php):
+ *   ok, id, username, avatarUrl, pfpId, bio, status, presence, online,
+ *   isSelf, friendStatus (none|pending_sent|pending_received|friends),
+ *   blockedByYou
+ */
+window.AghiUserProfile = (function () {
+  'use strict';
+
+  let popupEl = null;
+  let backdropEl = null;
+  let currentData = null;
+  let sessionCache = null; // { csrfToken, userId }
+
+  // Keep these ids/colors identical to PFP_PRESETS in account-widget.js /
+  // PRESET_IDS in upload-avatar.php, profile.php, user-profile.php.
+  const PFP_PRESETS = [
+    { id: 'default',      color: '#5F5E5A' },
+    { id: 'circuit-blue', color: '#185FA5' },
+    { id: 'circuit-cyan', color: '#0F6E56' },
+    { id: 'node-teal',    color: '#04342C' },
+    { id: 'spark-orange', color: '#993C1D' },
+    { id: 'wire-purple',  color: '#534AB7' },
+    { id: 'chip-green',   color: '#3B6D11' },
+    { id: 'signal-pink',  color: '#993556' },
+  ];
+
+  function presetColor(pfpId) {
+    const match = PFP_PRESETS.find((p) => p.id === pfpId);
+    return (match || PFP_PRESETS[0]).color;
+  }
+
+  const PRESENCE_META = {
+    online:  { label: 'Online',         color: '#3ddc84' },
+    away:    { label: 'Away',           color: '#f5c542' },
+    dnd:     { label: 'Do Not Disturb', color: '#e05260' },
+    offline: { label: 'Offline',        color: '#6b8b9a' },
+  };
+
+  // Feather-style icons — same viewBox/stroke convention as PENCIL_ICON /
+  // CHEVRON_ICON in account-widget.js, so the icon row reads as one family.
+  const ICON = {
+    add:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    x:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    dots:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>',
+  };
+
+  /**
+   * Collapses raw server data into what a viewer is actually allowed to see.
+   * - Not currently online at all -> offline, no matter what presence says.
+   * - Invisible -> offline to everyone but the account owner themself; this
+   *   popup is only ever shown to *other* users, so invisible always renders
+   *   as offline here.
+   */
+  function effectivePresence(data) {
+    if (!data.online) return PRESENCE_META.offline;
+    if (data.presence === 'invisible') return PRESENCE_META.offline;
+    return PRESENCE_META[data.presence] || PRESENCE_META.online;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 420px)').matches;
+  }
+
+  // ---- session / csrf (lazily fetched once, reused for every action) ----
+  async function getSession() {
+    if (sessionCache) return sessionCache;
+    try {
+      const res = await fetch('/api/session.php', { credentials: 'same-origin' });
+      const json = await res.json();
+      if (json && json.loggedIn) {
+        sessionCache = { csrfToken: json.csrfToken, userId: json.user.id };
+      }
+    } catch (err) {
+      // leave sessionCache null — actions will silently no-op
+    }
+    return sessionCache;
+  }
+
+  async function postJSON(url, body, session) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ csrf_token: session.csrfToken }, body)),
+      });
+      return await res.json();
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function injectStyles() {
+    if (document.getElementById('aghi-up-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'aghi-up-styles';
+    style.textContent = `
+      /* Any element that opens the popup shouldn't behave like selectable
+         body text on mobile — without this, a tap on a username can trigger
+         the browser's native word-selection + "Search for…" bar instead of
+         (or on top of) our click handler. */
+      [data-aghi-username], [data-aghi-userid] {
+        cursor: pointer;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+
+      .aghi-up-backdrop {
+        position: fixed; inset: 0; z-index: 9998;
+        background: rgba(4, 8, 12, 0.55);
+        animation: aghiUpFade 0.16s ease-out;
+      }
+      @keyframes aghiUpFade { from { opacity: 0; } to { opacity: 1; } }
+
+      .aghi-up-popup {
+        position: absolute; z-index: 9999; width: 300px;
+        background: #0c1620; border: 1px solid rgba(48, 150, 199, 0.35);
+        border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 24px rgba(48,150,199,0.06);
+        color: #F1F2F5; font-family: 'Rajdhani', sans-serif;
+        animation: aghiUpPop 0.16s ease-out;
+      }
+      @keyframes aghiUpPop {
+        from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .aghi-up-popup::before {
+        content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+        border-radius: 10px; overflow: hidden;
+        background:
+          repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
+          radial-gradient(circle at 50% 0%, rgba(85,241,248,0.05), transparent 60%);
+      }
+      .aghi-up-popup > * { position: relative; z-index: 1; }
+
+      .aghi-up-banner {
+        height: 56px; background: linear-gradient(135deg, #163247, #0a1a26);
+        border-radius: 10px 10px 0 0; position: relative;
+      }
+      .aghi-up-banner::after {
+        content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, #55F1F8, #3096C7, transparent);
+        box-shadow: 0 0 10px rgba(85,241,248,0.6);
+      }
+
+      .aghi-up-body { padding: 0 16px 16px; margin-top: -30px; position: relative; }
+
+      .aghi-up-avatar-wrap {
+        width: 64px; height: 64px; border-radius: 50%; position: relative;
+        border: 4px solid #0c1620; margin-bottom: 8px;
+        box-shadow: 0 0 0 1px rgba(85,241,248,0.4), 0 0 14px rgba(48,150,199,0.35);
+      }
+      .aghi-up-avatar {
+        width: 100%; height: 100%; border-radius: 50%;
+        background-color: #0a1520; background-size: cover; background-position: center;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+      }
+      .aghi-up-monogram { font-family: 'Orbitron', sans-serif; font-size: 22px; color: #F1F2F5; user-select: none; }
+      .aghi-up-presence-badge {
+        position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px;
+        border-radius: 50%; border: 3px solid #0c1620; box-sizing: border-box;
+      }
+
+      /* ---- Custom status bubble, next to the avatar ---- */
+      .aghi-up-status-bubble {
+        position: absolute; top: -4px; left: 78px; max-width: 168px;
+        background: #1a2733; border: 1px solid rgba(48,150,199,0.3); border-radius: 14px;
+        padding: 8px 12px; font-size: 12px; line-height: 1.35; color: #d7dee2;
+      }
+      .aghi-up-status-bubble.aghi-up-empty { display: none; }
+
+      .aghi-up-username {
+        font-family: 'Orbitron', sans-serif; font-size: 16px; color: #F1F2F5; margin: 2px 0 0;
+        text-shadow: 0 0 12px rgba(85,241,248,0.25);
+      }
+
+      .aghi-up-role {
+        display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #55F1F8; border: 1px solid rgba(85,241,248,0.35); border-radius: 4px;
+        padding: 1px 6px; margin: 6px 0 10px;
+        background: rgba(85,241,248,0.06); box-shadow: 0 0 8px rgba(85,241,248,0.15);
+      }
+
+      /* ---- Activity (presence) row, read-only ---- */
+      .aghi-up-presence-row {
+        display: flex; align-items: center; gap: 8px; width: 100%;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(48,150,199,0.2);
+        border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+        color: #F1F2F5; font-size: 13px;
+      }
+      .aghi-up-presence-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+      .aghi-up-section {
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        border: 1px solid rgba(48,150,199,0.18);
+        border-radius: 8px; padding: 12px 14px; margin: 10px 0;
+      }
+      .aghi-up-about-label {
+        display: flex; align-items: center; gap: 6px;
+        font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 0.08em;
+        text-transform: uppercase; color: #55F1F8; margin-bottom: 8px;
+      }
+      .aghi-up-about-label::before {
+        content: ''; width: 3px; height: 10px; border-radius: 2px;
+        background: linear-gradient(180deg, #55F1F8, #3096C7);
+        box-shadow: 0 0 6px rgba(85,241,248,0.6);
+      }
+      .aghi-up-about-text { font-size: 13px; line-height: 1.5; color: #d7dee2; white-space: pre-wrap; }
+      .aghi-up-about-text.aghi-up-empty { color: #55697a; font-style: italic; }
+
+      /* ---- Mobile: bottom sheet instead of anchored-near-tap ----
+         The popup can be triggered from anywhere on the page (a username
+         deep in a comment thread, near the very bottom of the screen, etc),
+         so anchoring it beside the tap point the way the desktop popup does
+         isn't reliable on a small viewport — it can end up partly off-screen
+         or overlapping the keyboard/nav. A fixed bottom sheet is anchored to
+         the viewport instead, so it's always fully reachable regardless of
+         where on the page it was opened from. */
+      @media (max-width: 420px) {
+        .aghi-up-popup.aghi-up-sheet {
+          position: fixed;
+          left: 0; right: 0; bottom: 0; top: auto;
+          width: auto;
+          max-height: 82vh;
+          overflow-y: auto;
+          border-radius: 16px 16px 0 0;
+          animation: aghiUpSheetUp 0.18s ease-out;
+          padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .aghi-up-popup.aghi-up-sheet::after {
+          content: '';
+          position: sticky; top: 8px; display: block; margin: 0 auto 4px;
+          width: 36px; height: 4px; border-radius: 2px;
+          background: rgba(255,255,255,0.2);
+        }
+      }
+      @keyframes aghiUpSheetUp {
+        from { opacity: 0; transform: translateY(24px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* ---- Icon row: Discord-inspired, but chamfered like a PCB pad
+         instead of plain circles, so it stays recognizably Aghimuan. ---- */
+      .aghi-up-icon-row { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
+      .aghi-up-icon-btn {
+        position: relative; width: 30px; height: 30px; padding: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(12, 22, 32, 0.6); border: 1px solid rgba(85,241,248,0.3);
+        color: #a9c2ce; cursor: pointer;
+        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+        transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      }
+      .aghi-up-icon-btn svg { width: 15px; height: 15px; }
+      .aghi-up-icon-btn:hover {
+        background: rgba(85,241,248,0.18); border-color: rgba(85,241,248,0.6); color: #55F1F8;
+        box-shadow: 0 0 10px rgba(85,241,248,0.25);
+      }
+      .aghi-up-icon-btn.aghi-up-icon-active {
+        background: rgba(85,241,248,0.14); border-color: rgba(85,241,248,0.5); color: #55F1F8;
+      }
+      .aghi-up-icon-btn.aghi-up-icon-danger:hover {
+        background: rgba(224,82,96,0.18); border-color: rgba(224,82,96,0.6); color: #ff9aa4;
+        box-shadow: 0 0 10px rgba(224,82,96,0.25);
+      }
+      .aghi-up-icon-btn.aghi-up-icon-success {
+        background: rgba(61,220,132,0.14); border-color: rgba(61,220,132,0.5); color: #3ddc84;
+      }
+      .aghi-up-icon-btn.aghi-up-icon-success .aghi-up-icon-hover { display: none; }
+      .aghi-up-icon-btn.aghi-up-icon-success:hover {
+        background: rgba(224,82,96,0.16); border-color: rgba(224,82,96,0.55); color: #ff9aa4;
+        box-shadow: 0 0 10px rgba(224,82,96,0.2);
+      }
+      .aghi-up-icon-btn.aghi-up-icon-success:hover .aghi-up-icon-default { display: none; }
+      .aghi-up-icon-btn.aghi-up-icon-success:hover .aghi-up-icon-hover { display: flex; }
+
+      .aghi-up-icon-menu-wrap { position: relative; }
+      .aghi-up-menu {
+        position: absolute; top: 36px; right: 0; z-index: 4; min-width: 172px;
+        background: #0c1620; border: 1px solid rgba(48,150,199,0.35); border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5); padding: 4px; display: flex; flex-direction: column;
+      }
+      .aghi-up-menu[hidden] { display: none; }
+      .aghi-up-menu button {
+        background: none; border: none; color: #d7dee2; font-family: 'Rajdhani', sans-serif;
+        font-size: 13px; font-weight: 600; text-align: left; padding: 8px 10px;
+        border-radius: 6px; cursor: pointer;
+      }
+      .aghi-up-menu button:hover { background: rgba(85,241,248,0.1); color: #55F1F8; }
+      .aghi-up-menu button.aghi-up-menu-danger { color: #e05260; }
+      .aghi-up-menu button.aghi-up-menu-danger:hover { background: rgba(224,82,96,0.12); color: #ff9aa4; }
+
+      .aghi-up-tooltip {
+        position: absolute; z-index: 5; padding: 4px 8px;
+        font-family: 'JetBrains Mono', monospace; font-size: 10px; white-space: nowrap;
+        color: #d7dee2; background: #0a1520; border-bottom: 2px solid #55F1F8;
+        border-radius: 4px 4px 0 0; transform: translate(-50%, -100%);
+        pointer-events: none; opacity: 0; transition: opacity 0.1s ease;
+      }
+      .aghi-up-tooltip.aghi-up-visible { opacity: 1; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function close() {
+    if (popupEl) { popupEl.remove(); popupEl = null; }
+    if (backdropEl) { backdropEl.remove(); backdropEl = null; }
+    currentData = null;
+    document.removeEventListener('click', onDocClick);
+  }
+
+  function onDocClick(e) {
+    if (popupEl && !e.composedPath().includes(popupEl)) close();
+  }
+
+  // ---- icon row: markup + wiring ----
+  function renderIconRow(data) {
+    if (data.isSelf) return '';
+
+    let friendHtml = '';
+    if (!data.blockedByYou) {
+      if (data.friendStatus === 'pending_sent') {
+        friendHtml = `<button class="aghi-up-icon-btn aghi-up-icon-active" data-action="friend-cancel" data-tooltip="Request sent · click to cancel" aria-label="Cancel friend request">${ICON.clock}</button>`;
+      } else if (data.friendStatus === 'pending_received') {
+        friendHtml = `
+          <button class="aghi-up-icon-btn aghi-up-icon-success" data-action="friend-accept" data-tooltip="Accept request" aria-label="Accept friend request">${ICON.check}</button>
+          <button class="aghi-up-icon-btn aghi-up-icon-danger" data-action="friend-decline" data-tooltip="Decline request" aria-label="Decline friend request">${ICON.x}</button>`;
+      } else if (data.friendStatus === 'friends') {
+        friendHtml = `
+          <button class="aghi-up-icon-btn aghi-up-icon-success" data-action="friend-remove" data-tooltip="Friends · click to remove" aria-label="Friends, click to remove">
+            <span class="aghi-up-icon-default" style="display:flex">${ICON.check}</span>
+            <span class="aghi-up-icon-hover" style="display:none">${ICON.x}</span>
+          </button>`;
+      } else {
+        friendHtml = `<button class="aghi-up-icon-btn" data-action="friend-add" data-tooltip="Add friend" aria-label="Add friend">${ICON.add}</button>`;
+      }
+    }
+
+    return `
+      ${friendHtml}
+      <div class="aghi-up-icon-menu-wrap">
+        <button class="aghi-up-icon-btn" data-action="menu-toggle" data-tooltip="More" aria-label="More options">${ICON.dots}</button>
+        <div class="aghi-up-menu" data-el="menu" hidden>
+          <button data-action="block-toggle">${data.blockedByYou ? 'Unblock' : 'Block'}</button>
+          <button data-action="report" class="aghi-up-menu-danger">Report user profile</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function wireTooltips(container) {
+    const tooltipEl = popupEl.querySelector('[data-el="tooltip"]');
+    if (!tooltipEl) return;
+    container.querySelectorAll('[data-tooltip]').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        const rect = el.getBoundingClientRect();
+        const popRect = popupEl.getBoundingClientRect();
+        tooltipEl.textContent = el.getAttribute('data-tooltip');
+        tooltipEl.style.left = `${rect.left - popRect.left + rect.width / 2}px`;
+        tooltipEl.style.top = `${rect.top - popRect.top - 6}px`;
+        tooltipEl.classList.add('aghi-up-visible');
+      });
+      el.addEventListener('mouseleave', () => tooltipEl.classList.remove('aghi-up-visible'));
+    });
+  }
+
+  function renderRow() {
+    const rowEl = popupEl.querySelector('[data-el="icon-row"]');
+    if (!rowEl) return;
+    rowEl.innerHTML = renderIconRow(currentData);
+    wireTooltips(rowEl);
+  }
+
+  async function handleAction(action) {
+    const session = await getSession();
+    if (!session || !currentData) return;
+    const targetId = currentData.id;
+
+    if (action === 'friend-add') {
+      const res = await postJSON('/api/friend-request.php', { targetId }, session);
+      if (res && res.ok) { currentData.friendStatus = res.friendStatus; renderRow(); }
+    } else if (action === 'friend-cancel' || action === 'friend-remove') {
+      const res = await postJSON('/api/friend-remove.php', { targetId }, session);
+      if (res && res.ok) { currentData.friendStatus = 'none'; renderRow(); }
+    } else if (action === 'friend-accept') {
+      const res = await postJSON('/api/friend-respond.php', { targetId, action: 'accept' }, session);
+      if (res && res.ok) { currentData.friendStatus = 'friends'; renderRow(); }
+    } else if (action === 'friend-decline') {
+      const res = await postJSON('/api/friend-respond.php', { targetId, action: 'decline' }, session);
+      if (res && res.ok) { currentData.friendStatus = 'none'; renderRow(); }
+    } else if (action === 'block-toggle') {
+      const nextAction = currentData.blockedByYou ? 'unblock' : 'block';
+      const res = await postJSON('/api/user-block.php', { targetId, action: nextAction }, session);
+      if (res && res.ok) {
+        currentData.blockedByYou = res.blocked;
+        if (res.blocked) currentData.friendStatus = 'none';
+        renderRow();
+      }
+    } else if (action === 'report') {
+      // NOTE: plain prompt() for now — fine for a v1, but a proper inline
+      // reason field styled like the rest of the popup would read better.
+      const reason = window.prompt("Tell us why you're reporting this profile:");
+      if (!reason || !reason.trim()) return;
+      await postJSON('/api/user-report.php', { targetId, reason: reason.trim() }, session);
+      window.alert('Report submitted. Thanks for flagging this.');
+    }
+  }
+
+  async function open(anchorEl, { userId, username } = {}) {
+    injectStyles();
+    close();
+
+    const params = userId ? `id=${encodeURIComponent(userId)}` : `username=${encodeURIComponent(username)}`;
+    let data;
+    try {
+      const res = await fetch(`/api/user-profile.php?${params}`, { credentials: 'same-origin' });
+      data = await res.json();
+    } catch (err) {
+      return;
+    }
+    if (!data || !data.ok) return;
+    currentData = data;
+
+    const presence = effectivePresence(data);
+    const roleLabel = data.role ? data.role.charAt(0).toUpperCase() + data.role.slice(1) : null;
+    const mobile = isMobileViewport();
+
+    popupEl = document.createElement('div');
+    popupEl.className = 'aghi-up-popup' + (mobile ? ' aghi-up-sheet' : '');
+    popupEl.innerHTML = `
+      <div class="aghi-up-banner"></div>
+      <div class="aghi-up-icon-row" data-el="icon-row"></div>
+      <div class="aghi-up-tooltip" data-el="tooltip"></div>
+      <div class="aghi-up-body">
+        <div class="aghi-up-avatar-wrap">
+          <div class="aghi-up-avatar" data-el="avatar"></div>
+          <span class="aghi-up-presence-badge" style="background:${presence.color}"></span>
+        </div>
+        <div class="aghi-up-status-bubble ${data.status ? '' : 'aghi-up-empty'}" data-el="status"></div>
+        <div class="aghi-up-username" data-el="username"></div>
+        ${roleLabel ? `<span class="aghi-up-role">${escapeHtml(roleLabel)}</span>` : ''}
+        <div class="aghi-up-presence-row">
+          <span class="aghi-up-presence-dot" style="background:${presence.color};box-shadow:0 0 6px ${presence.color}"></span>
+          <span>${presence.label}</span>
+        </div>
+        <div class="aghi-up-section">
+          <div class="aghi-up-about-label">About Me</div>
+          <div class="aghi-up-about-text ${data.bio ? '' : 'aghi-up-empty'}" data-el="bio"></div>
+        </div>
+      </div>
+    `;
+
+    popupEl.querySelector('[data-el="username"]').textContent = data.username;
+    popupEl.querySelector('[data-el="status"]').textContent = data.status || '';
+    popupEl.querySelector('[data-el="bio"]').textContent = data.bio || 'No bio yet.';
+
+    // Avatar: uploaded photo, or the user's actual preset color + monogram —
+    // not a generic fixed background. Mirrors applyAvatar() in account-widget.js.
+    const avatarEl = popupEl.querySelector('[data-el="avatar"]');
+    if (data.avatarUrl) {
+      avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
+    } else {
+      avatarEl.style.backgroundColor = presetColor(data.pfpId);
+      const mono = document.createElement('span');
+      mono.className = 'aghi-up-monogram';
+      mono.textContent = (data.username || '?').charAt(0).toUpperCase();
+      avatarEl.appendChild(mono);
+    }
+
+    renderRow();
+
+    // Delegated handler for the whole icon row + overflow menu.
+    popupEl.addEventListener('click', (e) => {
+      const withinMenuWrap = e.target.closest('.aghi-up-icon-menu-wrap');
+      const menu = popupEl.querySelector('[data-el="menu"]');
+      if (!withinMenuWrap && menu && !menu.hidden) menu.hidden = true;
+
+      const menuToggle = e.target.closest('[data-action="menu-toggle"]');
+      if (menuToggle) {
+        e.stopPropagation();
+        if (menu) menu.hidden = !menu.hidden;
+        return;
+      }
+
+      const actionBtn = e.target.closest('[data-action]');
+      if (!actionBtn) return;
+      e.stopPropagation();
+      if (menu) menu.hidden = true;
+      handleAction(actionBtn.dataset.action);
+    });
+
+    if (mobile) {
+      backdropEl = document.createElement('div');
+      backdropEl.className = 'aghi-up-backdrop';
+      backdropEl.addEventListener('click', close);
+      document.body.appendChild(backdropEl);
+      document.body.appendChild(popupEl);
+    } else {
+      document.body.appendChild(popupEl);
+      positionNear(popupEl, anchorEl);
+    }
+    setTimeout(() => document.addEventListener('click', onDocClick), 0);
+  }
+
+  function positionNear(popup, anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const popRect = popup.getBoundingClientRect();
+    let top = rect.bottom + window.scrollY + 8;
+    let left = rect.left + window.scrollX;
+    if (left + popRect.width > window.innerWidth - 12) {
+      left = window.innerWidth - popRect.width - 12;
+    }
+    // Keep the popup from rendering below the visible viewport when the
+    // trigger is near the bottom of the page — flip it above the anchor instead.
+    if (top + popRect.height > window.scrollY + window.innerHeight - 12) {
+      const above = rect.top + window.scrollY - popRect.height - 8;
+      if (above > window.scrollY) top = above;
+    }
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
+  }
+
+  // ---- delegated triggers: works for any element anywhere, present or future ----
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-aghi-username], [data-aghi-userid]');
+    if (!trigger) return;
+    e.stopPropagation();
+    const userId = trigger.getAttribute('data-aghi-userid') || undefined;
+    const username = trigger.getAttribute('data-aghi-username') || undefined;
+    open(trigger, { userId, username });
+  });
+
+  return { open, close };
+})();
