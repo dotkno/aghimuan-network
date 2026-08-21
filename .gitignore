@@ -1,0 +1,44 @@
+# ===== Secrets & config with real credentials =====
+includes/db.php
+includes/config.php
+includes/config.local.php
+**/config.*.secret.php
+.env
+.env.*
+
+# ===== Database & user data (NEVER commit) =====
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.sql.bak
+/data/
+/uploads/
+/uploads/users/
+/officerpics/
+
+# ===== Aghimuan Library content (PCU redistribution policy) =====
+# Keep the engine code in /library/, redact the module content:
+/library/content/
+/library/modules/
+/library/*.json
+
+# ===== Logs & runtime =====
+*.log
+/error_log
+/debug.log
+
+# ===== IDE / OS =====
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ===== Backups =====
+*.bak
+*.orig
+*~
+
+# ===== Build artifacts (if you add a build step later) =====
+node_modules/
+dist/
