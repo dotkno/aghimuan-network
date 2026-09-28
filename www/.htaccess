@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# 1. External redirect: If a user types /home.html, change it to /home
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /([^\ ]+)\.html
+RewriteRule ^/?(.*)\.html$ /%1 [R=301,L]
+
+# 2. Internal rewrite: If a user visits /home, silently load home.html behind the scenes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.html -f
+RewriteRule ^/?(.*?)$ /$1.html [L]

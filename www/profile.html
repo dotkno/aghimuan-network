@@ -1,0 +1,1461 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/session.php';
+$aghiCsrfToken = csrf_token();
+
+$pdo = get_db();
+$me = current_user($pdo);
+
+$username = trim($_GET['username'] ?? '');
+if ($username === '') {
+    header('Location: /index.html');
+    exit;
+}
+
+$stmt = $pdo->prepare('SELECT * FROM users WHERE username_lower = :u AND is_banned = 0');
+$stmt->execute([':u' => mb_strtolower($username)]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+    header('Location: /404.html');
+    exit;
+}
+
+$isSelf = $me && (int)$me['id'] === (int)$user['id'];
+
+// Banner lives behind the banner migration — null means "no custom banner".
+$bannerId = $user['banner_id'] ?? null;
+if (!is_string($bannerId) || $bannerId === '') $bannerId = null;
+
+$profileUserId = (int)$user['id'];
+
+// Discord-style custom roles (same query as api/user-profile.php). These are
+// what carry PRESIDENT / club / team badges — main_role + sub_role alone
+// only ever show two pills.
+$customRoles = [];
+try {
+    $crStmt = $pdo->prepare(
+        'SELECT cr.id, cr.name, cr.color_css, cr.text_color
+         FROM custom_roles cr
+         JOIN user_custom_roles ucr ON ucr.role_id = cr.id
+         WHERE ucr.user_id = :id
+         ORDER BY cr.name COLLATE NOCASE'
+    );
+    $crStmt->execute([':id' => $profileUserId]);
+    $customRoles = $crStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+} catch (PDOException $e) {
+    $customRoles = [];
+}
+
+// ---- Recent activity (merged server-side so the tab works with zero JS) ----
+$activity = [];
+try {
+    // Map announcement post ids -> excerpt for comment/reaction context.
+    $postContext = [];
+    $annFile = __DIR__ . '/announcements.json';
+    if (is_file($annFile)) {
+        $annData = json_decode((string)file_get_contents($annFile), true);
+        if (is_array($annData)) {
+            foreach ($annData as $p) {
+                $pid = (int)($p['id'] ?? 0);
+                if ($pid > 0) {
+                    $raw = strip_tags((string)($p['text'] ?? ''));
+                    $raw = trim(preg_replace('/\s+/', ' ', $raw));
+                    $postContext[$pid] = [
+                        'excerpt' => mb_substr($raw !== '' ? $raw : 'an announcement', 0, 90),
+                        'date' => (string)($p['date_formatted'] ?? ''),
+                    ];
+                }
+            }
+        }
+    }
+
+    $cStmt = $pdo->prepare(
+        'SELECT id, post_id, parent_id, body, created_at FROM comments
+         WHERE user_id = :id AND deleted_at IS NULL
+         ORDER BY created_at DESC LIMIT 15'
+    );
+    $cStmt->execute([':id' => $profileUserId]);
+    foreach ($cStmt->fetchAll(PDO::FETCH_ASSOC) as $c) {
+        $pid = (int)$c['post_id'];
+        $ctx = $postContext[$pid] ?? ['excerpt' => 'an announcement', 'date' => ''];
+        $body = trim(preg_replace('/\s+/', ' ', strip_tags((string)$c['body'])));
+        $activity[] = [
+            'ts' => strtotime((string)$c['created_at']) ?: 0,
+            'icon' => 'comment',
+            'title' => ($c['parent_id'] ? 'Replied' : 'Commented') . ' on “' . mb_substr($ctx['excerpt'], 0, 70) . '”',
+            'detail' => mb_substr($body, 0, 140),
+            'href' => 'index.html',
+        ];
+    }
+
+    $rStmt = $pdo->prepare(
+        'SELECT target_type, target_id, emoji, created_at FROM reactions
+         WHERE user_id = :id
+         ORDER BY created_at DESC LIMIT 15'
+    );
+    $rStmt->execute([':id' => $profileUserId]);
+    foreach ($rStmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $target = 'a post';
+        if ($r['target_type'] === 'post') {
+            $pid = (int)$r['target_id'];
+            $ctx = $postContext[$pid] ?? null;
+            $target = $ctx ? '“' . mb_substr($ctx['excerpt'], 0, 70) . '”' : 'an announcement';
+        } elseif ($r['target_type'] === 'comment') {
+            $target = 'a comment';
+        } elseif ($r['target_type'] === 'dm_message') {
+            continue; // DMs are private — never surface them on a public profile.
+        }
+        $activity[] = [
+            'ts' => strtotime((string)$r['created_at']) ?: 0,
+            'icon' => 'react',
+            'title' => 'Reacted ' . $r['emoji'] . ' to ' . $target,
+            'detail' => '',
+            'href' => $r['target_type'] === 'post' ? 'index.html' : '',
+        ];
+    }
+
+    $cr2Stmt = $pdo->prepare(
+        "SELECT id, title, category, created_at FROM creations
+         WHERE submitted_by = :id AND status = 'approved'
+         ORDER BY created_at DESC LIMIT 10"
+    );
+    $cr2Stmt->execute([':id' => $profileUserId]);
+    foreach ($cr2Stmt->fetchAll(PDO::FETCH_ASSOC) as $c) {
+        $activity[] = [
+            'ts' => strtotime((string)$c['created_at']) ?: 0,
+            'icon' => 'create',
+            'title' => 'Submitted “' . mb_substr((string)$c['title'], 0, 80) . '” to the Creations Hub',
+            'detail' => str_replace('_', ' ', (string)$c['category']),
+            'href' => 'creations/creation.html?id=' . (int)$c['id'],
+        ];
+    }
+
+    usort($activity, fn($a, $b) => $b['ts'] <=> $a['ts']);
+    $activity = array_slice($activity, 0, 20);
+} catch (PDOException $e) {
+    $activity = [];
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><?php echo htmlspecialchars($user['username']); ?> - Aghimuan Network</title>
+<meta name="description" content="Profile of <?php echo htmlspecialchars($user['username']); ?> on Aghimuan Network PCU-D.">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css?v=7">
+<meta name="csrf-token" content="<?php echo htmlspecialchars($aghiCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+<style>
+  :root {
+    --navy: #03037E;
+    --royal: #2B438E;
+    --tech: #3096C7;
+    --cyan: #55F1F8;
+    --silver: #AEB7C0;
+    --steel: #767CA1;
+    --white: #F1F2F5;
+    --charcoal: #15161C;
+    --glass-bg: rgba(255, 255, 255, 0.035);
+    --glass-bg-hover: rgba(255, 255, 255, 0.065);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-active: rgba(85, 241, 248, 0.45);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --line: rgba(118, 124, 161, 0.28);
+    --line-soft: rgba(118, 124, 161, 0.15);
+    --glass-line: rgba(255, 255, 255, 0.08);
+    --sidebar-w: 275px;
+    --radius: 14px;
+  }
+
+  .ic {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    display: block;
+  }
+
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--silver);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    padding: 0;
+    flex: none;
+  }
+  .icon-btn:hover {
+    color: var(--white);
+    border-color: rgba(85, 241, 248, 0.55);
+    background: var(--glass-bg-hover);
+  }
+  .icon-btn .ic {
+    width: 16px;
+    height: 16px;
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+  }
+
+  .app-main {
+    min-width: 0;
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    z-index: 70;
+    background: linear-gradient(180deg, rgba(3, 3, 126, 0.25), rgba(21, 22, 28, 0.65) 40%, rgba(21, 22, 28, 0.5));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: 1px 0 20px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+  }
+
+  .sidebar-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--white);
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .brand-logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 11px;
+    flex: none;
+    filter: drop-shadow(0 2px 10px rgba(85, 241, 248, 0.25));
+  }
+
+  .brand-text {
+    min-width: 0;
+    text-align: left;
+    flex: 1;
+  }
+
+  .brand-text strong {
+    font-family: var(--font-display);
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: block;
+    white-space: nowrap;
+  }
+
+  .brand-text small {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--steel);
+    display: block;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .sidebar-close {
+    display: none;
+    margin-left: auto;
+    flex: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 32px;
+    flex: 1;
+  }
+  .nav-section {
+    margin: 14px 14px 0;
+    color: var(--steel);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .rail-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    color: var(--silver);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 500;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .rail-link .ic {
+    width: 19px;
+    height: 19px;
+    color: var(--steel);
+    transition: color 0.18s;
+    flex: none;
+  }
+
+  .rail-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--white);
+  }
+
+  .rail-link:hover .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active {
+    background: rgba(85, 241, 248, 0.1);
+    color: var(--white);
+    border: 1px solid rgba(85, 241, 248, 0.22);
+    font-weight: 600;
+  }
+
+  .rail-link.is-active .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 6px;
+    height: 16px;
+    transform: translateY(-50%);
+    border-radius: 0 4px 4px 0;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(85, 241, 248, 0.8);
+  }
+
+  .sidebar-foot {
+    margin-top: 20px;
+    border-top: 1px dashed var(--line-soft);
+    padding-top: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .side-fb {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--steel);
+    text-decoration: none;
+    padding: 9px 15px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .side-fb .ic {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+
+  .side-fb:hover {
+    color: var(--cyan);
+    border-color: rgba(85, 241, 248, 0.4);
+    background: rgba(85, 241, 248, 0.08);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 16, 22, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px clamp(16px, 3.5vw, 40px);
+    background: rgba(21, 22, 28, 0.65);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid var(--glass-border);
+    width: 100%;
+  }
+
+  .menu-btn {
+    display: none;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 920px) {
+    .app-shell {
+      grid-template-columns: 1fr;
+    }
+    .app-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: min(300px, 85vw);
+      overflow-y: auto;
+      transform: translateX(-103%);
+      transition: transform 0.28s ease;
+      box-shadow: 24px 0 60px rgba(0, 0, 0, 0.45);
+    }
+    .app-sidebar.open, .app-sidebar.is-open {
+      transform: none;
+    }
+    .menu-btn {
+      display: inline-grid;
+    }
+    .sidebar-close {
+      display: inline-grid;
+    }
+  }
+
+  /* ============ Profile — Aghimuan hybrid ============ */
+  main {
+    position: relative;
+    width: 100%;
+    max-width: min(1000px, 100%);
+    margin: 0 auto;
+    padding: 40px clamp(16px, 4vw, 48px) 80px;
+  }
+  main section { padding: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    display: inline-block;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 11px 19px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    line-height: 1;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .btn .ic { width: 14px; height: 14px; }
+  .btn-primary { background: var(--cyan); color: var(--navy); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(85,241,248,0.28); filter: brightness(1.06); }
+  .btn-ghost {
+    border-color: var(--glass-border);
+    color: var(--silver);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .btn-ghost:hover { border-color: rgba(85,241,248,0.55); color: var(--white); background: var(--glass-bg-hover); }
+  .btn-amber {
+    background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+    color: #0d0d10;
+  }
+  .btn-amber:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255, 193, 7, 0.3); filter: brightness(1.05); }
+
+  /* Profile hero card */
+  .profile-card {
+    position: relative;
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+  .profile-banner {
+    position: relative;
+    height: clamp(170px, 26vw, 250px);
+    overflow: hidden;
+    background: rgba(3,3,126,0.35);
+  }
+  .profile-banner-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .profile-banner-fallback {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 78% 18%, rgba(85,241,248,0.14), transparent 60%),
+      radial-gradient(rgba(174,183,192,0.07) 1px, transparent 1.6px),
+      linear-gradient(120deg, var(--navy), var(--royal) 60%, #15161C 130%);
+    background-size: auto, 22px 22px, auto;
+  }
+  .profile-banner-fallback::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 46.8%, rgba(85,241,248,0.14) 47.4%, rgba(85,241,248,0.14) 48%, transparent 48.6%);
+  }
+  .profile-banner-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(6,7,10,0.85) 0%, rgba(6,7,10,0.25) 45%, transparent 75%);
+    pointer-events: none;
+  }
+  .profile-body { padding: 0 clamp(18px, 3vw, 28px) clamp(20px, 3vw, 28px); }
+  .profile-identity {
+    display: flex;
+    gap: 18px;
+    align-items: flex-end;
+    margin-top: -58px;
+    position: relative;
+    z-index: 2;
+  }
+  .profile-avatar-wrap { flex: none; }
+  .profile-avatar, .profile-avatar-mono {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    border: 3px solid var(--charcoal);
+    outline: 2px solid rgba(85,241,248,0.5);
+    box-shadow: 0 0 24px rgba(85,241,248,0.25), 0 12px 30px rgba(0,0,0,0.45);
+    overflow: hidden;
+    background: var(--glass-bg);
+  }
+  .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .profile-avatar-mono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3rem;
+  }
+  .identity-main { min-width: 0; flex: 1; padding-bottom: 4px; }
+  .profile-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .profile-name {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--white);
+    margin: 0;
+    line-height: 1.15;
+    overflow-wrap: break-word;
+  }
+  .profile-handle {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--steel);
+    margin: 4px 0 0;
+  }
+  .profile-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 5px 12px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .profile-status-pill.verified {
+    color: #4ADE80;
+    border-color: rgba(74,222,128,0.45);
+    background: rgba(74,222,128,0.08);
+  }
+  .profile-status-pill.unverified {
+    color: #FFC107;
+    border-color: rgba(255,193,7,0.4);
+    background: rgba(255,193,7,0.08);
+  }
+  .profile-status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+
+  .profile-bio {
+    color: var(--silver);
+    font-size: 14.5px;
+    line-height: 1.65;
+    max-width: 62ch;
+    margin: 14px 0 0;
+  }
+  .profile-status-text {
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    border-left: 2px solid var(--cyan);
+    background: rgba(85,241,248,0.05);
+    border-radius: 0 10px 10px 0;
+    color: var(--white);
+    font-size: 13.5px;
+    max-width: 62ch;
+  }
+
+  .profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--silver);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    border-radius: 999px;
+    padding: 6px 13px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+  .meta-pill .ic { width: 13px; height: 13px; color: var(--steel); }
+  .meta-pill b { color: var(--cyan); font-weight: 600; }
+
+  .profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--line-soft);
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 22px 0 18px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    border-bottom: none;
+  }
+  .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--silver);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    flex: none;
+  }
+  .tab-btn::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--steel);
+    opacity: 0.55;
+    transition: all 0.18s;
+  }
+  .tab-btn:hover { color: var(--white); border-color: rgba(85,241,248,0.45); background: var(--glass-bg-hover); }
+  .tab-btn.active {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: var(--navy);
+    font-weight: 600;
+    box-shadow: 0 0 14px rgba(85,241,248,0.25);
+  }
+  .tab-btn.active::before { background: var(--navy); opacity: 1; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: tabIn 0.25s ease; }
+  @keyframes tabIn { from { opacity: 0; transform: translateY(6px); } }
+
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: clamp(18px, 2.6vw, 24px);
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  }
+
+  .about-row {
+    display: flex;
+    gap: 16px;
+    padding: 12px 2px;
+    border-bottom: 1px solid rgba(118,124,161,0.15);
+    align-items: baseline;
+  }
+  .about-row:last-child { border-bottom: none; }
+  .about-label {
+    width: 140px;
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--steel);
+  }
+  .about-value { color: var(--white); font-size: 14px; min-width: 0; overflow-wrap: break-word; }
+  .role-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    background: rgba(85, 241, 248, 0.08);
+    border: 1px solid rgba(85, 241, 248, 0.4);
+    border-radius: 999px;
+    color: var(--cyan);
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+  .role-badge.sub {
+    background: rgba(48,150,199,0.1);
+    border-color: rgba(48,150,199,0.45);
+    color: #7cc4e8;
+  }
+  .role-badge.role-custom {
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .profile-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .profile-roles .role-badge { margin-right: 0; }
+
+  /* Activity timeline */
+  .activity-list { display: flex; flex-direction: column; gap: 10px; }
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: var(--glass-bg);
+    text-decoration: none;
+    transition: all 0.18s ease;
+  }
+  a.activity-item:hover { border-color: rgba(85,241,248,0.4); background: var(--glass-bg-hover); transform: translateY(-1px); }
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: rgba(85,241,248,0.1);
+    border: 1px solid rgba(85,241,248,0.25);
+    color: var(--cyan);
+  }
+  .activity-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .activity-title { font-size: 13.5px; font-weight: 600; color: var(--white); line-height: 1.45; overflow-wrap: break-word; }
+  .activity-detail { font-size: 12.5px; color: var(--steel); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
+  .activity-time {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--steel);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .creations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 18px;
+  }
+  .creation-status {
+    display: inline-block;
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #f5c542;
+    border: 1px solid rgba(245,197,66,0.4);
+    border-radius: 6px;
+    padding: 2px 8px;
+  }
+  .creation-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    cursor: pointer;
+  }
+  .creation-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--glass-border-active);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 15px rgba(85,241,248,0.1);
+  }
+  .creation-thumbnail {
+    aspect-ratio: 16 / 10;
+    background: rgba(43,67,142,0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .creation-thumbnail img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+  .creation-card:hover .creation-thumbnail img { transform: scale(1.045); }
+  .creation-thumbnail .placeholder { color: var(--steel); font-size: 2.2rem; }
+  .creation-content { padding: 16px 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .creation-category {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+  .creation-title { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; color: var(--white); margin: 0; line-height: 1.35; }
+  .creation-date { font-family: var(--font-mono); font-size: 11px; color: var(--steel); margin-top: auto; padding-top: 6px; }
+
+  .empty-state {
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    padding: 44px 20px;
+    text-align: center;
+    color: var(--steel);
+    font-size: 13.5px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .empty-state strong { display: block; font-family: var(--font-display); font-size: 16px; color: var(--white); margin-bottom: 6px; }
+
+  /* ---- footer ---- */
+  footer{border-top:1px solid var(--glass-border);padding:32px clamp(16px,4vw,40px) 40px;margin-top:56px}
+  footer .wrap{max-width:1100px;margin:0 auto;text-align:center}
+  footer .foot-brand{font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--silver);text-transform:uppercase}
+  footer p{margin-top:8px;font-size:12.5px;color:var(--steel)}
+  footer .foot-social{margin-top:14px;display:flex;justify-content:center}
+  footer .foot-social a{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--silver);text-decoration:none;transition:color .18s ease}
+  footer .foot-social a:hover{color:var(--cyan)}
+  footer .foot-social a .ic{width:15px;height:15px}
+
+  @media (max-width: 640px) {
+    main { padding: 28px 16px 64px; }
+    .profile-identity { flex-direction: column; align-items: flex-start; margin-top: -48px; gap: 14px; }
+    .profile-avatar, .profile-avatar-mono { width: 104px; height: 104px; }
+    .profile-actions .btn { flex: 1 1 auto; justify-content: center; }
+    .about-row { flex-direction: column; gap: 4px; }
+    .about-label { width: 100%; }
+    .creations-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ icon sprite ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.6c-.7.3-.9.8-.9 1.7"/><path d="M12 16.8h.01"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></symbol>
+  <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><path d="M15.5 10.6h.01M18.2 13.2h.01"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+</svg>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+
+<!-- ============ sticky sidebar chrome ============ -->
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sidebar-head">
+    <a class="brand" href="index.html">
+      <img class="brand-logo" src="CLUB LOGO.png" alt="Aghimuan logo" width="46" height="46">
+      <span class="brand-text">
+        <strong>AGHIMUAN.ONLINE</strong>
+        <small>Connect · Innovate · Explore</small>
+      </span>
+    </a>
+    <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Close menu"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" aria-label="Primary">
+    <a class="rail-link" href="index.html"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a>
+    <span class="nav-section">General</span>
+    <a class="rail-link" href="about.html"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>About</span></a>
+    <a class="rail-link" href="faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>FAQ</span></a>
+    <span class="nav-section">Educational</span>
+    <a class="rail-link" href="reviewers.html"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Reviewers</span></a>
+    <a class="rail-link" href="creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
+    <span class="nav-section">Entertainment</span>
+    <a class="rail-link" href="games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <a class="side-fb" href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener" aria-label="Aghimuan on Facebook">
+      <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+      <span>PCU - D · ICT ORG</span>
+    </a>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+  <div class="app-main">
+  <!-- ============ topbar chrome ============ -->
+  <header class="app-topbar">
+    <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <div class="topbar-actions">
+      <div id="aghi-account-widget"></div>
+    </div>
+  </header>
+
+    <main id="main">
+      <div class="profile-card">
+        <div class="profile-banner">
+          <?php if ($bannerId): ?>
+            <img class="profile-banner-img" src="/uploads/banner/<?php echo htmlspecialchars(basename($bannerId)); ?>" alt="">
+          <?php else: ?>
+            <div class="profile-banner-fallback" aria-hidden="true"></div>
+          <?php endif; ?>
+          <div class="profile-banner-scrim" aria-hidden="true"></div>
+        </div>
+
+        <div class="profile-body">
+          <div class="profile-identity">
+            <div class="profile-avatar-wrap">
+              <?php
+              $pfpId = $user['pfp_id'] ?? 'default';
+              $presetColors = [
+                  'default' => '#5F5E5A', 'circuit-blue' => '#185FA5', 'circuit-cyan' => '#0F6E56',
+                  'node-teal' => '#04342C', 'spark-orange' => '#993C1D', 'wire-purple' => '#534AB7',
+                  'chip-green' => '#3B6D11', 'signal-pink' => '#993556',
+              ];
+              $isPreset = in_array($pfpId, array_keys($presetColors));
+              if ($isPreset) {
+                  $color = $presetColors[$pfpId] ?? $presetColors['default'];
+                  echo '<div class="profile-avatar-mono" style="background-color:' . htmlspecialchars($color) . ';">' . htmlspecialchars(mb_strtoupper(mb_substr($user['username'], 0, 1))) . '</div>';
+              } else {
+                  echo '<div class="profile-avatar"><img src="/uploads/pfp/' . htmlspecialchars(basename($pfpId)) . '" alt="' . htmlspecialchars($user['username']) . '"></div>';
+              }
+              ?>
+            </div>
+            <div class="identity-main">
+              <div class="profile-name-row">
+                <h1 class="profile-name"><?php echo htmlspecialchars($user['username']); ?></h1>
+                <span class="profile-status-pill <?php echo ($user['is_verified'] ?? 0) ? 'verified' : 'unverified'; ?>">
+                  <span class="dot" aria-hidden="true"></span>
+                  <?php echo ($user['is_verified'] ?? 0) ? 'Verified PCU student' : 'Unverified'; ?>
+                </span>
+              </div>
+              <p class="profile-handle">@<?php echo htmlspecialchars(mb_strtolower($user['username'])); ?></p>
+              <div class="profile-roles">
+                <span class="role-badge role-main"><?php echo htmlspecialchars($user['main_role'] ?? 'MEMBER'); ?></span>
+                <?php if (!empty($user['sub_role'])): ?>
+                <span class="role-badge sub"><?php echo htmlspecialchars($user['sub_role']); ?></span>
+                <?php endif; ?>
+                <?php foreach ($customRoles as $cr): ?>
+                <span class="role-badge role-custom" style="background:<?php echo htmlspecialchars((string)$cr['color_css']); ?>;color:<?php echo htmlspecialchars((string)($cr['text_color'] ?: '#ffffff')); ?>"><?php echo htmlspecialchars((string)$cr['name']); ?></span>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+
+          <?php if ($user['bio']): ?>
+          <p class="profile-bio"><?php echo nl2br(htmlspecialchars($user['bio'])); ?></p>
+          <?php endif; ?>
+          <?php if (!empty($user['status'])): ?>
+          <p class="profile-status-text"><?php echo nl2br(htmlspecialchars($user['status'])); ?></p>
+          <?php endif; ?>
+
+          <div class="profile-meta">
+            <span class="meta-pill"><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg>Joined <?php echo date('M Y', strtotime($user['created_at'])); ?></span>
+            <?php if ($user['grade']): ?>
+            <span class="meta-pill"><svg class="ic" aria-hidden="true"><use href="#i-cap"/></svg>Grade <?php echo htmlspecialchars($user['grade']); ?></span>
+            <?php endif; ?>
+            <?php if ($user['strand']): ?>
+            <span class="meta-pill"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg><?php echo htmlspecialchars($user['strand']); ?></span>
+            <?php endif; ?>
+            <?php if ($user['club']): ?>
+            <span class="meta-pill"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><?php echo htmlspecialchars($user['club']); ?></span>
+            <?php endif; ?>
+            <span class="meta-pill"><b id="statCreations">–</b>&nbsp;creations</span>
+          </div>
+
+          <div class="profile-actions" id="selfActions" <?php echo $isSelf ? '' : 'hidden'; ?>>
+            <?php if (!($user['is_verified'] ?? 0)): ?>
+            <button class="btn btn-amber" id="verifyBtn">
+              <svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>
+              Verify with PCU Gmail
+            </button>
+            <?php endif; ?>
+            <button class="btn btn-ghost" id="editBtn">
+              <svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg>
+              Edit Profile
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Profile sections">
+        <button class="tab-btn active" data-tab="about" role="tab" aria-selected="true">About</button>
+        <button class="tab-btn" data-tab="creations" role="tab" aria-selected="false">Creations</button>
+        <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+      </div>
+
+      <div class="tab-content active" id="tab-about" role="tabpanel">
+        <div class="panel">
+          <div class="about-row">
+            <div class="about-label">Username</div>
+            <div class="about-value"><?php echo htmlspecialchars($user['username']); ?></div>
+          </div>
+          <div class="about-row">
+            <div class="about-label">Main Role</div>
+            <div class="about-value"><span class="role-badge"><?php echo htmlspecialchars($user['main_role'] ?? 'MEMBER'); ?></span></div>
+          </div>
+          <?php if ($user['sub_role']): ?>
+          <div class="about-row">
+            <div class="about-label">Sub Role</div>
+            <div class="about-value"><span class="role-badge sub"><?php echo htmlspecialchars($user['sub_role']); ?></span></div>
+          </div>
+          <?php endif; ?>
+          <?php if ($user['grade']): ?>
+          <div class="about-row">
+            <div class="about-label">Grade</div>
+            <div class="about-value"><?php echo htmlspecialchars($user['grade']); ?></div>
+          </div>
+          <?php endif; ?>
+          <?php if ($user['strand']): ?>
+          <div class="about-row">
+            <div class="about-label">Strand</div>
+            <div class="about-value"><?php echo htmlspecialchars($user['strand']); ?></div>
+          </div>
+          <?php endif; ?>
+          <?php if ($user['club']): ?>
+          <div class="about-row">
+            <div class="about-label">Club</div>
+            <div class="about-value"><?php echo htmlspecialchars($user['club']); ?></div>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($customRoles)): ?>
+          <div class="about-row">
+            <div class="about-label">Custom Roles</div>
+            <div class="about-value">
+              <?php foreach ($customRoles as $cr): ?>
+              <span class="role-badge role-custom" style="background:<?php echo htmlspecialchars((string)$cr['color_css']); ?>;color:<?php echo htmlspecialchars((string)($cr['text_color'] ?: '#ffffff')); ?>"><?php echo htmlspecialchars((string)$cr['name']); ?></span>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <?php endif; ?>
+          <div class="about-row">
+            <div class="about-label">Status</div>
+            <div class="about-value"><?php echo htmlspecialchars(!empty($user['status']) ? $user['status'] : 'No status set'); ?></div>
+          </div>
+          <div class="about-row">
+            <div class="about-label">Member Since</div>
+            <div class="about-value"><?php echo date('F j, Y', strtotime($user['created_at'])); ?></div>
+          </div>
+          <?php if (!empty($user['verified_at'])): ?>
+          <div class="about-row">
+            <div class="about-label">Verified At</div>
+            <div class="about-value"><?php echo date('F j, Y', strtotime($user['verified_at'])); ?></div>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-creations" role="tabpanel">
+        <div class="creations-grid" id="creationsGrid"></div>
+      </div>
+
+      <div class="tab-content" id="tab-activity" role="tabpanel">
+        <?php if (!empty($activity)): ?>
+        <div class="activity-list">
+          <?php foreach ($activity as $a): ?>
+          <?php if (!empty($a['href'])): ?>
+          <a class="activity-item" href="<?php echo htmlspecialchars($a['href']); ?>">
+          <?php else: ?>
+          <div class="activity-item">
+          <?php endif; ?>
+            <span class="activity-icon activity-<?php echo htmlspecialchars($a['icon']); ?>" aria-hidden="true">
+              <?php if ($a['icon'] === 'comment'): ?>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <?php elseif ($a['icon'] === 'react'): ?>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+              <?php else: ?>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></svg>
+              <?php endif; ?>
+            </span>
+            <span class="activity-text">
+              <span class="activity-title"><?php echo htmlspecialchars($a['title']); ?></span>
+              <?php if (!empty($a['detail'])): ?>
+              <span class="activity-detail"><?php echo htmlspecialchars($a['detail']); ?></span>
+              <?php endif; ?>
+            </span>
+            <span class="activity-time"><?php echo $a['ts'] > 0 ? date('M j, Y', $a['ts']) : ''; ?></span>
+          <?php if (!empty($a['href'])): ?>
+          </a>
+          <?php else: ?>
+          </div>
+          <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <div class="empty-state"><strong>No activity yet</strong>Comments, reactions, and creations will show up here once this member gets going.</div>
+        <?php endif; ?>
+      </div>
+    </main>
+
+    <footer>
+  <div class="wrap">
+    <div class="foot-brand">AGHIMUAN</div>
+    <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+    <div class="foot-social">
+      <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+        <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+        Facebook
+      </a>
+    </div>
+  </div>
+</footer>
+  </div>
+</div>
+
+<script src="/js/account-widget.js" defer></script>
+<script src="/js/user-profile-popup.js" defer></script>
+<script src="/js/member-list.js" defer></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE",
+    authDomain: "aghimuan-network.firebaseapp.com",
+    projectId: "aghimuan-network",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.firebaseAuth = { auth, GoogleAuthProvider, signInWithPopup };
+</script>
+<script>
+  const userId = <?php echo (int)$user['id']; ?>;
+  const username = <?php echo json_encode($user['username']); ?>;
+  const isSelf = <?php echo $isSelf ? 'true' : 'false'; ?>;
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function setCreationCount(n) {
+    const el = document.getElementById('statCreations');
+    if (el) el.textContent = String(n);
+  }
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+      if (btn.dataset.tab === 'creations') {
+        loadCreations();
+      }
+    });
+  });
+
+  // Category labels mirror creations/index.html (canonical keys; the
+  // fallback prettifies any legacy stored value).
+  const CREATION_CAT_LABELS = { web:'Web & Apps', games:'Games', art:'Digital Art', design:'Graphic Design',
+    robotics:'Robotics & Hardware', video:'Video & Animation', '3d':'3D & Motion', other:'Other' };
+  const creationCatLabel = c => CREATION_CAT_LABELS[c] || String(c || 'Other').replace(/_/g, ' ');
+  const fmtCreationDate = d => {
+    const t = d ? new Date(d) : null;
+    return t && !isNaN(t) ? t.toLocaleDateString() : '';
+  };
+
+  async function loadCreations() {
+    const grid = document.getElementById('creationsGrid');
+    grid.innerHTML = '<p class="empty-state"><strong>Loading…</strong>Fetching creations.</p>';
+
+    try {
+      // Own profile sees everything including pending review; anyone else
+      // sees the public approved archive. Both return a bare normalized array.
+      const response = await fetch(isSelf ? `api/creations.php?mine=1` : `api/creations.php?user=${userId}`);
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : [];
+
+      if (list.length === 0) {
+        setCreationCount(0);
+        grid.innerHTML = '<p class="empty-state"><strong>No creations yet</strong>Nothing submitted so far — check back soon.</p>';
+        return;
+      }
+
+      setCreationCount(list.length);
+
+      grid.innerHTML = list.map(c => {
+        const images = (c.media || []).filter(m => m.type === 'image' && m.src);
+        const pos = c.coverFocus ? `${c.coverFocus.x}% ${c.coverFocus.y}%` : '50% 50%';
+        const thumbnail = images.length > 0
+          ? `<img src="${escapeHtml(images[0].src)}" alt="${escapeHtml(c.title)}" loading="lazy" style="object-position:${pos}">`
+          : '<div class="placeholder">✦</div>';
+        const badge = c.status && c.status !== 'approved'
+          ? `<div class="creation-status">${escapeHtml(c.status)}</div>` : '';
+
+        return `
+          <div class="creation-card" data-id="${c.id}">
+            <div class="creation-thumbnail">${thumbnail}</div>
+            <div class="creation-content">
+              <div class="creation-category">${escapeHtml(creationCatLabel(c.category))}</div>
+              <h3 class="creation-title">${escapeHtml(c.title)}</h3>
+              <div class="creation-date">${escapeHtml(fmtCreationDate(c.date))}</div>
+              ${badge}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.creation-card').forEach(card => {
+        card.addEventListener('click', () => {
+          window.location.href = `creations/creation.html?id=${card.dataset.id}`;
+        });
+      });
+    } catch (err) {
+      grid.innerHTML = '<p class="empty-state"><strong>Couldn’t load creations</strong>Please try again in a bit.</p>';
+    }
+  }
+
+  // Preload the creations count for the hero stat pill (grid fills when tab opens).
+  (async () => {
+    try {
+      const response = await fetch(isSelf ? `api/creations.php?mine=1` : `api/creations.php?user=${userId}`);
+      const data = await response.json();
+      if (Array.isArray(data)) setCreationCount(data.length);
+    } catch (err) { /* stat pill keeps its placeholder */ }
+  })();
+
+  // Verify button
+  document.getElementById('verifyBtn')?.addEventListener('click', async () => {
+    try {
+      const { auth, GoogleAuthProvider, signInWithPopup } = window.firebaseAuth;
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ hd: 'pcu.edu.ph' });
+
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      const response = await fetch('/api/verify-firebase.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        location.reload();
+      } else {
+        alert('Verification failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Verification failed: ' + err.message);
+    }
+  });
+
+  // Edit / banner buttons drive the account widget's real editors (Settings
+  // view). The widget exposes no "edit" action — its popup opens from the
+  // avatar button and editing lives behind [data-action="open-settings"].
+  // NOTE: stopPropagation is load-bearing. The widget closes its popup on
+  // any bubbled document click outside it, so without this the same click
+  // that opens the popup immediately closes it again (open flash).
+  function openWidgetEditor(target, srcEvent) {
+    if (srcEvent) srcEvent.stopPropagation();
+    const mount = document.getElementById('aghi-account-widget');
+    const avatarBtn = mount ? mount.querySelector('.aghi-aw-avatar-btn') : null;
+    if (!avatarBtn) {
+      alert('Please sign in from the top bar first.');
+      return;
+    }
+    if (!document.querySelector('.aghi-aw-popup')) avatarBtn.click();
+    const popup = document.querySelector('.aghi-aw-popup');
+    if (!popup) return;
+    if (!popup.querySelector('.aghi-aw-settings')) {
+      const entry = target === 'banner'
+        ? popup.querySelector('.aghi-aw-banner[data-action="open-settings"]')
+        : popup.querySelector('[data-action="open-settings"][aria-label="Settings"]');
+      (entry || popup.querySelector('[data-action="open-settings"]'))?.click();
+    }
+    if (target === 'banner') {
+      requestAnimationFrame(() => {
+        document.querySelector('.aghi-aw-popup [data-section="banner"]')?.scrollIntoView({ block: 'nearest' });
+      });
+    }
+  }
+
+  // Edit button — opens the account widget's Settings (avatar, banner, and profile fields live there).
+  document.getElementById('editBtn')?.addEventListener('click', (e) => openWidgetEditor('edit', e));
+
+  // Self-action second opinion: if the PHP session didn't recognise the
+  // viewer but the API session does, reveal the self-only UI anyway.
+  (async () => {
+    if (isSelf) return; // PHP already rendered everything visible.
+    try {
+      const res = await fetch(`api/user-profile.php?username=${encodeURIComponent(username)}`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.ok && data.isSelf) {
+        document.getElementById('selfActions')?.removeAttribute('hidden');
+      }
+    } catch (err) { /* stay hidden — viewer isn't the owner */ }
+  })();
+
+  // ---------- sidebar drawer (mobile) ----------
+  const appSidebar = document.getElementById('appSidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebarClose = document.getElementById('sidebarClose');
+
+  function openSidebar() {
+    appSidebar.classList.add('open');
+    appSidebar.classList.add('is-open');
+    sidebarOverlay.hidden = false;
+    menuBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('nav-open');
+  }
+  function closeSidebar() {
+    appSidebar.classList.remove('open');
+    appSidebar.classList.remove('is-open');
+    sidebarOverlay.hidden = true;
+    menuBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('nav-open');
+  }
+  menuBtn.addEventListener('click', () => {
+    (appSidebar.classList.contains('open') || appSidebar.classList.contains('is-open')) ? closeSidebar() : openSidebar();
+  });
+  sidebarClose.addEventListener('click', closeSidebar);
+  sidebarOverlay.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+</script>
+</body>
+</html>

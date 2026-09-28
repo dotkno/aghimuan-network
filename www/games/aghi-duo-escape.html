@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Aghi Duo Escape</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#1F1F1F; --bg2:#03037E; --blue:#3096C7; --cyan:#55F1F8; --white:#F1F2F5;
+    --orange:#FF9F43; --red:#FF5470; --green:#4EF2A0; --amber:#F2C14E;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; height:100%; }
+  body {
+    font-family:'Rajdhani',sans-serif; color:#fff; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 15%, var(--bg2) 0%, var(--bg) 70%);
+    background-color:var(--bg);
+    height:100dvh;
+    user-select:none; -webkit-user-select:none;
+  }
+  .bg-grid { background-image:linear-gradient(rgba(48,150,199,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(85,241,248,0.055) 1px,transparent 1px); background-size:46px 46px; }
+  .hidden { display:none !important; }
+  .font-display { font-family:'Orbitron',sans-serif; }
+
+  #wrap { height:100dvh; display:flex; flex-direction:column; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:8px 14px; background:rgba(0,0,0,.55);
+    border-bottom:1px solid rgba(48,150,199,.35);
+    font-family:'Orbitron',sans-serif;
+  }
+  #hud .logo { font-weight:900; font-size:13px; letter-spacing:.1em; margin-right:4px; white-space:nowrap; }
+  #hud .logo .c1 { color:var(--cyan); text-shadow:0 0 8px var(--cyan); }
+  #hud .logo .c2 { color:var(--orange); text-shadow:0 0 8px var(--orange); }
+  .chip {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.12);
+    border-radius:8px; padding:4px 10px; font-size:12px; font-weight:700; letter-spacing:.06em;
+    white-space:nowrap;
+  }
+  .chip .k { font-size:9px; letter-spacing:.16em; color:rgba(255,255,255,.5); font-weight:400; }
+  .chip .v { color:var(--white); }
+  .chip .v.cy { color:var(--cyan); } .chip .v.or { color:var(--orange); }
+  #hud .spacer { flex:1; }
+  .hbtn {
+    font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; letter-spacing:.08em;
+    border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.4); color:rgba(255,255,255,.75);
+    border-radius:8px; padding:6px 10px; cursor:pointer;
+  }
+  .hbtn:hover { border-color:var(--cyan); color:var(--cyan); }
+
+  /* ---------- Arena ---------- */
+  #arena-wrap { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:10px; position:relative; }
+  #arena {
+    background:rgba(0,0,0,.5); border:2px solid rgba(85,241,248,.45); border-radius:10px;
+    box-shadow:0 0 22px rgba(85,241,248,.16), inset 0 0 20px rgba(0,0,0,.4);
+    max-width:100%; max-height:100%; touch-action:none;
+  }
+  #toast {
+    position:absolute; left:50%; top:18px; transform:translateX(-50%);
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em;
+    background:rgba(0,0,0,.7); border:1px solid rgba(85,241,248,.5); color:var(--cyan);
+    padding:8px 18px; border-radius:999px; pointer-events:none; opacity:0; transition:opacity .25s;
+    white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;
+  }
+  #toast.show { opacity:1; }
+
+  /* ---------- Minimap ---------- */
+  #minimap {
+    position:absolute; top:14px; right:14px;
+    width:148px; height:108px;
+    border:1px solid rgba(85,241,248,.4); border-radius:8px;
+    background:rgba(0,0,0,.62);
+    pointer-events:none; z-index:5;
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.74); padding:16px; overflow-y:auto;
+  }
+  .modal {
+    background:linear-gradient(160deg, rgba(43,67,142,.92), rgba(0,0,0,.96));
+    border:2px solid var(--cyan); border-radius:16px; padding:26px 24px; width:100%; max-width:560px;
+    text-align:center; box-shadow:0 0 26px rgba(85,241,248,.3);
+    animation:modal-in .35s cubic-bezier(.34,1.56,.64,1);
+    max-height:calc(100dvh - 32px); overflow-y:auto;
+  }
+  @keyframes modal-in { from{opacity:0; transform:scale(.92) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);} }
+  .modal h1 { font-family:'Orbitron',sans-serif; font-weight:900; font-size:clamp(26px,6vw,40px); margin:0; letter-spacing:.06em; }
+  .modal h1 .c1 { color:var(--cyan); text-shadow:0 0 14px var(--cyan); }
+  .modal h1 .c2 { color:var(--orange); text-shadow:0 0 14px var(--orange); }
+  .modal .sub { margin:6px 0 0; color:rgba(255,255,255,.55); letter-spacing:.14em; font-size:12px; font-family:'Orbitron',sans-serif; }
+  .rules-panel {
+    text-align:left; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:14px 16px; margin:18px 0; font-size:14.5px; line-height:1.55; color:rgba(255,255,255,.85);
+  }
+  .rules-panel b.cy { color:var(--cyan); } .rules-panel b.or { color:var(--orange); }
+  .rules-panel b.rd { color:var(--red); } .rules-panel b.gr { color:var(--green); }
+  .keyrow { display:flex; gap:14px; flex-wrap:wrap; margin:12px 0 2px; }
+  .pkeys { flex:1 1 200px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 12px; }
+  .pkeys .pt { font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:.14em; margin-bottom:8px; }
+  .pkeys.p1 .pt { color:var(--cyan); } .pkeys.p2 .pt { color:var(--orange); }
+  kbd {
+    display:inline-block; min-width:26px; text-align:center; padding:3px 7px; margin:1px;
+    font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25); border-bottom-width:3px; border-radius:6px; color:#fff;
+  }
+  .big-btn {
+    width:100%; border:2px solid var(--cyan); border-radius:12px; padding:14px;
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:.14em;
+    color:var(--cyan); background:rgba(0,0,0,.5); cursor:pointer; transition:transform .1s, filter .15s;
+  }
+  .big-btn:hover { transform:translateY(-1px); filter:brightness(1.2); }
+  .big-btn:active { transform:translateY(1px) scale(.98); }
+  .ghost-btn {
+    width:100%; margin-top:8px; border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:10px;
+    color:rgba(255,255,255,.65); background:transparent; font-family:'Rajdhani',sans-serif; font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .ghost-btn:hover { border-color:var(--cyan); color:#fff; }
+  .foot { color:rgba(255,255,255,.3); font-size:11.5px; letter-spacing:.08em; margin-top:12px; }
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0 18px; }
+  .stat-box { background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 6px; }
+  .stat-box .k { font-size:9px; letter-spacing:.16em; color:rgba(255,255,255,.45); font-family:'Orbitron',sans-serif; }
+  .stat-box .v { font-family:'Orbitron',sans-serif; font-weight:700; font-size:22px; margin-top:2px; }
+  #clear-stats { font-family:'Orbitron',sans-serif; font-size:13px; color:rgba(255,255,255,.7); letter-spacing:.06em; margin:2px 0 16px; }
+  #clear-stats b { color:var(--green); }
+</style>
+</head>
+<body class="bg-grid">
+
+<div id="wrap">
+  <div id="hud">
+    <span class="logo"><span class="c1">DUO</span> <span class="c2">ESCAPE</span></span>
+    <span class="chip"><span class="k">LVL</span><span class="v" id="h-lvl">1</span></span>
+    <span class="chip"><span class="k">ZONE</span><span class="v" id="h-band">TRAINING</span></span>
+    <span class="chip"><span class="k">OBJ</span><span class="v cy" id="h-obj">—</span></span>
+    <span class="chip"><span class="k">GEMS</span><span class="v cy" id="h-gems">0/0</span></span>
+    <span class="chip"><span class="k">SCORE</span><span class="v" id="h-score">0</span></span>
+    <span class="chip"><span class="k">TIME</span><span class="v" id="h-time">0:00</span></span>
+    <span class="chip"><span class="k">FALLS</span><span class="v or" id="h-deaths">0</span></span>
+    <span class="spacer"></span>
+    <button class="hbtn" id="btn-mute" title="Mute (M)">SOUND ON</button>
+    <button class="hbtn" id="btn-new" title="New maze (R)">NEW MAZE</button>
+    <button class="hbtn" id="btn-pause" title="Pause (P)">PAUSE</button>
+  </div>
+  <div id="arena-wrap">
+    <canvas id="arena" width="960" height="640"></canvas>
+    <canvas id="minimap" width="148" height="108"></canvas>
+    <div id="toast"></div>
+  </div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div class="overlay" id="home-screen">
+  <div class="modal">
+    <h1><span class="c1">AGHI DUO</span> <span class="c2">ESCAPE</span></h1>
+    <p class="sub">2-PLAYER CO-OP &middot; SAME KEYBOARD &middot; ESCAPE CAMPAIGN</p>
+    <div class="keyrow">
+      <div class="pkeys p1">
+        <div class="pt">PLAYER 1 &middot; CYAN</div>
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span style="color:rgba(255,255,255,.5)">move</span></div>
+      </div>
+      <div class="pkeys p2">
+        <div class="pt">PLAYER 2 &middot; ORANGE</div>
+        <div><kbd>&#9650;</kbd><kbd>&#9660;</kbd><kbd>&#9668;</kbd><kbd>&#9658;</kbd> <span style="color:rgba(255,255,255,.5)">move</span></div>
+      </div>
+    </div>
+    <div class="rules-panel">
+      <b class="gr">Escape together.</b> Level 1 is training. After that, each level has key rooms, gem vaults, and one sealed exit vault. Collect every gem, press the <b style="color:#F2C14E">EXIT KEY</b> (gold ring), then stand both players on the <b class="gr">green exit pads</b> at the same time.<br><br>
+      <b class="cy">Cyan buttons</b> are <b class="cy">Player 1</b> only and open <b class="cy">cyan doors</b>. <b class="or">Orange buttons</b> are <b class="or">Player 2</b> only. A key sitting in goo can only be reached by the matching player. Split up and open doors for each other. The white arrow points to your next objective.<br><br>
+      Goo kills: <b class="cy">cyan goo</b> kills Player 2, <b class="or">orange goo</b> kills Player 1, <b class="rd">red goo</b> kills everyone. Your own color is safe.<br><br>
+      Zones in order: <b class="gr">TRAINING, NEON TUNNELS, GOO CAVERNS, THE VAULT</b>. Later zones add <b>locked gems</b> (white ring, owner only) and <b style="color:#B98CFF">teleport pads</b> (purple rings).<br><br>
+      <span style="color:rgba(255,255,255,.55)">Score = levels + gems &minus; falls. <kbd>P</kbd> pause &middot; <kbd>R</kbd> new maze &middot; <kbd>M</kbd> sound.</span>
+    </div>
+    <button class="big-btn" id="start-btn">START ESCAPING</button>
+    <div class="foot">BEST: <span id="home-best">0</span> &middot; NEEDS A PHYSICAL KEYBOARD FOR 2 PLAYERS</div>
+  </div>
+</div>
+
+<!-- ============ PAUSE ============ -->
+<div class="overlay hidden" id="pause-screen">
+  <div class="modal">
+    <h1><span class="c1">PAUSED</span></h1>
+    <p class="sub">TAKE A BREATHER</p>
+    <div style="height:16px"></div>
+    <button class="big-btn" id="resume-btn">RESUME</button>
+    <button class="ghost-btn" id="restart-btn">Restart this maze (keeps score)</button>
+  </div>
+</div>
+
+<!-- ============ LEVEL CLEAR ============ -->
+<div class="overlay hidden" id="clear-screen">
+  <div class="modal">
+    <h1><span class="c1">LEVEL </span><span class="c2" id="clear-lvl">1</span><span class="c1"> CLEAR</span></h1>
+    <p class="sub">NICE TEAMWORK</p>
+    <div id="clear-stats"></div>
+    <button class="big-btn" id="next-btn">NEXT MAZE (ENTER)</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   AGHI DUO ESCAPE — same-keyboard 2P co-op puzzle campaign
+   P1 (cyan, WASD) + P2 (orange, Arrows). Training level, then zone
+   chains per level: key rooms (exclusive errands in goo moats) ->
+   gem vaults (treasuries) -> sealed exit vault (key + gems required).
+   Linked 1:1 button-door pairs; every layout proven by layoutSolvable().
+   ===================================================================== */
+
+// ---------- Constants ----------
+var COLS = 23, ROWS = 17;          // must stay odd for maze carving
+var T_WALL = 1, T_FLOOR = 0;
+var P1_COLOR = '#55F1F8', P2_COLOR = '#FF9F43';
+var GOO_C = 'c', GOO_O = 'o', GOO_X = 'x';
+var BEST_KEY = 'aghiDuoBest';
+
+// ---------- Biome bands (progression: novelty + difficulty per level band) ----------
+var BANDS = [
+  { name:'TRAINING', from:1, to:1 },
+  { name:'NEON TUNNELS', from:2, to:3,
+    rooms:{ C:['airlock','keyroom_c'], O:['keyroom_o'], DUAL:[] },
+    gems:[2,4], locked:false, wall:'#23263a', accent:'#55F1F8' },
+  { name:'GOO CAVERNS', from:4, to:6,
+    rooms:{ C:['airlock','keyroom_c'], O:['keyroom_o','gauntlet'], DUAL:['crosskeys'] },
+    gems:[3,5], locked:false, wall:'#2c2145', accent:'#B98CFF' },
+  { name:'THE VAULT', from:7, to:9999,
+    rooms:{ C:['airlock','keyroom_c','shortcut'], O:['keyroom_o','gauntlet'], DUAL:['crosskeys'] },
+    gems:[4,6], locked:true, wall:'#453021', accent:'#FF9F43' },
+];
+function bandFor(lv) {
+  for (var i = BANDS.length - 1; i >= 0; i--) if (lv >= BANDS[i].from) return BANDS[i];
+  return BANDS[0];
+}
+
+// ---------- Zone chain planner (purpose by construction) ----------
+// Every door has exactly one button and vice versa, joined by link uid.
+// Global monotonic counter: uids only need per-build uniqueness, and builds
+// rebuild all arrays, so never resetting is the collision-proof choice.
+var pairSeq = 0;
+// Every level >= 2 runs: sealed exit vault (emphasis gate) + key rooms.
+// The vault stamps FIRST (empty maze = space); rooms target the OPPOSITE
+// color first, then the dynamic minority — so both colors land whether or
+// not every slot fills (the exit gate can no longer cover a skip, because
+// it shares the emphasis color by construction).
+function roomPlanFor(lv) {
+  var e = (lv % 2 === 0) ? 'c' : 'o';
+  return { exit: e };
+}
+
+// ---------- Puzzle room chunks (hand-authored beats stamped on the path) ----------
+// Legend: '#' wall, '.' floor, 'C' cyan button, 'O' orange button,
+// 'c'/'o' internal color doors, 'G' wild gem, 'X' void goo,
+// 'g' cyan goo (safe P1), 'f' orange goo (safe P2),
+// 'E' exit pad (vault only), 'T'/'t' linked teleport pads (same room).
+// Entry/exit doorways + the gate door are carved by stampChunk, not authored.
+var CHUNKS = [
+  { id:'airlock', w:7, h:7, gate:'c', gateAt:'exit', rows:[
+    '#######',
+    '#.#.#.#',
+    '#.C.G.#',
+    '#.#.#.#',
+    '#.G.G.#',
+    '#.....#',
+    '#######',
+  ]},
+  // crosskeys: O must be reachable from entry without passing the internal
+  // 'o' door (linked pairs can't share), so entry is constrained to the O
+  // (left) side. Chain: P2 presses O -> P1 reaches C -> gate opens.
+  { id:'crosskeys', w:7, h:7, gate:'c', gateAt:'exit', entrySide:'L', rows:[
+    '#######',
+    '#.G#..#',
+    '#.O.#C#',
+    '#..#..#',
+    '#..o..#',
+    '#..#.G#',
+    '#######',
+  ]},
+  { id:'gauntlet', w:7, h:5, gate:'o', gateAt:'exit', rows:[
+    '#######',
+    '#.....#',
+    '#.gGfG#',
+    '#.G.G.#',
+    '#######',
+  ]},
+  { id:'shortcut', w:7, h:7, gate:'c', gateAt:'exit', rows:[
+    '#######',
+    '#.G...#',
+    '#.T.G.#',
+    '#.....#',
+    '#..t.G#',
+    '#.....#',
+    '#######',
+  ]},
+  { id:'vault', w:5, h:5, gate:'o', gateAt:'entry', rows:[
+    '#####',
+    '#...#',
+    '#.E.#',
+    '#.E.#',
+    '#####',
+  ]},
+  // keyrooms: the key sits in a full goo ring of its own color — only the
+  // owner can approach it. Outer walkway stays floor so the partner and the
+  // through-route pass freely.
+  { id:'keyroom_c', w:7, h:7, gate:'c', gateAt:'exit', rows:[
+    '#######',
+    '#.G.G.#',
+    '#.ggg.#',
+    '#.gCg.#',
+    '#.ggg.#',
+    '#.....#',
+    '#######',
+  ]},
+  { id:'keyroom_o', w:7, h:7, gate:'o', gateAt:'exit', rows:[
+    '#######',
+    '#.G.G.#',
+    '#.fff.#',
+    '#.fOf.#',
+    '#.fff.#',
+    '#.....#',
+    '#######',
+  ]},
+  // gemvault retired: treasuries live inside key rooms now (a 4th stamp
+  // could not fit the grid — measured). See room legends' G slots.
+];
+function chunkById(id) {
+  for (var i = 0; i < CHUNKS.length; i++) if (CHUNKS[i].id === id) return CHUNKS[i];
+  return null;
+}
+
+// ---------- DOM ----------
+var canvas = document.getElementById('arena');
+var ctx = canvas.getContext('2d');
+var toastEl = document.getElementById('toast');
+var homeScreen = document.getElementById('home-screen');
+var pauseScreen = document.getElementById('pause-screen');
+var clearScreen = document.getElementById('clear-screen');
+var hLvl = document.getElementById('h-lvl'), hGems = document.getElementById('h-gems'),
+    hScore = document.getElementById('h-score'), hTime = document.getElementById('h-time'),
+    hDeaths = document.getElementById('h-deaths'), hObj = document.getElementById('h-obj'),
+    hBand = document.getElementById('h-band');
+var minicanvas = document.getElementById('minimap'), mctx = minicanvas.getContext('2d');
+
+// ---------- State ----------
+var state = 'home';      // home | play | pause | clear
+var grid = [];           // ROWSxCOLS of 0/1
+var doors = [];          // {c,r,color:'c'|'o',open}
+var buttons = [];        // {c,r,color,pressed}
+var exits = [];          // [{c,r},{c,r}]
+var goos = [];           // {c,r,kind}
+var gems = [];           // {c,r,color:'c'|'o',taken,phase,locked:'c'|'o'|null}
+var tports = [];         // {c,r,link:{c,r}} teleport pad pairs (same room only)
+var particles = [];
+var stamped = {};        // idx -> true for tiles inside authored rooms
+var reserved = {};         // idx -> true for doorway-approach floor (never pave over)
+var resAdded = [];         // reserved keys added by the in-progress stamp (for rollback)
+var BAND = null;         // current biome band (bandFor(level))
+var tut = {};            // per-level tutorial/coaching flags
+var lockHintShown = false;
+var OBJ = null, objFrame = -99, frameNo = 0;   // cached objective (Task 5)
+var level = 1, score = 0, deaths = 0, runTime = 0, levelTime = 0, exitCharge = 0;
+var best = 0, muted = false;
+try { best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; } catch (e) { best = 0; }
+document.getElementById('home-best').textContent = best;
+
+var P1 = { c:1.5, r:1.5, sc:1.5, sr:1.5, dx:0, dy:0, speed:4.4, invuln:0, padCd:0, color:'c', step:0, blink:2, happy:0, moving:false };
+var P2 = { c:1.5, r:1.5, sc:1.5, sr:1.5, dx:0, dy:0, speed:4.4, invuln:0, padCd:0, color:'o', step:0, blink:3.2, happy:0, moving:false };
+
+var keys = {};
+var toastTimer = 0;
+
+// ---------- Audio (tiny synth, no assets) ----------
+var AC = null;
+function ac() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') { AC.resume(); }
+  return AC;
+}
+function beep(freq, dur, type, vol, slide) {
+  if (muted) return;
+  var a = ac(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'square';
+  o.frequency.setValueAtTime(freq, a.currentTime);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), a.currentTime + dur);
+  g.gain.setValueAtTime(vol || 0.06, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(); o.stop(a.currentTime + dur + 0.02);
+}
+var sClick   = function(){ beep(660, .07, 'square', .05); };
+var sCollect = function(){ beep(880, .12, 'sine', .08, 440); };
+var sButton  = function(){ beep(330, .15, 'square', .07, 220); };
+var sDoor    = function(){ beep(220, .3, 'sawtooth', .05, 330); };
+var sDeath   = function(){ beep(300, .35, 'sawtooth', .08, -240); };
+var sWin     = function(){ beep(523,.12,'square',.07); setTimeout(function(){beep(659,.12,'square',.07);},110); setTimeout(function(){beep(784,.22,'square',.08);},220); };
+var sCharge  = function(){ beep(980, .06, 'sine', .04); };
+var sTeleport = function(){ beep(440, .12, 'sine', .07, 440); };
+var sObjective = function(){ beep(740, .09, 'triangle', .06, 180); };
+
+// ---------- Helpers ----------
+function idx(c, r) { return r * COLS + c; }
+function inBounds(c, r) { return c >= 0 && r >= 0 && c < COLS && r < ROWS; }
+function rand(n) { return Math.floor(Math.random() * n); }
+function choice(a) { return a[rand(a.length)]; }
+function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+function toast(msg, ms) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, ms || 2200);
+}
+function saveBest() {
+  if (score > best) { best = score; try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {} }
+}
+
+// ---------- Maze generation (recursive backtracker on odd grid) ----------
+function genMazeGrid() {
+  var g = [];
+  for (var r = 0; r < ROWS; r++) { g.push([]); for (var c = 0; c < COLS; c++) g[r].push(T_WALL); }
+  function carve(cc, rr) {
+    g[rr][cc] = T_FLOOR;
+    var dirs = [[2,0],[-2,0],[0,2],[0,-2]].sort(function(){ return Math.random() - 0.5; });
+    for (var i = 0; i < dirs.length; i++) {
+      var nc = cc + dirs[i][0], nr = rr + dirs[i][1];
+      if (nr > 0 && rr < ROWS - 1 && nc > 0 && cc < COLS - 1 && nr < ROWS - 1 && nc < COLS - 1 && g[nr][nc] === T_WALL) {
+        g[rr + dirs[i][1] / 2][cc + dirs[i][0] / 2] = T_FLOOR;
+        carve(nc, nr);
+      }
+    }
+  }
+  carve(1, 1);
+  // knock loops: open random interior walls between two floors for alternate routes
+  var loops = 10 + Math.min(level, 8);
+  var guard = 0;
+  while (loops > 0 && guard++ < 400) {
+    var c = 1 + rand(COLS - 2), r = 1 + rand(ROWS - 2);
+    if (g[r][c] !== T_WALL) continue;
+    var h = (inBounds(c-1,r) && inBounds(c+1,r) && g[r][c-1] === T_FLOOR && g[r][c+1] === T_FLOOR);
+    var v = (inBounds(c,r-1) && inBounds(c,r+1) && g[r-1][c] === T_FLOOR && g[r+1][c] === T_FLOOR);
+    if (h || v) { g[r][c] = T_FLOOR; loops--; }
+  }
+  return g;
+}
+
+function bfsPath(g, blocked, sc, sr, tc, tr) {
+  // blocked(c,r) -> bool. Returns array of [c,r] from start to target or null.
+  var prev = {}, seen = {}, q = [[sc, sr]];
+  seen[idx(sc, sr)] = true;
+  while (q.length) {
+    var cur = q.shift(), c = cur[0], r = cur[1];
+    if (c === tc && r === tr) {
+      var path = [[c, r]], k = idx(c, r);
+      while (prev[k] !== undefined) { var p = prev[k]; path.push([p[0], p[1]]); k = idx(p[0], p[1]); }
+      path.reverse();
+      return path;
+    }
+    var nb = [[c+1,r],[c-1,r],[c,r+1],[c,r-1]];
+    for (var i = 0; i < 4; i++) {
+      var nc = nb[i][0], nr = nb[i][1];
+      if (!inBounds(nc, nr) || seen[idx(nc, nr)]) continue;
+      if (g[nr][nc] === T_WALL || (blocked && blocked(nc, nr))) continue;
+      seen[idx(nc, nr)] = true;
+      prev[idx(nc, nr)] = [c, r];
+      q.push([nc, nr]);
+    }
+  }
+  return null;
+}
+
+function reachableSet(g, blocked, sc, sr) {
+  var seen = {}, q = [[sc, sr]];
+  seen[idx(sc, sr)] = true;
+  while (q.length) {
+    var cur = q.pop(), c = cur[0], r = cur[1];
+    var nb = [[c+1,r],[c-1,r],[c,r+1],[c,r-1]];
+    for (var i = 0; i < 4; i++) {
+      var nc = nb[i][0], nr = nb[i][1];
+      if (!inBounds(nc, nr) || seen[idx(nc, nr)]) continue;
+      if (g[nr][nc] === T_WALL || (blocked && blocked(nc, nr))) continue;
+      seen[idx(nc, nr)] = true;
+      q.push([nc, nr]);
+    }
+  }
+  return seen;
+}
+
+function openTiles(g) {
+  var out = [];
+  for (var r = 1; r < ROWS - 1; r++)
+    for (var c = 1; c < COLS - 1; c++)
+      if (g[r][c] === T_FLOOR) out.push([c, r]);
+  return out;
+}
+
+// ---------- Solvability helpers ----------
+// P1 + P2 spawn cells for reachability checks (set per level).
+// P1 always starts at (SPAWNC,SPAWNR), P2 at (SPAWN2C,SPAWN2R) — floods must
+// start from the PRESSING player's own spawn, not a shared one.
+var SPAWNC = 1, SPAWNR = 1, SPAWN2C = 1, SPAWN2R = 2;
+function deadlyKind(kind, color) {
+  if (kind === GOO_X) return true;
+  if (kind === GOO_C) return color === 'o';
+  return color === 'c'; // GOO_O kills cyan
+}
+function doorBlockedAll(c, r) {
+  for (var k = 0; k < doors.length; k++) if (doors[k].c === c && doors[k].r === r) return true;
+  return false;
+}
+// Flood fill from the given player's own spawn cell, avoiding walls,
+// blocked tiles, and goo deadly to the given player color.
+// (sc,sr) default to P1's spawn; pass P2's spawn for orange checks.
+function reachAvoid(color, blocked, sc, sr) {
+  if (sc === undefined) { sc = SPAWNC; sr = SPAWNR; }
+  var seen = {}, q = [[sc, sr]];
+  seen[idx(sc, sr)] = true;
+  while (q.length) {
+    var cur = q.pop(), c = cur[0], r = cur[1];
+    var nb = [[c+1,r],[c-1,r],[c,r+1],[c,r-1]];
+    for (var i = 0; i < 4; i++) {
+      var nc = nb[i][0], nr = nb[i][1];
+      if (!inBounds(nc, nr) || seen[idx(nc, nr)]) continue;
+      if (grid[nr][nc] === T_WALL || (blocked && blocked(nc, nr))) continue;
+      var g = gooAt(nc, nr);
+      if (g && deadlyKind(g.kind, color)) continue;
+      seen[idx(nc, nr)] = true;
+      q.push([nc, nr]);
+    }
+  }
+  return seen;
+}
+// True when: every button is reachable by its pressing player while all
+// doors are still closed, and every gem + exit is reachable by at least
+// the right players once doors are open (deadly goo respected).
+// Button check is CHAIN-AWARE: simulates pressing in reachable order, so a
+// button locked behind another color's door (crosskeys) still validates.
+function pressableOrder() {
+  var closed = {};
+  for (var i = 0; i < doors.length; i++)
+    if (!doors[i].open) closed[idx(doors[i].c, doors[i].r)] = doors[i].color;
+  var blockedFn = function(c, r) { return !!closed[idx(c, r)]; };
+  var remaining = buttons.slice(), order = [], guard = 0;
+  while (remaining.length && guard++ < 20) {
+    // each button must be reachable by its pressing player from THEIR spawn
+    var preC = reachAvoid('c', blockedFn, SPAWNC, SPAWNR);
+    var preO = reachAvoid('o', blockedFn, SPAWN2C, SPAWN2R);
+    var found = -1;
+    for (var b = 0; b < remaining.length; b++) {
+      var bt = remaining[b];
+      if ((bt.color === 'c' ? preC : preO)[idx(bt.c, bt.r)]) { found = b; break; }
+    }
+    if (found < 0) return null;
+    var done = remaining.splice(found, 1)[0];
+    order.push(done);
+    // linked semantics: pressing opens ONLY the linked door (same as update)
+    for (var d = 0; d < doors.length; d++)
+      if (doors[d].uid === done.link) delete closed[idx(doors[d].c, doors[d].r)];
+  }
+  return remaining.length ? null : order;
+}
+function layoutSolvable() {
+  var i, g, e;
+  if (!pressableOrder()) return false;
+  // P1 roams from P1's spawn, P2 from P2's spawn (doors open from here on).
+  var openC = reachAvoid('c', null, SPAWNC, SPAWNR);
+  var openO = reachAvoid('o', null, SPAWN2C, SPAWN2R);
+  for (i = 0; i < gems.length; i++) {
+    g = gems[i];
+    if (g.locked) {
+      if (!(g.locked === 'c' ? openC : openO)[idx(g.c, g.r)]) return false;
+    } else if (!openC[idx(g.c, g.r)] && !openO[idx(g.c, g.r)]) return false;
+  }
+  for (i = 0; i < exits.length; i++) {
+    e = exits[i];
+    if (!openC[idx(e.c, e.r)] || !openO[idx(e.c, e.r)]) return false;
+  }
+  return true;
+}
+
+// ---------- Level construction (guaranteed solvable by construction) ----------
+function isSpecial(c, r) {
+  var i;
+  for (i = 0; i < doors.length; i++) if (doors[i].c === c && doors[i].r === r) return true;
+  for (i = 0; i < buttons.length; i++) if (buttons[i].c === c && buttons[i].r === r) return true;
+  for (i = 0; i < exits.length; i++) if (exits[i].c === c && exits[i].r === r) return true;
+  for (i = 0; i < gems.length; i++) if (gems[i].c === c && gems[i].r === r) return true;
+  for (i = 0; i < goos.length; i++) if (goos[i].c === c && goos[i].r === r) return true;
+  for (i = 0; i < tports.length; i++) if (tports[i].c === c && tports[i].r === r) return true;
+  if (Math.abs(P1.sc - (c + .5)) < 1 && Math.abs(P1.sr - (r + .5)) < 1) return true;
+  if (Math.abs(P2.sc - (c + .5)) < 1 && Math.abs(P2.sr - (r + .5)) < 1) return true;
+  return false;
+}
+
+// Place the gate button for a stamped room when the legend has no button
+// of the gate color: prefer spawn-side maze floor, fall back to a floor
+// tile inside the room near its entry doorway (always exists).
+function placeGateButton(chunk, gateColor, gateTile, x0, y0, x1, y1, entry) {
+  for (var i = 0; i < buttons.length; i++)
+    if (buttons[i].color === gateColor && buttons[i].room === chunk.uid) return buttons[i];
+  // gate button must be reachable by its pressing player from THEIR spawn
+  var gs = gateColor === 'c' ? [SPAWNC, SPAWNR] : [SPAWN2C, SPAWN2R];
+  var reach = reachAvoid(gateColor, doorBlockedAll, gs[0], gs[1]);
+  var spots = openTiles(grid).filter(function(t) {
+    if (!reach[idx(t[0], t[1])] || isSpecial(t[0], t[1])) return false;
+    return Math.abs(t[0] - gateTile.c) + Math.abs(t[1] - gateTile.r) >= 3;
+  });
+  if (!spots.length) {
+    // fallback: reachable floor near the room entry (reach-gated too —
+    // an unreachable key is a broken level, fail fast instead)
+    spots = openTiles(grid).filter(function(t) {
+      if (t[0] < x0 || t[0] > x1 || t[1] < y0 || t[1] > y1) return false;
+      if (isSpecial(t[0], t[1])) return false;
+      if (!reach[idx(t[0], t[1])]) return false;
+      return Math.abs(t[0] - entry.c) + Math.abs(t[1] - entry.r) <= 3;
+    });
+  }
+  if (!spots.length) return null;
+  var b = choice(spots);
+  // moat flag: wild keys get ringed in owner-color goo by the moat pass
+  var nb = { c: b[0], r: b[1], color: gateColor, pressed: false, room: chunk.uid, moat: true };
+  buttons.push(nb);
+  // reserve the key's pocket: later rooms must route around it, not pave
+  // the corridors it breathes through (same bug class as doorways)
+  for (var rbi = -1; rbi <= 1; rbi++) {
+    for (var cbi = -1; cbi <= 1; cbi++) {
+      if (!rbi && !cbi) continue;
+      var rc2 = nb.c + cbi, rr2 = nb.r + rbi;
+      if (!inBounds(rc2, rr2) || grid[rr2][rc2] !== T_FLOOR) continue;
+      var k2 = idx(rc2, rr2);
+      if (!reserved[k2]) { reserved[k2] = true; resAdded.push(k2); }
+    }
+  }
+  return nb;
+}
+
+// Stamp an authored room centered on path[pi]. Entry = first path crossing
+// of the room border, exit = last crossing on a different side when possible.
+// Exit doorway gets the chunk's gate door (vault: gate goes on ENTRY and the
+// room's E tiles become the level exits). All-or-nothing: returns false if
+// the rect is illegal; grid is only mutated on success.
+var chunkSeq = 0;
+function stampChunk(chunk, path, pi) {
+  if (!chunk) return false;
+  var w = chunk.w, h = chunk.h;
+  var pc = path[pi][0], pr = path[pi][1];
+  var x0 = Math.max(1, Math.min(COLS - 1 - w, pc - (w >> 1)));
+  var y0 = Math.max(1, Math.min(ROWS - 1 - h, pr - (h >> 1)));
+  var x1 = x0 + w - 1, y1 = y0 + h - 1;
+  var uid = 'r' + (++chunkSeq);
+  chunk.uid = uid;
+  resAdded = [];
+  // link snapshot: incremental linkRoomPairs below may relink pre-existing
+  // buttons; rollback must restore their fields exactly
+  var linkSnap = buttons.map(function(b) { return b.link; });
+  // rect must avoid PROTECTED tiles — but plain floors and walls, even
+  // inside prior rooms, are reworkable: the monotonic layoutSolvable()
+  // check after mutation rolls back anything that seals a route, so it is
+  // the real gate and these cheap checks only skip provably load-bearing
+  // squares (entities, doorway approaches, spawns, exits).
+  // Vault alone may cover temp exits (it replaces them with its E pads).
+  var c, r;
+  for (r = y0; r <= y1; r++)
+    for (c = x0; c <= x1; c++) {
+      if (!inBounds(c, r)) return false;
+      if (reserved[idx(c, r)]) return false;
+      if (isSpecial(c, r)) {
+        var isExitTile = false;
+        for (var se = 0; se < exits.length; se++) {
+          if (exits[se].c === c && exits[se].r === r) { isExitTile = true; break; }
+        }
+        if (!(chunk.id === 'vault' && isExitTile)) return false;
+      }
+    }
+  var sc1 = Math.floor(P1.sc), sr1 = Math.floor(P1.sr);
+  var sc2 = Math.floor(P2.sc), sr2 = Math.floor(P2.sr);
+  // spawns breathe: no rect within Chebyshev 2 of either spawn tile.
+  // Walling a spawn's neighbors seals the player in outright (measured:
+  // tiny P2 floods + unreachable everything after near-spawn stamps).
+  if ((sc1 >= x0 - 2 && sc1 <= x1 + 2 && sr1 >= y0 - 2 && sr1 <= y1 + 2) ||
+      (sc2 >= x0 - 2 && sc2 <= x1 + 2 && sr2 >= y0 - 2 && sr2 <= y1 + 2)) return false;
+  if (chunk.id !== 'vault') {
+    for (var e = 0; e < exits.length; e++)
+      if (exits[e].c >= x0 && exits[e].c <= x1 && exits[e].r >= y0 && exits[e].r <= y1) return false;
+  }
+  // find path crossings of the rect border, in path order.
+  // Both tiles must be CURRENT floor: the path predates earlier stamps, and
+  // a stale segment (tiles since walled over) would carve a doorway to a
+  // wall, sealing the room. Skip stale segments outright.
+  function inside(t) { return t[0] >= x0 && t[0] <= x1 && t[1] >= y0 && t[1] <= y1; }
+  var crosses = [];
+  for (var k = 1; k < path.length; k++) {
+    var a = path[k - 1], b = path[k];
+    if (grid[a[1]][a[0]] !== T_FLOOR || grid[b[1]][b[0]] !== T_FLOOR) continue;
+    if (inside(a) !== inside(b)) {
+      var out = inside(a) ? b : a, inn = inside(a) ? a : b;
+      var side, bc, br;
+      if (out[0] === x0 - 1) { side = 'L'; bc = x0; br = inn[1]; }
+      else if (out[0] === x1 + 1) { side = 'R'; bc = x1; br = inn[1]; }
+      else if (out[1] === y0 - 1) { side = 'U'; bc = inn[0]; br = y0; }
+      else if (out[1] === y1 + 1) { side = 'D'; bc = inn[0]; br = y1; }
+      else continue;
+      // border tile must be on the rect edge and currently wall-ish; record it
+      if (bc < x0 || bc > x1 || br < y0 || br > y1) continue;
+      crosses.push({ order: k, side: side, c: bc, r: br, outc: out[0], outr: out[1] });
+    }
+  }
+  if (crosses.length < 1) return false;
+  // doorway approaches must breathe: keep only crossings whose outside
+  // tile is reachable by EITHER player with doors closed. A doorway carved
+  // to a severed pocket seals the room (measured: the dominant stamp
+  // failure — gates facing disconnected maze fragments). Buttons keep
+  // their stricter owner-specific check in pressableOrder.
+  var connC = null, connO = null;
+  function outAlive(o) {
+    if (!connC) {
+      connC = reachAvoid('c', doorBlockedAll, SPAWNC, SPAWNR);
+      connO = reachAvoid('o', doorBlockedAll, SPAWN2C, SPAWN2R);
+    }
+    return !!(connC[idx(o.outc, o.outr)] || connO[idx(o.outc, o.outr)]);
+  }
+  crosses = crosses.filter(outAlive);
+  if (!crosses.length) return false;
+  var entry = crosses[0], exit = null;
+  for (var x = crosses.length - 1; x > 0; x--) {
+    if (crosses[x].side !== entry.side) { exit = crosses[x]; break; }
+  }
+  if (!exit && crosses.length > 1) exit = crosses[crosses.length - 1];
+  // orientation-sensitive rooms (e.g. crosskeys: chain button must face the
+  // entry side) reject wrong-side entries pre-mutation — no rollback needed
+  if (chunk.entrySide && entry.side !== chunk.entrySide) return false;
+  var gateCross = chunk.gate ? ((chunk.gateAt === 'entry') ? entry : exit) : null;
+  if (chunk.gate && !gateCross) return false;
+
+  // ---- mutate (with rollback snapshot: gate-button fallback can still fail) ----
+  var gridSnap = [], nDoors = doors.length, nBtns = buttons.length;
+  var nGems = gems.length, nGoos = goos.length, nTports = tports.length;
+  var exitsSnap = exits;
+  for (r = y0; r <= y1; r++) gridSnap.push(grid[r].slice(x0, x1 + 1));
+  function rollback() {
+    for (var rr2 = y0; rr2 <= y1; rr2++)
+      for (var cc2 = x0; cc2 <= x1; cc2++) grid[rr2][cc2] = gridSnap[rr2 - y0][cc2 - x0];
+    doors.length = nDoors; buttons.length = nBtns; gems.length = nGems;
+    goos.length = nGoos; tports.length = nTports;
+    for (var li3 = 0; li3 < linkSnap.length && li3 < buttons.length; li3++) buttons[li3].link = linkSnap[li3];
+    for (var ri2 = 0; ri2 < resAdded.length; ri2++) delete reserved[resAdded[ri2]];
+    exits = exitsSnap;
+    return false;
+  }
+  var Tlist = [], tlist = [], vaultEx = [];
+  for (r = 0; r < h; r++) {
+    for (c = 0; c < w; c++) {
+      var gx = x0 + c, gy = y0 + r, ch = chunk.rows[r].charAt(c);
+      if (ch === '#') { grid[gy][gx] = T_WALL; continue; }
+      grid[gy][gx] = T_FLOOR;
+      if (ch === 'C') buttons.push({ c: gx, r: gy, color: 'c', pressed: false, room: uid });
+      else if (ch === 'O') buttons.push({ c: gx, r: gy, color: 'o', pressed: false, room: uid });
+      else if (ch === 'c') doors.push({ c: gx, r: gy, color: 'c', open: false, room: uid, uid: 'd' + (++pairSeq) });
+      else if (ch === 'o') doors.push({ c: gx, r: gy, color: 'o', open: false, room: uid, uid: 'd' + (++pairSeq) });
+      else if (ch === 'G') gems.push({ c: gx, r: gy, color: (gems.length % 2 === 0) ? 'c' : 'o', taken: false, locked: null, phase: Math.random() * 6.28 });
+      else if (ch === 'X') goos.push({ c: gx, r: gy, kind: GOO_X, phase: Math.random() * 6.28 });
+      else if (ch === 'g') goos.push({ c: gx, r: gy, kind: GOO_C, phase: Math.random() * 6.28 });
+      else if (ch === 'f') goos.push({ c: gx, r: gy, kind: GOO_O, phase: Math.random() * 6.28 });
+      else if (ch === 'E') vaultEx.push({ c: gx, r: gy, vault: true });
+      else if (ch === 'T') Tlist.push({ c: gx, r: gy });
+      else if (ch === 't') tlist.push({ c: gx, r: gy });
+    }
+  }
+  // teleport endpoints pair up in order; both ends are room-confined by construction
+  for (var ti = 0; ti < Math.min(Tlist.length, tlist.length); ti++) {
+    tports.push({ c: Tlist[ti].c, r: Tlist[ti].r, link: { c: tlist[ti].c, r: tlist[ti].r }, room: uid });
+    tports.push({ c: tlist[ti].c, r: tlist[ti].r, link: { c: Tlist[ti].c, r: Tlist[ti].r }, room: uid });
+  }
+  // doorways: entry open + exit gated (gated rooms); entry gated, no exit
+  // (vault); both open, no gate (treasuries like gemvault).
+  // Gate door and its button join by link uid immediately.
+  if (!chunk.gate) {
+    grid[entry.r][entry.c] = T_FLOOR;
+    if (exit) grid[exit.r][exit.c] = T_FLOOR;
+  } else if (chunk.gateAt === 'entry') {
+    grid[entry.r][entry.c] = T_FLOOR;
+    var gateUidE = 'd' + (++pairSeq);
+    doors.push({ c: entry.c, r: entry.r, color: chunk.gate, open: false, room: uid, uid: gateUidE });
+    var gateTileE = { c: entry.c, r: entry.r };
+    if (chunk.id === 'vault' && vaultEx.length === 2) exits = vaultEx;
+    var gbtnE = placeGateButton(chunk, chunk.gate, gateTileE, x0, y0, x1, y1, entry);
+    if (!gbtnE) return rollback();
+    gbtnE.link = gateUidE;
+    if (chunk.id === 'vault') gbtnE.key = true; // the exit key: finale trigger
+  } else {
+    grid[entry.r][entry.c] = T_FLOOR;
+    grid[exit.r][exit.c] = T_FLOOR;
+    var gateUidX = 'd' + (++pairSeq);
+    doors.push({ c: exit.c, r: exit.r, color: chunk.gate, open: false, room: uid, uid: gateUidX });
+    var gateTileX = { c: exit.c, r: exit.r };
+    var gbtnX = placeGateButton(chunk, chunk.gate, gateTileX, x0, y0, x1, y1, entry);
+    if (!gbtnX) return rollback();
+    gbtnX.link = gateUidX;
+  }
+  for (r = y0; r <= y1; r++)
+    for (c = x0; c <= x1; c++) stamped[idx(c, r)] = true;
+  // doorways must open into the room: each needs a floor orthogonal neighbor
+  // inside the rect. Corner border tiles touch interior only diagonally (and
+  // legends can wall an interior side) — a doorway without one can never
+  // connect, so reject now instead of discovering it at final acceptance.
+  function doorwayAlive(d) {
+    if (!d) return true;
+    var nb = [[d.c + 1, d.r], [d.c - 1, d.r], [d.c, d.r + 1], [d.c, d.r - 1]];
+    for (var i = 0; i < 4; i++) {
+      var nc = nb[i][0], nr = nb[i][1];
+      if (nc < x0 || nc > x1 || nr < y0 || nr > y1) continue;
+      if (grid[nr][nc] === T_FLOOR) return true;
+    }
+    return false;
+  }
+  if (!doorwayAlive(entry) || (chunk.gate && chunk.gateAt !== 'entry' && !doorwayAlive(exit))) return rollback();
+  // reserve doorway approaches: later rooms may touch this rect but must
+  // never wall over the floor corridors its doorways breathe through
+  reserveApproach(entry);
+  if (exit) reserveApproach(exit);
+  // monotonic safety: link up (idempotent) and prove the CURRENT partial
+  // layout still solves. This validates ROUTES, not just tiles: a stamp
+  // that walls over an earlier doorway approach, button pocket, gem route,
+  // or the temp exits is rejected here, not discovered at final acceptance.
+  // (Gems/exits are partial mid-build — temp exits and placed gems alike
+  // must stay reachable; quota and sealing are final-acceptance clauses.)
+  linkRoomPairs();
+  var monoOK = layoutSolvable() && spawnsJoined();
+  if (!monoOK) {
+    for (var li4 = 0; li4 < linkSnap.length && li4 < buttons.length; li4++) buttons[li4].link = linkSnap[li4];
+    return rollback();
+  }
+  return true;
+}
+
+// Mark floor tiles around a doorway's outside approach as reserved so later
+// stamps route around them instead of paving over this room's access.
+function reserveApproach(cross) {
+  for (var dr2 = -1; dr2 <= 1; dr2++) {
+    for (var dc2 = -1; dc2 <= 1; dc2++) {
+      var cc = cross.outc + dc2, rr = cross.outr + dr2;
+      if (!inBounds(cc, rr)) continue;
+      if (grid[rr][cc] !== T_FLOOR) continue;
+      var k = idx(cc, rr);
+      if (!reserved[k]) { reserved[k] = true; resAdded.push(k); }
+    }
+  }
+}
+
+// Spawns must stay mutually reachable (walls-only topology). A stamp can
+// wall a spawn into a pocket long before that player's button exists to
+// trip pressableOrder — and P2's spawn (bottom-left maze pockets) seals
+// far more often than P1's. Doors and goo ignored here on purpose: this
+// guards raw team connectivity; tactics validate separately.
+function spawnsJoined() {
+  var seen = {}, q = [[SPAWNC, SPAWNR]];
+  seen[idx(SPAWNC, SPAWNR)] = true;
+  while (q.length) {
+    var cur = q.pop(), c = cur[0], r = cur[1];
+    if (c === SPAWN2C && r === SPAWN2R) return true;
+    var nb = [[c+1,r],[c-1,r],[c,r+1],[c,r-1]];
+    for (var i = 0; i < 4; i++) {
+      var nc = nb[i][0], nr = nb[i][1];
+      if (!inBounds(nc, nr) || seen[idx(nc, nr)]) continue;
+      if (grid[nr][nc] === T_WALL) continue;
+      seen[idx(nc, nr)] = true;
+      q.push([nc, nr]);
+    }
+  }
+  return false;
+}
+// Pair up remaining same-room doors and buttons by color (first-come).
+// Gate doors are already linked at stamp time and skipped; random doors get
+// their buttons in pass 2. Leftovers (shouldn't happen with authored legends)
+// are caught by the fuzz bijection assert, never by players.
+function linkRoomPairs() {
+  for (var i = 0; i < doors.length; i++) {
+    var dr = doors[i];
+    if (!dr.room) continue;
+    var claimed = false, b;
+    for (b = 0; b < buttons.length; b++) {
+      if (buttons[b].link === dr.uid) { claimed = true; break; }
+    }
+    if (claimed) continue;
+    for (b = 0; b < buttons.length; b++) {
+      var bt = buttons[b];
+      if (bt.room === dr.room && !bt.link && bt.color === dr.color) { bt.link = dr.uid; break; }
+    }
+  }
+}
+
+// ---------- Fixed tutorial (level 1): three rooms, coached beats ----------
+// Room A: spawns + cyan button. Cyan door -> Room B: gem + orange button.
+// Orange door -> Room C: gem + dual exit pads. Same arrays as gen levels,
+// so update/draw/timer/score work untouched.
+function buildTutorial() {
+  grid = [];
+  for (var r = 0; r < ROWS; r++) { grid.push([]); for (var c = 0; c < COLS; c++) grid[r].push(T_WALL); }
+  doors = []; buttons = []; exits = []; goos = []; gems = []; tports = []; particles = [];
+  stamped = {};
+  exitCharge = 0; levelTime = 0; lockHintShown = false;
+  tut = {}; OBJ = null; objFrame = -99;
+  function carve(c0, r0, c1, r1) {
+    for (var rr = r0; rr <= r1; rr++)
+      for (var cc = c0; cc <= c1; cc++) grid[rr][cc] = T_FLOOR;
+  }
+  carve(1, 6, 21, 10);
+  for (var wr = 6; wr <= 10; wr++) { grid[wr][8] = T_WALL; grid[wr][15] = T_WALL; }
+  // door tiles stay FLOOR in the grid (doors block via solidAt/doorBlockedAll,
+  // so floods and paths can reason about them once open)
+  grid[8][8] = T_FLOOR; grid[8][15] = T_FLOOR;
+  // fixed literal links (tutorial builds its own arrays; 'tut-' prefix can
+  // never collide with pairSeq 'd' uids by construction)
+  doors.push({ c: 8, r: 8, color: 'c', open: false, uid: 'tut-dc' });
+  doors.push({ c: 15, r: 8, color: 'o', open: false, uid: 'tut-do' });
+  buttons.push({ c: 5, r: 6, color: 'c', pressed: false, link: 'tut-dc' });
+  buttons.push({ c: 12, r: 9, color: 'o', pressed: false, link: 'tut-do' });
+  gems.push({ c: 11, r: 8, color: 'c', taken: false, locked: null, phase: 0 });
+  gems.push({ c: 20, r: 7, color: 'o', taken: false, locked: null, phase: 2 });
+  exits = [{ c: 18, r: 8 }, { c: 19, r: 8 }];
+  P1.sc = 2.5; P1.sr = 8.5; P2.sc = 2.5; P2.sr = 7.5;
+  SPAWNC = 2; SPAWNR = 8; SPAWN2C = 2; SPAWN2R = 7;
+  resetPlayersToSpawn();
+  P1.invuln = 0; P2.invuln = 0;
+  updateHud();
+  if (!layoutSolvable() && window.console) console.warn('tutorial layout unsolvable');
+}
+
+function buildLevel(lv) {
+  var band = bandFor(lv);
+  BAND = band;
+  if (lv === 1) { buildTutorial(); return; }
+  // generate-and-test: acceptance is solvable + sealed exit + gem quota +
+  // both colors, with a bounded retry budget; the last attempt is kept as
+  // best effort. (No degraded fallback: skipping rooms would guarantee a
+  // color miss, so every attempt runs the full zone program.)
+  for (var att = 0; att < 7; att++) {
+    buildMazeLevel(lv, band);
+    var accS = layoutSolvable(), accV = vaultSealed(), accG = gemsMet(), accC = colorsPresent();
+    if (accS && accV && accG && accC) break;
+  }
+}
+
+// Both players need work every level: at least one pair per color.
+function colorsPresent() {
+  var hc = false, ho = false;
+  for (var i = 0; i < doors.length; i++) {
+    if (doors[i].color === 'c') hc = true; else ho = true;
+  }
+  return hc && ho;
+}
+
+// Exit doctrine: both pads must be genuine vault pads (flagged at stamp),
+// not maze pads that happen to sit inside a room rect.
+function vaultSealed() {
+  if (exits.length !== 2) return false;
+  return !!(exits[0].vault && exits[1].vault);
+}
+// Gem doctrine: all gems live in vaults; the band quota must be met.
+function gemsMet() {
+  return gems.length >= BAND.gems[0];
+}
+
+function buildMazeLevel(lv, band) {
+  grid = genMazeGrid();
+  doors = []; buttons = []; exits = []; goos = []; gems = []; tports = []; particles = [];
+  stamped = {}; reserved = {};
+  exitCharge = 0; levelTime = 0; lockHintShown = false;
+  tut = {};
+  OBJ = null; objFrame = -99;
+
+  var floors = openTiles(grid);
+  floors.sort(function(a, b){ return a[0] - b[0]; });
+
+  // starts: two distinct tiles on the left
+  var left = floors.filter(function(t){ return t[0] <= 3; });
+  if (left.length < 2) left = floors.slice(0, 8);
+  var s1 = left[0], s2 = left[left.length - 1];
+  if (s1[0] === s2[0] && s1[1] === s2[1]) s2 = left[1] || floors[1];
+  P1.sc = s1[0] + .5; P1.sr = s1[1] + .5;
+  P2.sc = s2[0] + .5; P2.sr = s2[1] + .5;
+  SPAWNC = s1[0]; SPAWNR = s1[1];
+  SPAWN2C = Math.floor(P2.sc); SPAWN2R = Math.floor(P2.sr);
+  resetPlayersToSpawn();
+  P1.invuln = 0; P2.invuln = 0;
+
+  // exits: farthest reachable pair from P1 spawn (longest journey, random
+  // places — never "always the right edge"). BFS distances pick the tip.
+  var dist = {}, dq = [[s1[0], s1[1]]];
+  dist[idx(s1[0], s1[1])] = 0;
+  while (dq.length) {
+    var dc = dq.shift(), dcc = dc[0], dcr = dc[1];
+    var dnb = [[dcc + 1, dcr], [dcc - 1, dcr], [dcc, dcr + 1], [dcc, dcr - 1]];
+    for (var di2 = 0; di2 < 4; di2++) {
+      var dnc = dnb[di2][0], dnr = dnb[di2][1];
+      if (!inBounds(dnc, dnr) || dist[idx(dnc, dnr)] !== undefined) continue;
+      if (grid[dnr][dnc] !== T_FLOOR) continue;
+      dist[idx(dnc, dnr)] = dist[idx(dcc, dcr)] + 1;
+      dq.push([dnc, dnr]);
+    }
+  }
+  var ex = null, farD = -1, farK = -1;
+  for (var dk in dist) {
+    if (!dist.hasOwnProperty(dk)) continue;
+    var fc = dk % COLS, fr = Math.floor(dk / COLS);
+    if (fc === s1[0] && fr === s1[1]) continue;
+    if (fc === s2[0] && fr === s2[1]) continue;
+    if (dist[dk] > farD) { farD = dist[dk]; farK = dk; }
+  }
+  if (farK >= 0) {
+    var fx = farK % COLS, fy = Math.floor(farK / COLS);
+    var fnb = [[fx + 1, fy], [fx - 1, fy], [fx, fy + 1], [fx, fy - 1]];
+    for (var fi = 0; fi < fnb.length && !ex; fi++) {
+      var fn = fnb[fi];
+      if (inBounds(fn[0], fn[1]) && grid[fn[1]][fn[0]] === T_FLOOR) ex = [[fx, fy], fn];
+    }
+  }
+  if (!ex) { ex = [floors[floors.length - 1], floors[floors.length - 2]]; }
+  exits = [{ c: ex[0][0], r: ex[0][1] }, { c: ex[1][0], r: ex[1][1] }];
+
+  var midC = Math.round((s1[0] + ex[0][0]) / 2), midR = Math.round((s1[1] + ex[0][1]) / 2);
+  var path = bfsPath(grid, null, s1[0], s1[1], ex[0][0], ex[0][1]) || [];
+
+  // ---- zone chain: key room -> gem vault -> [2nd key room] -> ----
+  // ---- sealed exit vault FIRST, key rooms after. The vault is the ----
+  // ---- load-bearing zone (exits + finale) and failed most when placed ----
+  // ---- last on a crowded grid (measured: thousands of overlap denies); ----
+  // ---- on an empty maze it lands routinely, and later rooms route around ----
+  // ---- its protected tiles. Gate takes the emphasis color; rooms bring ----
+  // ---- [emphasis, other] so both colors land whenever rooms stamp. ----
+  var plan = roomPlanFor(lv);
+  var vv = null;
+  // exit vault FIRST (empty maze = space): sealed finale, gate takes the
+  // emphasis color. Tail segment first (finale at the journey's end), then
+  // whole-path fallback — a sealed vault anywhere beats none. (Order flips
+  // are fine: objectives/pressableOrder are order-agnostic, and an early
+  // sealed vault foreshadows the finale.)
+  var _vfname = function() {
+    var vb = chunkById('vault');
+    if (!vb) return null;
+    return { id: vb.id, w: vb.w, h: vb.h, gate: plan.exit, gateAt: vb.gateAt, rows: vb.rows };
+  };
+  for (var va = 0; va < 15 && !vv; va++) {
+    vv = tryPlaceZone(_vfname, Math.max(6, path.length - 14), path.length - 3, 1);
+  }
+  if (!vv) {
+    vv = tryPlaceZone(_vfname, 6, path.length - 3, 30);
+  }
+  // key rooms route around the vault (validations protect its tiles).
+  // Slot 1 takes the OPPOSITE of the vault's emphasis color (the vault
+  // already brings emphasis); slot 2 takes the dynamic minority of stamped
+  // doors, so both colors land however the slots fill. crosskeys (DUAL)
+  // fills both at once and skips slot 2.
+  function pickColorRoom(color) {
+    var cands = [];
+    var poolC = band.rooms[color === 'c' ? 'C' : 'O'];
+    for (var ci0 = 0; ci0 < poolC.length; ci0++) cands.push(poolC[ci0]);
+    for (var di0 = 0; di0 < band.rooms.DUAL.length; di0++) cands.push(band.rooms.DUAL[di0]);
+    return cands.length ? chunkById(choice(cands)) : null;
+  }
+  var oth = (plan.exit === 'c') ? 'o' : 'c';
+  var r1 = tryPlaceZone(function() { return pickColorRoom(oth); }, 6, Math.floor(path.length * 0.55), 25);
+  if (!r1 || r1.chunk.id !== 'crosskeys') {
+    var mC = 0, mO = 0, mi2;
+    for (mi2 = 0; mi2 < doors.length; mi2++) {
+      if (doors[mi2].color === 'c') mC++; else mO++;
+    }
+    var want2 = (mC < mO) ? 'c' : ((mO < mC) ? 'o' : plan.exit);
+    tryPlaceZone(function() { return pickColorRoom(want2); }, 6, Math.floor(path.length * 0.8), 20);
+  }
+  function zoneRange(lo, hi) {
+    lo = Math.max(4, Math.min(path.length - 5, lo));
+    hi = Math.max(4, Math.min(path.length - 5, hi));
+    if (hi < lo) { var t = lo; lo = hi; hi = t; }
+    // collapsed tail (earlier zones consumed it): widen to the whole path
+    // rather than retrying one index — a vault anywhere beats no vault.
+    // (Travel order may flip; objectives/pressableOrder are order-agnostic.)
+    if (hi - lo < 6) lo = 4;
+    return [lo, hi];
+  }
+  function tryPlaceZone(pickChunk, lo, hi, tries) {
+    if (path.length <= 14) return null;
+    var rg = zoneRange(lo, hi);
+    for (var a = 0; a < tries; a++) {
+      var ch = pickChunk();
+      if (!ch) continue;
+      var ppi = rg[0] + ((rg[1] > rg[0]) ? rand(rg[1] - rg[0] + 1) : 0);
+      if (stampChunk(ch, path, ppi)) return { chunk: ch, idx: ppi };
+    }
+    return null;
+  }
+  // (key rooms + exit vault placed above; gems ride inside key rooms —
+  // no separate treasury stamp: a 4th rect could not fit the grid, measured)
+  linkRoomPairs();
+  // band C: lock every other gem to its color (personal pickups)
+  if (band.locked) {
+    for (var li = 0; li < gems.length; li += 2) gems[li].locked = gems[li].color;
+  }
+
+  // stamping rewrote grid tiles (room walls/borders): refresh the floor list
+  // and the critical path so later placements never use stale wall tiles.
+  // Fresh path treats closed chunk gates as walls (still must be opened).
+  floors = openTiles(grid);
+  path = bfsPath(grid, doorBlockedAll, s1[0], s1[1], ex[0][0], ex[0][1]) || path;
+
+  // exits must survive stamping (room walls can orphan the pre-stamp picks):
+  // verify both pads are reachable by both players with doors open,
+  // else reselect the rightmost reachable adjacent floor pair.
+  (function ensureExits() {
+    var oC = reachAvoid('c', null, SPAWNC, SPAWNR);
+    var oO = reachAvoid('o', null, SPAWN2C, SPAWN2R);
+    function ok(e) { return oC[idx(e.c, e.r)] && oO[idx(e.c, e.r)]; }
+    if (exits.length === 2 && ok(exits[0]) && ok(exits[1])) return;
+    var cands = openTiles(grid).sort(function(a, b) { return b[0] - a[0]; });
+    for (var i = 0; i < cands.length; i++) {
+      var t = cands[i];
+      if (isSpecial(t[0], t[1])) continue;
+      var nb = [[t[0] + 1, t[1]], [t[0], t[1] + 1], [t[0] - 1, t[1]], [t[0], t[1] - 1]];
+      for (var j = 0; j < nb.length; j++) {
+        var n = nb[j];
+        if (!inBounds(n[0], n[1]) || grid[n[1]][n[0]] !== T_FLOOR || isSpecial(n[0], n[1])) continue;
+        var e1 = { c: t[0], r: t[1] }, e2 = { c: n[0], r: n[1] };
+        if (oC[idx(e1.c, e1.r)] && oO[idx(e1.c, e1.r)] && oC[idx(e2.c, e2.r)] && oO[idx(e2.c, e2.r)]) {
+          exits = [e1, e2];
+          return;
+        }
+      }
+    }
+  })();
+
+  // color backfill: if a color has no pairs after zones (a room slot
+  // missed), add ONE maze pair for it — door on the fresh path, button via
+  // pass 2 below. Rooms are the primary source; this only fires on gaps,
+  // so both players always have work. Validated by final acceptance.
+  for (var bc0 = 0; bc0 < 2; bc0++) {
+    var bcol = bc0 === 0 ? 'c' : 'o';
+    var hasPair = false, bdi2;
+    for (bdi2 = 0; bdi2 < doors.length; bdi2++) {
+      if (doors[bdi2].color === bcol) { hasPair = true; break; }
+    }
+    if (hasPair) continue;
+    for (var bt = 0; bt < 20 && !hasPair; bt++) {
+      var bti = rand(path.length);
+      var btile = path[bti];
+      if (stamped[idx(btile[0], btile[1])]) continue;
+      if (reserved[idx(btile[0], btile[1])]) continue;
+      if (grid[btile[1]][btile[0]] !== T_FLOOR) continue;
+      if (isSpecial(btile[0], btile[1])) continue;
+      if (btile[0] === s1[0] && btile[1] === s1[1]) continue;
+      if (btile[0] === ex[0][0] && btile[1] === ex[0][1]) continue;
+      doors.push({ c: btile[0], r: btile[1], color: bcol, open: false, uid: 'd' + (++pairSeq) });
+      hasPair = true;
+    }
+  }
+  // pass 2: exactly one button per door lacking one (room doors already have
+  // legend/auto buttons — linked in the room link pass; backfill doors get
+  // theirs here). Buttons avoid ALL doors, so later doors can't seal them.
+  for (var di = doors.length - 1; di >= 0; di--) {
+    var dr = doors[di];
+    if (dr.uid) {
+      var hasBtn = false;
+      for (var hb = 0; hb < buttons.length; hb++) {
+        if (buttons[hb].link === dr.uid) { hasBtn = true; break; }
+      }
+      if (hasBtn) continue;
+    }
+    var ds = dr.color === 'c' ? [SPAWNC, SPAWNR] : [SPAWN2C, SPAWN2R];
+    var reach = reachAvoid(dr.color, doorBlockedAll, ds[0], ds[1]);
+    var spots = floors.filter(function(t) {
+      if (!reach[idx(t[0], t[1])]) return false;
+      if (isSpecial(t[0], t[1])) return false;
+      var d = Math.abs(t[0] - dr.c) + Math.abs(t[1] - dr.r);
+      return d >= 4;
+    });
+    if (!spots.length) {
+      // fallback: any reachable non-special floor
+      spots = floors.filter(function(t){ return reach[idx(t[0],t[1])] && !isSpecial(t[0],t[1]); });
+    }
+    // splice precedes button creation, so no link ever dangles
+    if (!spots.length) { doors.splice(di, 1); continue; }
+    var b = choice(spots);
+    buttons.push({ c: b[0], r: b[1], color: dr.color, pressed: false, link: dr.uid || null, moat: true });
+  }
+
+  // wild keys sit in goo moats of their color: only the owner can approach.
+  // Critical-path tiles stay clear so the other player's through-route
+  // never seals; per-moat validation truncates blockers (goos is append-only
+  // at build time, so truncation is safe).
+  var pathSet = {};
+  path.forEach(function(t){ pathSet[idx(t[0], t[1])] = true; });
+  for (var mi = 0; mi < buttons.length; mi++) {
+    if (buttons[mi].moat) moatButton(buttons[mi], pathSet);
+  }
+
+  updateHud();
+}
+
+// Ring one button's free floor neighbors (off the critical path) with goo
+// of its color. Validated by the caller via layoutSolvable truncation.
+function moatButton(mb, pathSet) {
+  var gkind = mb.color === 'c' ? GOO_C : GOO_O;
+  var n0 = goos.length;
+  for (var mdy = -1; mdy <= 1; mdy++) {
+    for (var mdx = -1; mdx <= 1; mdx++) {
+      if (!mdx && !mdy) continue;
+      var mc = mb.c + mdx, mr = mb.r + mdy;
+      if (!inBounds(mc, mr) || grid[mr][mc] !== T_FLOOR || isSpecial(mc, mr)) continue;
+      if (pathSet[idx(mc, mr)]) continue;
+      if (Math.random() < 0.6) goos.push({ c: mc, r: mr, kind: gkind, phase: Math.random() * 6.28 });
+    }
+  }
+  if (!layoutSolvable()) goos.length = n0;
+}
+
+function resetPlayersToSpawn() {
+  P1.c = P1.sc; P1.r = P1.sr; P1.dx = 0; P1.dy = 0; P1.padCd = 0; P1.happy = 0;
+  P2.c = P2.sc; P2.r = P2.sr; P2.dx = 0; P2.dy = 0; P2.padCd = 0; P2.happy = 0;
+}
+
+// ---------- Collision ----------
+function solidAt(c, r) {
+  if (!inBounds(c, r)) return true;
+  if (grid[r][c] === T_WALL) return true;
+  for (var i = 0; i < doors.length; i++)
+    if (!doors[i].open && doors[i].c === c && doors[i].r === r) return true;
+  return false;
+}
+function hitsSolid(x, y, rad) {
+  var pts = [[x - rad, y - rad], [x + rad, y - rad], [x - rad, y + rad], [x + rad, y + rad]];
+  for (var i = 0; i < 4; i++) {
+    if (solidAt(Math.floor(pts[i][0]), Math.floor(pts[i][1]))) return true;
+  }
+  return false;
+}
+function movePlayer(p, ix, iy, dt) {
+  var len = Math.sqrt(ix * ix + iy * iy);
+  if (len > 0) { ix /= len; iy /= len; p.dx = ix; p.dy = iy; }
+  var rad = 0.28, sp = p.speed * dt;
+  var nx = p.c + ix * sp;
+  if (!hitsSolid(nx, p.r, rad)) p.c = nx;
+  var ny = p.r + iy * sp;
+  if (!hitsSolid(p.c, ny, rad)) p.r = ny;
+  p.c = Math.max(rad, Math.min(COLS - rad, p.c));
+  p.r = Math.max(rad, Math.min(ROWS - rad, p.r));
+}
+
+// ---------- Game logic ----------
+function tileOf(p) { return { c: Math.floor(p.c), r: Math.floor(p.r) }; }
+
+// advances one player's personality clocks (walk phase, blinking, happy decay)
+function stepPlayer(p, ix, iy, dt) {
+  p.moving = !!(ix || iy);
+  if (p.moving) p.step += dt * 11;
+  p.blink -= dt;
+  if (p.blink < -0.12) p.blink = 2 + Math.random() * 3.2;
+  if (p.happy > 0) p.happy -= dt;
+}
+
+function gooAt(c, r) {
+  for (var i = 0; i < goos.length; i++) if (goos[i].c === c && goos[i].r === r) return goos[i];
+  return null;
+}
+function deadlyFor(goo, p) {
+  if (!goo) return false;
+  if (goo.kind === GOO_X) return true;
+  if (goo.kind === GOO_C) return p.color === 'o';
+  if (goo.kind === GOO_O) return p.color === 'c';
+  return false;
+}
+function killPlayer(p, name) {
+  sDeath();
+  deaths++;
+  burst(p.c, p.r, p.color === 'c' ? P1_COLOR : P2_COLOR, 16);
+  p.c = p.sc; p.r = p.sr; p.invuln = 1.5;
+  toast(name + ' melted! Back to start.', 1800);
+  updateHud();
+}
+function burst(tc, tr, color, n) {
+  for (var i = 0; i < (n || 10); i++) {
+    particles.push({
+      x: tc + .5, y: tr + .5,
+      vx: (Math.random() - .5) * 4, vy: (Math.random() - .5) * 4,
+      life: .5 + Math.random() * .4, max: .9, color: color, size: .05 + Math.random() * .06
+    });
+  }
+}
+
+function gemsLeft() {
+  var n = 0;
+  for (var i = 0; i < gems.length; i++) if (!gems[i].taken) n++;
+  return n;
+}
+function onExitPad(p) {
+  var t = tileOf(p);
+  for (var i = 0; i < exits.length; i++)
+    if (exits[i].c === t.c && exits[i].r === t.r) return true;
+  return false;
+}
+
+// Objective engine: the next actionable beat. Uses pressableOrder so chained
+// buttons surface in solvable order. Cached ~10 frames (refreshed in update).
+function currentObjective() {
+  var order = pressableOrder();
+  if (order) {
+    for (var i = 0; i < order.length; i++) {
+      if (!order[i].pressed) {
+        var isC = order[i].color === 'c';
+        if (order[i].key) {
+          return { text: (isC ? 'P1' : 'P2') + ' TO EXIT KEY',
+                   cls: isC ? 'cy' : 'or', tile: { c: order[i].c, r: order[i].r } };
+        }
+        return { text: (isC ? 'P1' : 'P2') + ' TO ' + (isC ? 'CYAN' : 'ORANGE') + ' BUTTON',
+                 cls: isC ? 'cy' : 'or', tile: { c: order[i].c, r: order[i].r } };
+      }
+    }
+  }
+  var bg = null, bd = 1e9;
+  for (var m = 0; m < gems.length; m++) {
+    if (gems[m].taken) continue;
+    var d1 = Math.abs(P1.c - (gems[m].c + .5)) + Math.abs(P1.r - (gems[m].r + .5));
+    var d2 = Math.abs(P2.c - (gems[m].c + .5)) + Math.abs(P2.r - (gems[m].r + .5));
+    var d = Math.min(d1, d2);
+    if (d < bd) { bd = d; bg = gems[m]; }
+  }
+  if (bg) return { text: 'GEMS ' + (gems.length - gemsLeft()) + '/' + gems.length,
+                   cls: 'cy', tile: { c: bg.c, r: bg.r } };
+  if (exits.length) return { text: 'BOTH TO EXIT!', cls: '', tile: { c: exits[0].c, r: exits[0].r } };
+  return { text: '—', cls: '', tile: null };
+}
+
+function update(dt) {
+  runTime += dt; levelTime += dt;
+  if (P1.invuln > 0) P1.invuln -= dt;
+  if (P2.invuln > 0) P2.invuln -= dt;
+  if (P1.padCd > 0) P1.padCd -= dt;
+  if (P2.padCd > 0) P2.padCd -= dt;
+
+  // tutorial coaching beats (level 1 only; flags live in tut, reset per build)
+  if (BAND && BAND.name === 'TRAINING') {
+    var bc = null, bo = null, bi;
+    for (bi = 0; bi < buttons.length; bi++) {
+      if (buttons[bi].color === 'c') bc = buttons[bi]; else bo = buttons[bi];
+    }
+    if (!tut.moved && (Math.abs(P1.c - P1.sc) + Math.abs(P1.r - P1.sr) > 0.6 ||
+                       Math.abs(P2.c - P2.sc) + Math.abs(P2.r - P2.sr) > 0.6)) {
+      tut.moved = true; toast('P1, step on the CYAN button!', 2600);
+    }
+    if (!tut.pressedC && bc && bc.pressed) { tut.pressedC = true; toast('Door open! Grab the GEM.', 2400); }
+    if (!tut.gemmed && gems.length > 0 && gems[0].taken) { tut.gemmed = true; toast('Gems unlock the exit. P2, press ORANGE!', 2600); }
+    if (!tut.pressedO && bo && bo.pressed) { tut.pressedO = true; toast('Both players to the GREEN pads!', 2600); }
+  }
+
+  var ix1 = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+  var iy1 = (keys['KeyS'] ? 1 : 0) - (keys['KeyW'] ? 1 : 0);
+  var ix2 = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+  var iy2 = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
+  movePlayer(P1, ix1, iy1, dt);
+  movePlayer(P2, ix2, iy2, dt);
+
+  // personality clocks: walk phase, blink timers, happy decay
+  stepPlayer(P1, ix1, iy1, dt);
+  stepPlayer(P2, ix2, iy2, dt);
+
+  // buttons (latching, linked: each press opens exactly its linked door)
+  var pls = [[P1, 'PLAYER 1'], [P2, 'PLAYER 2']];
+  for (var b = 0; b < buttons.length; b++) {
+    var btn = buttons[b];
+    if (btn.pressed) continue;
+    for (var q = 0; q < 2; q++) {
+      var p = pls[q][0];
+      var t = tileOf(p);
+      if (p.color === btn.color && t.c === btn.c && t.r === btn.r) {
+        btn.pressed = true;
+        sButton();
+        // a dangling link is a silent no-op in-game (fuzz asserts it never happens)
+        for (var d = 0; d < doors.length; d++) {
+          if (doors[d].uid === btn.link && !doors[d].open) {
+            doors[d].open = true;
+            sDoor();
+            burst(doors[d].c, doors[d].r, '#4EF2A0', 12);
+            break;
+          }
+        }
+        toast(pls[q][1] + ' opened a door!', 1800);
+        break;
+      }
+    }
+  }
+
+  // gems (locked gems only open to their owner; hint once per level)
+  for (var gi = 0; gi < gems.length; gi++) {
+    var gm = gems[gi];
+    if (gm.taken) continue;
+    var d1 = Math.abs(P1.c - (gm.c + .5)) + Math.abs(P1.r - (gm.r + .5));
+    var d2 = Math.abs(P2.c - (gm.c + .5)) + Math.abs(P2.r - (gm.r + .5));
+    var can1 = d1 < .55 && (!gm.locked || gm.locked === 'c');
+    var can2 = d2 < .55 && (!gm.locked || gm.locked === 'o');
+    if (!can1 && !can2) {
+      if (gm.locked && !lockHintShown && (d1 < .9 || d2 < .9)) {
+        lockHintShown = true;
+        toast(gm.locked === 'c' ? 'Only P1 can take that gem!' : 'Only P2 can take that gem!', 2000);
+      }
+      continue;
+    }
+    {
+      gm.taken = true;
+      score += 25;
+      sCollect();
+      burst(gm.c, gm.r, gm.color === 'c' ? P1_COLOR : P2_COLOR, 10);
+      if (can1) P1.happy = 1.2;
+      if (can2) P2.happy = 1.2;
+      if (gemsLeft() === 0) { toast('Exit unlocked! Both get on the pads!', 2400); sWin(); }
+      updateHud();
+    }
+  }
+
+  // teleport pads (linked pairs confined to one room; per-player cooldown)
+  var tps = [P1, P2];
+  for (var tp = 0; tp < 2; tp++) {
+    var tpl = tps[tp];
+    if (tpl.padCd > 0) continue;
+    var tt = tileOf(tpl);
+    for (var ti = 0; ti < tports.length; ti++) {
+      if (tports[ti].c === tt.c && tports[ti].r === tt.r) {
+        burst(tt.c, tt.r, '#B98CFF', 8);
+        tpl.c = tports[ti].link.c + .5; tpl.r = tports[ti].link.r + .5;
+        tpl.padCd = 0.6;
+        sTeleport();
+        burst(tports[ti].link.c, tports[ti].link.r, '#B98CFF', 8);
+        break;
+      }
+    }
+  }
+
+  // goo deaths
+  for (var k = 0; k < 2; k++) {
+    var pl = pls[k][0];
+    if (pl.invuln > 0) continue;
+    var pt = tileOf(pl);
+    if (deadlyFor(gooAt(pt.c, pt.r), pl)) killPlayer(pl, pls[k][1]);
+  }
+
+  // dual exit: needs all gems + both players on pads
+  if (gemsLeft() === 0 && onExitPad(P1) && onExitPad(P2)) {
+    exitCharge += dt;
+    P1.happy = Math.max(P1.happy, 0.3);
+    P2.happy = Math.max(P2.happy, 0.3);
+    if (Math.floor(exitCharge * 8) !== Math.floor((exitCharge - dt) * 8)) sCharge();
+    if (exitCharge >= 1.2) levelClear();
+  } else {
+    exitCharge = Math.max(0, exitCharge - dt * 2);
+  }
+
+  // particles
+  for (var i = particles.length - 1; i >= 0; i--) {
+    var pt2 = particles[i];
+    pt2.life -= dt;
+    pt2.x += pt2.vx * dt; pt2.y += pt2.vy * dt;
+    if (pt2.life <= 0) particles.splice(i, 1);
+  }
+
+  // objective cache refresh (~10 frames); chime on change
+  if (frameNo - objFrame > 10) {
+    objFrame = frameNo;
+    var no = currentObjective();
+    if (!OBJ || no.text !== OBJ.text) { OBJ = no; if (frameNo > 12) sObjective(); }
+    else OBJ = no;
+  }
+
+  updateHud();
+}
+
+function levelClear() {
+  var timeBonus = Math.max(0, Math.round(300 - levelTime * 5));
+  var gained = level * 100 + timeBonus;
+  score += gained;
+  saveBest();
+  sWin();
+  state = 'clear';
+  document.getElementById('clear-lvl').textContent = level;
+  document.getElementById('clear-stats').innerHTML =
+    'SCORE +' + gained + ' (TIME BONUS +' + timeBonus + ')<br>TOTAL <b>' + score + '</b> &middot; BEST ' + best + ' &middot; TIME ' + fmtTime(runTime);
+  clearScreen.classList.remove('hidden');
+}
+
+function nextLevel() {
+  clearScreen.classList.add('hidden');
+  level++;
+  buildLevel(level);
+  state = 'play';
+  if (level === 2) {
+    toast('Level 2. The exit is sealed. Press the EXIT KEY and grab every gem.', 3400);
+  } else {
+    toast('Level ' + level + ': ' + (BAND ? BAND.name : 'GO') + '!', 2000);
+  }
+}
+
+function regenToast() {
+  toast(BAND && BAND.name === 'TRAINING' ? 'Training reset.' : 'Fresh maze, same level.', 1600);
+}
+
+function startGame() {
+  ac(); sClick();
+  level = 1; score = 0; deaths = 0; runTime = 0;
+  buildLevel(1);
+  homeScreen.classList.add('hidden');
+  pauseScreen.classList.add('hidden');
+  clearScreen.classList.add('hidden');
+  state = 'play';
+  toast('Training: move with WASD + Arrows!', 2600);
+}
+
+function togglePause(force) {
+  if (state !== 'play' && state !== 'pause') return;
+  if (force === true || state === 'play') { state = 'pause'; pauseScreen.classList.remove('hidden'); }
+  else { state = 'play'; pauseScreen.classList.add('hidden'); }
+}
+
+// ---------- HUD ----------
+var lastHudSec = -1;
+function updateHud() {
+  hLvl.textContent = level;
+  hBand.textContent = BAND ? BAND.name : '';
+  if (OBJ) { hObj.textContent = OBJ.text; hObj.className = 'v ' + (OBJ.cls || ''); }
+  hGems.textContent = (gems.length - gemsLeft()) + '/' + gems.length;
+  hGems.className = 'v ' + (gemsLeft() === 0 ? '' : 'cy');
+  hScore.textContent = score;
+  hDeaths.textContent = deaths;
+  var s = Math.floor(runTime);
+  if (s !== lastHudSec) { hTime.textContent = fmtTime(runTime); lastHudSec = s; }
+}
+
+// ---------- Rendering ----------
+var tile = 32, ox = 0, oy = 0;
+function resize() {
+  var wrap = document.getElementById('arena-wrap');
+  var W = Math.max(280, wrap.clientWidth - 20), H = Math.max(200, wrap.clientHeight - 20);
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var scale = Math.min(W / COLS, H / ROWS);
+  canvas.style.width = (scale * COLS) + 'px';
+  canvas.style.height = (scale * ROWS) + 'px';
+  canvas.width = Math.round(scale * COLS * dpr);
+  canvas.height = Math.round(scale * ROWS * dpr);
+  tile = canvas.width / COLS;
+  ox = 0; oy = 0;
+}
+window.addEventListener('resize', resize);
+
+function rr(x, y, w, h, rad) {
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+}
+var animT = 0;
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  var t = tile;
+  animT += 0.016;
+  frameNo++;
+
+  // floor + walls (wall tint follows the biome band)
+  var wallCol = (BAND && BAND.wall) ? BAND.wall : '#23263a';
+  for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+      var x = c * t, y = r * t;
+      if (grid[r][c] === T_WALL) {
+        ctx.fillStyle = wallCol;
+        ctx.fillRect(x, y, t, t);
+        ctx.fillStyle = 'rgba(85,241,248,0.06)';
+        ctx.fillRect(x, y, t, 2);
+      } else {
+        ctx.fillStyle = ((c + r) % 2 === 0) ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.012)';
+        ctx.fillRect(x, y, t, t);
+      }
+    }
+  }
+
+  // goo
+  for (var gi = 0; gi < goos.length; gi++) {
+    var gp = goos[gi], gx = gp.c * t, gy = gp.r * t;
+    var pulse = 0.55 + 0.2 * Math.sin(animT * 3 + gp.phase);
+    var col = gp.kind === GOO_C ? '85,241,248' : gp.kind === GOO_O ? '255,159,67' : '255,84,112';
+    ctx.fillStyle = 'rgba(' + col + ',' + pulse.toFixed(2) + ')';
+    rr(gx + t * .06, gy + t * .06, t * .88, t * .88, t * .22);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(' + col + ',0.9)';
+    var b1 = (animT * .7 + gp.phase) % 1;
+    ctx.beginPath();
+    ctx.arc(gx + t * (.25 + .5 * b1), gy + t * .4, t * .05, 0, 6.29);
+    ctx.arc(gx + t * (.7 - .4 * b1), gy + t * .62, t * .07, 0, 6.29);
+    ctx.fill();
+  }
+
+  // exits
+  var unlocked = gemsLeft() === 0;
+  for (var e = 0; e < exits.length; e++) {
+    var ex = exits[e], exx = ex.c * t, eyy = ex.r * t;
+    ctx.save();
+    ctx.strokeStyle = unlocked ? '#4EF2A0' : 'rgba(78,242,160,0.35)';
+    ctx.lineWidth = Math.max(2, t * .06);
+    ctx.shadowColor = unlocked ? '#4EF2A0' : 'transparent';
+    ctx.shadowBlur = unlocked ? 14 : 0;
+    rr(exx + t * .08, eyy + t * .08, t * .84, t * .84, t * .18);
+    ctx.stroke();
+    if (unlocked) {
+      ctx.fillStyle = 'rgba(78,242,160,' + (0.14 + 0.08 * Math.sin(animT * 4)).toFixed(2) + ')';
+      rr(exx + t * .08, eyy + t * .08, t * .84, t * .84, t * .18);
+      ctx.fill();
+      // charge ring
+      if (exitCharge > 0) {
+        ctx.strokeStyle = '#4EF2A0';
+        ctx.lineWidth = Math.max(3, t * .09);
+        ctx.beginPath();
+        ctx.arc(exx + t / 2, eyy + t / 2, t * .36, -Math.PI / 2, -Math.PI / 2 + 6.283 * Math.min(1, exitCharge / 1.2));
+        ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '700 ' + Math.round(t * .34) + 'px Orbitron, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('LOCK', exx + t / 2, eyy + t / 2);
+    }
+    ctx.restore();
+  }
+
+  // buttons
+  for (var b = 0; b < buttons.length; b++) {
+    var bt = buttons[b], bx = bt.c * t, by = bt.r * t;
+    var bc = bt.color === 'c' ? P1_COLOR : P2_COLOR;
+    ctx.save();
+    ctx.strokeStyle = bc;
+    ctx.lineWidth = Math.max(2, t * .07);
+    ctx.shadowColor = bc; ctx.shadowBlur = bt.pressed ? 4 : 12;
+    ctx.beginPath();
+    ctx.arc(bx + t / 2, by + t / 2, t * .3, 0, 6.29);
+    ctx.stroke();
+    ctx.fillStyle = bt.pressed ? bc : 'rgba(0,0,0,0.5)';
+    ctx.beginPath();
+    ctx.arc(bx + t / 2, by + t / 2, t * (bt.pressed ? .2 : .13), 0, 6.29);
+    ctx.fill();
+    // exit key: gold outer ring so the finale trigger reads at a glance
+    if (bt.key) {
+      ctx.strokeStyle = '#F2C14E';
+      ctx.lineWidth = Math.max(2, t * .05);
+      ctx.shadowColor = '#F2C14E'; ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(bx + t / 2, by + t / 2, t * .4, 0, 6.29);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // doors
+  for (var d = 0; d < doors.length; d++) {
+    var dr = doors[d], dx0 = dr.c * t, dy0 = dr.r * t;
+    if (dr.open) {
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(dx0, dy0, t, t);
+      continue;
+    }
+    var dc = dr.color === 'c' ? P1_COLOR : P2_COLOR;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(dx0, dy0, t, t);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = dc;
+    var off = (animT * t * .6) % (t * .5);
+    for (var s = -1; s < 3; s++) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(dx0, dy0, t, t); ctx.clip();
+      ctx.translate(dx0 + s * t * .5 + off, dy0);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(0, -t, t * .18, t * 3);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = dc; ctx.lineWidth = Math.max(2, t * .06);
+    ctx.shadowColor = dc; ctx.shadowBlur = 10;
+    ctx.strokeRect(dx0 + 1, dy0 + 1, t - 2, t - 2);
+    ctx.restore();
+  }
+
+  // gems
+  for (var m = 0; m < gems.length; m++) {
+    var gem = gems[m];
+    if (gem.taken) continue;
+    var gx2 = (gem.c + .5) * t, gy2 = (gem.r + .42) * t + Math.sin(animT * 3 + gem.phase) * t * .05;
+    var gc = gem.color === 'c' ? P1_COLOR : P2_COLOR;
+    ctx.save();
+    ctx.shadowColor = gc; ctx.shadowBlur = 12;
+    ctx.fillStyle = gc;
+    var s2 = t * .2;
+    ctx.beginPath();
+    ctx.moveTo(gx2, gy2 - s2); ctx.lineTo(gx2 + s2 * .7, gy2);
+    ctx.lineTo(gx2, gy2 + s2); ctx.lineTo(gx2 - s2 * .7, gy2);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(gx2 - s2 * .18, gy2 - s2 * .55, s2 * .36, s2 * .36);
+    if (gem.locked) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = Math.max(1.5, t * .04);
+      ctx.beginPath(); ctx.arc(gx2, gy2, s2 * 1.2, 0, 6.29); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // players
+  drawPlayer(P1, P1_COLOR, true);
+  drawPlayer(P2, P2_COLOR, false);
+
+  // teleport pads
+  for (var tp2 = 0; tp2 < tports.length; tp2++) {
+    var tpd = tports[tp2], tpx = (tpd.c + .5) * t, tpy = (tpd.r + .5) * t;
+    ctx.save();
+    ctx.strokeStyle = '#B98CFF'; ctx.lineWidth = Math.max(2, t * .06);
+    ctx.shadowColor = '#B98CFF'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(tpx, tpy, t * .26, 0, 6.29); ctx.stroke();
+    ctx.shadowBlur = 0;
+    var aa = animT * 3;
+    ctx.beginPath(); ctx.arc(tpx, tpy, t * .15, aa, aa + 2.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(tpx, tpy, t * .15, aa + 3.14, aa + 5.54); ctx.stroke();
+    ctx.restore();
+  }
+
+  // objective arrow (bouncing marker over the current target tile)
+  if (OBJ && OBJ.tile && state === 'play') {
+    var atx = (OBJ.tile.c + .5) * t;
+    var aty = OBJ.tile.r * t - t * .1 + Math.sin(animT * 5) * t * .07;
+    ctx.save();
+    ctx.fillStyle = '#F1F2F5';
+    ctx.shadowColor = '#F1F2F5'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(atx, aty + t * .24); ctx.lineTo(atx - t * .15, aty); ctx.lineTo(atx + t * .15, aty);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // partner callouts: near a closed door whose button needs the other player,
+  // tag that button so the pair knows who must go there
+  if (state === 'play') {
+    for (var nd = 0; nd < doors.length; nd++) {
+      var ndr = doors[nd];
+      if (ndr.open) continue;
+      // linked lookup: the one unpressed button tied to this door
+      var needBtn = null;
+      for (var nb2 = 0; nb2 < buttons.length; nb2++) {
+        if (!buttons[nb2].pressed && buttons[nb2].link === ndr.uid) { needBtn = buttons[nb2]; break; }
+      }
+      if (!needBtn) continue;
+      var pd1 = Math.abs(P1.c - (ndr.c + .5)) + Math.abs(P1.r - (ndr.r + .5));
+      var pd2 = Math.abs(P2.c - (ndr.c + .5)) + Math.abs(P2.r - (ndr.r + .5));
+      if (Math.min(pd1, pd2) > 3.5) continue;
+      var who2 = needBtn.color === 'c' ? 'P1' : 'P2';
+      var bc2 = needBtn.color === 'c' ? P1_COLOR : P2_COLOR;
+      var tx2 = (needBtn.c + .5) * t;
+      var ty2 = (needBtn.r + .5) * t - t * .34 + Math.sin(animT * 5) * t * .05;
+      ctx.save();
+      ctx.font = '700 ' + Math.round(t * .3) + 'px Orbitron, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = bc2; ctx.shadowBlur = 8;
+      ctx.fillStyle = bc2;
+      ctx.fillText('NEEDS ' + who2, tx2, ty2);
+      ctx.restore();
+    }
+  }
+
+  // particles
+  for (var pI = 0; pI < particles.length; pI++) {
+    var pt = particles[pI];
+    ctx.globalAlpha = Math.max(0, pt.life / pt.max);
+    ctx.fillStyle = pt.color;
+    ctx.fillRect((pt.x - pt.size / 2) * t, (pt.y - pt.size / 2) * t, pt.size * t, pt.size * t);
+  }
+  ctx.globalAlpha = 1;
+
+  if ((frameNo % 15) === 0 && grid.length) drawMinimap();
+}
+
+// ---------- Minimap (throttled, pointer-transparent, same tile math) ----------
+function drawMinimap() {
+  var mw = minicanvas.width, mh = minicanvas.height;
+  var s = Math.min(mw / COLS, mh / ROWS);
+  var oxm = (mw - s * COLS) / 2, oym = (mh - s * ROWS) / 2;
+  mctx.clearRect(0, 0, mw, mh);
+  mctx.fillStyle = (BAND && BAND.wall) ? BAND.wall : '#23263a';
+  for (var r = 0; r < ROWS; r++)
+    for (var c = 0; c < COLS; c++) {
+      if (grid[r][c] !== T_WALL) continue;
+      mctx.fillRect(oxm + c * s, oym + r * s, Math.ceil(s), Math.ceil(s));
+    }
+  function dot(c, r, col, rad) {
+    mctx.fillStyle = col;
+    mctx.beginPath();
+    mctx.arc(oxm + (c + .5) * s, oym + (r + .5) * s, rad || Math.max(1.5, s * .3), 0, 6.29);
+    mctx.fill();
+  }
+  var i;
+  for (i = 0; i < doors.length; i++)
+    if (!doors[i].open) dot(doors[i].c, doors[i].r, doors[i].color === 'c' ? P1_COLOR : P2_COLOR);
+  for (i = 0; i < buttons.length; i++)
+    if (!buttons[i].pressed) dot(buttons[i].c, buttons[i].r, buttons[i].color === 'c' ? P1_COLOR : P2_COLOR, Math.max(1, s * .2));
+  for (i = 0; i < gems.length; i++)
+    if (!gems[i].taken) dot(gems[i].c, gems[i].r, '#F1F2F5', 1);
+  for (i = 0; i < exits.length; i++) dot(exits[i].c, exits[i].r, '#4EF2A0', Math.max(1.5, s * .32));
+  dot(Math.floor(P1.c), Math.floor(P1.r), P1_COLOR, Math.max(2, s * .4));
+  dot(Math.floor(P2.c), Math.floor(P2.r), P2_COLOR, Math.max(2, s * .4));
+}
+
+// ---------- Cute duo bots (matches mascot: round cyan P1 + boxy orange P2) ----------
+// P1: dome helmet, antenna ball, disc earphones, dark visor, white eyes,
+//     tiny cyan triangle mouth, belly light.
+// P2: square head, blue hex-bolt ears w/ yellow cores, dark visor, white
+//     oval eyes, tiny orange triangle mouth, belly light.
+// Both squash-stretch when walking, bob when idle, look toward travel,
+// blink, celebrate on gems/exit charge, go dizzy on melt.
+// Celebrations are distinct: P1 does a HOORAY jump (bounce + arms up +
+// closed ^ ^ eyes + open smile), P2 does a WIGGLE dance (tilt wobble +
+// arms up + sparkling wide eyes + big grin). Both get blush cheeks.
+function drawPlayer(p, color, isP1) {
+  var t = tile;
+  if (p.invuln > 0 && Math.floor(animT * 10) % 2 === 0) return; // hurt blink
+  var s = t * .78;
+  var moving = !!p.moving;
+  var phase = isP1 ? 0 : 2.1;
+  var hop = moving ? Math.abs(Math.sin(p.step)) * t * .05 : 0;
+  var bob = moving ? -hop : Math.sin(animT * 2 + phase) * t * .018;
+  var squash = moving ? Math.sin(p.step * 2) * .06 : Math.sin(animT * 2 + phase) * .022;
+  var tilt = (p.dx || 0) * (moving ? .1 : .03);
+  var x = p.c * t, y = p.r * t + bob;
+  var OUT = '#0d0d2b', VISOR = '#20234f';
+  var lx = (p.dx || 0) * s * .06, ly = (p.dy || 0) * s * .05;
+  var dizzy = p.invuln > 0.5, happy = p.happy > 0, shut = p.blink < 0;
+  var k;
+
+  ctx.save();
+  ctx.translate(x, y - (happy ? Math.abs(Math.sin(animT * 12 + phase)) * t * (isP1 ? .06 : .02) : 0));
+  ctx.rotate(tilt + ((!isP1 && happy) ? Math.sin(animT * 14) * .12 : 0));
+  ctx.scale(1 + squash, 1 - squash);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+  function hexPath(hx, hy, rad) {
+    ctx.beginPath();
+    for (var i = 0; i < 6; i++) {
+      var a = Math.PI / 3 * i + Math.PI / 6;
+      var px = hx + Math.cos(a) * rad, py = hy + Math.sin(a) * rad;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
+  if (isP1) {
+    var bodyC = '#5ff2f6', shadeC = '#2a9cc8', accentC = '#ffab3d';
+    var f1 = moving ? Math.sin(p.step) * s * .05 : 0;
+    var f2 = moving ? -Math.sin(p.step) * s * .05 : 0;
+    // stub arms (behind body)
+    ctx.fillStyle = shadeC; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .045);
+    var armY1 = happy ? -s * .04 : s * .18, armT1 = happy ? 1.05 : .5;
+    ctx.beginPath(); ctx.ellipse(-s * .48 + f1 * .4, armY1, s * .11, s * .15, armT1, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(s * .48 + f2 * .4, armY1, s * .11, s * .15, -armT1, 0, 6.29); ctx.fill(); ctx.stroke();
+    // stub legs / feet
+    ctx.fillStyle = shadeC;
+    ctx.beginPath(); ctx.arc(-s * .17 + f1, s * .4, s * .15, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(s * .17 + f2, s * .4, s * .15, 0, 6.29); ctx.fill(); ctx.stroke();
+    // torso (sits lower so the dome doesn't swallow the chest reactor)
+    ctx.shadowColor = color; ctx.shadowBlur = 14;
+    ctx.fillStyle = bodyC;
+    rr(-s * .3, s * .06, s * .6, s * .36, s * .16); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .05);
+    rr(-s * .3, s * .06, s * .6, s * .36, s * .16); ctx.stroke();
+    // belly light (chest reactor, same build as P2)
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, s * .26, s * .085, 0, 6.29); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .04); ctx.stroke();
+    ctx.fillStyle = '#bfe9ff';
+    ctx.beginPath(); ctx.arc(0, s * .26, s * .04, 0, 6.29); ctx.fill();
+    // earphone discs (behind head): blue disc, thin orange crescent on the
+    // head-facing edge, pale center dot — like the mascot's headphones
+    var ears1 = [[-s * .52, -s * .18, 1], [s * .52, -s * .18, -1]];
+    for (k = 0; k < 2; k++) {
+      var ex1 = ears1[k][0], ey0 = ears1[k][1], inward = ears1[k][2];
+      ctx.fillStyle = shadeC; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .045);
+      ctx.beginPath(); ctx.arc(ex1, ey0, s * .15, 0, 6.29); ctx.fill(); ctx.stroke();
+      // orange crescent band on the side facing the head
+      ctx.strokeStyle = accentC; ctx.lineWidth = Math.max(1.5, s * .055);
+      ctx.beginPath(); ctx.arc(ex1, ey0, s * .105, inward > 0 ? -0.9 : Math.PI - 0.9, inward > 0 ? 0.9 : Math.PI + 0.9); ctx.stroke();
+      ctx.fillStyle = '#aefcff';
+      ctx.beginPath(); ctx.arc(ex1, ey0, s * .055, 0, 6.29); ctx.fill();
+    }
+    // antenna: short stem, slightly left of center with a lean, white ball
+    ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(2, s * .1);
+    ctx.beginPath(); ctx.moveTo(-s * .06, -s * .56); ctx.lineTo(-s * .1, -s * .7); ctx.stroke();
+    ctx.strokeStyle = shadeC; ctx.lineWidth = Math.max(1.5, s * .055);
+    ctx.beginPath(); ctx.moveTo(-s * .06, -s * .56); ctx.lineTo(-s * .1, -s * .7); ctx.stroke();
+    ctx.shadowColor = color; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .045);
+    ctx.beginPath(); ctx.arc(-s * .11, -s * .77, s * .085, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // dome helmet (lifted so the chest reactor shows below it)
+    ctx.shadowColor = color; ctx.shadowBlur = 14;
+    ctx.fillStyle = bodyC; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .055);
+    ctx.beginPath(); ctx.arc(0, -s * .2, s * .42, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // helmet gloss
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath(); ctx.ellipse(-s * .2, -s * .5, s * .1, s * .05, -.5, 0, 6.29); ctx.fill();
+    ctx.beginPath(); ctx.arc(-s * .31, -s * .39, s * .03, 0, 6.29); ctx.fill();
+    // dark visor
+    ctx.fillStyle = VISOR; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .045);
+    rr(-s * .34 + lx * .4, -s * .4 + ly * .4, s * .68, s * .42, s * .18); ctx.fill(); ctx.stroke();
+    // eyes (short white ovals)
+    var ey1 = -s * .18 + ly;
+    ctx.fillStyle = '#f2f3ff';
+    if (dizzy) {
+      ctx.strokeStyle = '#f2f3ff'; ctx.lineWidth = Math.max(1.5, s * .045);
+      for (var d1 = -1; d1 <= 1; d1 += 2) {
+        var xx1 = d1 * s * .17 + lx;
+        ctx.beginPath();
+        ctx.moveTo(xx1 - s * .05, ey1 - s * .05); ctx.lineTo(xx1 + s * .05, ey1 + s * .05);
+        ctx.moveTo(xx1 + s * .05, ey1 - s * .05); ctx.lineTo(xx1 - s * .05, ey1 + s * .05);
+        ctx.stroke();
+      }
+    } else if (shut) {
+      ctx.strokeStyle = '#f2f3ff'; ctx.lineWidth = Math.max(1.5, s * .045);
+      for (var e1 = -1; e1 <= 1; e1 += 2) {
+        ctx.beginPath();
+        ctx.moveTo(e1 * s * .17 + lx - s * .06, ey1);
+        ctx.lineTo(e1 * s * .17 + lx + s * .06, ey1);
+        ctx.stroke();
+      }
+    } else if (happy) {
+      // HOORAY: closed cheerful eyes (^ ^)
+      ctx.strokeStyle = '#f2f3ff'; ctx.lineWidth = Math.max(1.5, s * .05);
+      for (var ec = -1; ec <= 1; ec += 2) {
+        ctx.beginPath();
+        ctx.arc(ec * s * .17 + lx, ey1 + s * .04, s * .08, Math.PI * 1.12, Math.PI * 1.88);
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath(); ctx.ellipse(-s * .17 + lx, ey1, s * .055, s * .085, 0, 0, 6.29); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(s * .17 + lx, ey1, s * .055, s * .085, 0, 0, 6.29); ctx.fill();
+    }
+    // mouth: tiny cyan triangle normally, big open smile + blush while cheering
+    if (!dizzy && !shut) {
+      if (happy) {
+        ctx.fillStyle = '#0b0e2a';
+        ctx.beginPath();
+        ctx.arc(lx, ey1 + s * .1, s * .09, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#5ff2f6';
+        ctx.beginPath();
+        ctx.arc(lx, ey1 + s * .14, s * .04, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,130,160,0.55)';
+        ctx.beginPath();
+        ctx.arc(-s * .27 + lx, ey1 + s * .13, s * .05, 0, 6.29);
+        ctx.arc(s * .27 + lx, ey1 + s * .13, s * .05, 0, 6.29);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#4adfe8';
+        ctx.beginPath();
+        ctx.moveTo(-s * .07 + lx, ey1 + s * .1); ctx.lineTo(s * .07 + lx, ey1 + s * .1); ctx.lineTo(lx, ey1 + s * .17);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  } else {
+    var oBody = '#ff9f43', oDark = '#d97c1e', oBlue = '#2f8fc4', oYellow = '#ffcf4d';
+    var of1 = moving ? Math.sin(p.step) * s * .05 : 0;
+    var of2 = moving ? -Math.sin(p.step) * s * .05 : 0;
+    // stub arms
+    ctx.fillStyle = oBody; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .045);
+    var armY2 = happy ? -s * .04 : s * .1, armT2 = happy ? 1.05 : .5;
+    ctx.beginPath(); ctx.ellipse(-s * .49 + of1 * .4, armY2, s * .11, s * .15, armT2, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(s * .49 + of2 * .4, armY2, s * .11, s * .15, -armT2, 0, 6.29); ctx.fill(); ctx.stroke();
+    // arm cuffs (track the arms, including the celebration pose)
+    ctx.fillStyle = oBlue;
+    var cuffDx = Math.sin(armT2) * s * .09, cuffDy = Math.cos(armT2) * s * .09;
+    ctx.beginPath(); ctx.ellipse(-s * .49 + of1 * .4 - cuffDx, armY2 + cuffDy, s * .07, s * .05, armT2, 0, 6.29); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(s * .49 + of2 * .4 + cuffDx, armY2 + cuffDy, s * .07, s * .05, -armT2, 0, 6.29); ctx.fill();
+    // stub legs / feet
+    ctx.fillStyle = oBody;
+    ctx.beginPath(); ctx.arc(-s * .17 + of1, s * .4, s * .15, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(s * .17 + of2, s * .4, s * .15, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = oBlue;
+    ctx.beginPath(); ctx.arc(-s * .17 + of1, s * .45, s * .1, 0, 3.15); ctx.fill();
+    ctx.beginPath(); ctx.arc(s * .17 + of2, s * .45, s * .1, 0, 3.15); ctx.fill();
+    // torso
+    ctx.shadowColor = color; ctx.shadowBlur = 14;
+    ctx.fillStyle = oBody;
+    rr(-s * .3, s * .0, s * .6, s * .38, s * .13); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .05);
+    rr(-s * .3, s * .0, s * .6, s * .38, s * .13); ctx.stroke();
+    // belly light
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, s * .19, s * .085, 0, 6.29); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .04); ctx.stroke();
+    ctx.fillStyle = '#bfe9ff';
+    ctx.beginPath(); ctx.arc(0, s * .19, s * .04, 0, 6.29); ctx.fill();
+    // hex-bolt ears
+    var ears2 = [[-s * .55, -s * .28], [s * .55, -s * .28]];
+    for (k = 0; k < 2; k++) {
+      ctx.fillStyle = '#1b6da0'; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .04);
+      hexPath(ears2[k][0], ears2[k][1], s * .14); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = oBlue;
+      hexPath(ears2[k][0], ears2[k][1], s * .115); ctx.fill();
+      ctx.fillStyle = oYellow; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1, s * .03);
+      hexPath(ears2[k][0], ears2[k][1], s * .055); ctx.fill(); ctx.stroke();
+    }
+    // boxy head
+    ctx.shadowColor = color; ctx.shadowBlur = 14;
+    ctx.fillStyle = oBody; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .055);
+    rr(-s * .44, -s * .66, s * .88, s * .7, s * .16); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // side depth strip (right edge)
+    ctx.fillStyle = oDark;
+    rr(s * .3, -s * .6, s * .09, s * .58, s * .04); ctx.fill();
+    // head gloss
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.ellipse(-s * .28, -s * .56, s * .09, s * .045, -.4, 0, 6.29); ctx.fill();
+    // dark visor
+    ctx.fillStyle = VISOR; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1.5, s * .04);
+    rr(-s * .35 + lx * .4, -s * .54 + ly * .4, s * .7, s * .46, s * .12); ctx.fill(); ctx.stroke();
+    // eyes
+    var ey2 = -s * .3 + ly;
+    ctx.fillStyle = '#f2f3ff';
+    if (dizzy) {
+      ctx.strokeStyle = '#f2f3ff'; ctx.lineWidth = Math.max(1.5, s * .045);
+      for (var d2 = -1; d2 <= 1; d2 += 2) {
+        var xx2 = d2 * s * .17 + lx;
+        ctx.beginPath();
+        ctx.moveTo(xx2 - s * .05, ey2 - s * .05); ctx.lineTo(xx2 + s * .05, ey2 + s * .05);
+        ctx.moveTo(xx2 + s * .05, ey2 - s * .05); ctx.lineTo(xx2 - s * .05, ey2 + s * .05);
+        ctx.stroke();
+      }
+    } else if (shut) {
+      ctx.strokeStyle = '#f2f3ff'; ctx.lineWidth = Math.max(1.5, s * .045);
+      for (var e2 = -1; e2 <= 1; e2 += 2) {
+        ctx.beginPath();
+        ctx.moveTo(e2 * s * .17 + lx - s * .06, ey2);
+        ctx.lineTo(e2 * s * .17 + lx + s * .06, ey2);
+        ctx.stroke();
+      }
+    } else if (happy) {
+      // WIGGLE dance: sparkling wide eyes + star glints on the visor
+      ctx.beginPath(); ctx.ellipse(-s * .17 + lx, ey2, s * .075, s * .12, 0, 0, 6.29); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(s * .17 + lx, ey2, s * .075, s * .12, 0, 0, 6.29); ctx.fill();
+      ctx.fillStyle = '#ffe66d';
+      var spk = [[-s * .27 + lx, ey2 - s * .05], [s * .27 + lx, ey2 - s * .05]];
+      for (var sp = 0; sp < 2; sp++) {
+        var sx = spk[sp][0], sy = spk[sp][1], sr2 = s * .045;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - sr2); ctx.lineTo(sx + sr2 * .4, sy - sr2 * .4);
+        ctx.lineTo(sx + sr2, sy); ctx.lineTo(sx + sr2 * .4, sy + sr2 * .4);
+        ctx.lineTo(sx, sy + sr2); ctx.lineTo(sx - sr2 * .4, sy + sr2 * .4);
+        ctx.lineTo(sx - sr2, sy); ctx.lineTo(sx - sr2 * .4, sy - sr2 * .4);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#f2f3ff';
+    } else {
+      ctx.beginPath(); ctx.ellipse(-s * .17 + lx, ey2, s * .065, s * .11, 0, 0, 6.29); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(s * .17 + lx, ey2, s * .065, s * .11, 0, 0, 6.29); ctx.fill();
+    }
+    // mouth: tiny orange triangle normally, big grin + blush while celebrating
+    if (!dizzy && !shut) {
+      if (happy) {
+        ctx.fillStyle = '#ff7a3d';
+        ctx.beginPath();
+        ctx.moveTo(-s * .12 + lx, ey2 + s * .1); ctx.lineTo(s * .12 + lx, ey2 + s * .1); ctx.lineTo(lx, ey2 + s * .2);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,130,160,0.55)';
+        ctx.beginPath();
+        ctx.arc(-s * .28 + lx, ey2 + s * .14, s * .05, 0, 6.29);
+        ctx.arc(s * .28 + lx, ey2 + s * .14, s * .05, 0, 6.29);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#ff8a4d';
+        ctx.beginPath();
+        ctx.moveTo(-s * .07 + lx, ey2 + s * .11); ctx.lineTo(s * .07 + lx, ey2 + s * .11); ctx.lineTo(lx, ey2 + s * .18);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- Main loop ----------
+var lastTs = 0;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  if (!lastTs) lastTs = ts;
+  var dt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+  if (state === 'play') update(dt);
+  if (grid.length) draw();
+}
+
+// ---------- Input ----------
+window.addEventListener('keydown', function(e) {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].indexOf(e.code) >= 0) e.preventDefault();
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (e.code === 'Enter') {
+    if (state === 'home') startGame();
+    else if (state === 'clear') { sClick(); nextLevel(); }
+  }
+  if (e.code === 'KeyM') toggleMute();
+  if (e.code === 'KeyR' && (state === 'play' || state === 'pause')) {
+    pauseScreen.classList.add('hidden');
+    buildLevel(level); resetPlayersToSpawn(); state = 'play';
+    regenToast(); sClick();
+  }
+  if ((e.code === 'KeyP' || e.code === 'Escape') && (state === 'play' || state === 'pause')) togglePause();
+});
+window.addEventListener('keyup', function(e) { keys[e.code] = false; });
+window.addEventListener('blur', function() { keys = {}; if (state === 'play') togglePause(true); });
+
+function toggleMute() {
+  muted = !muted;
+  document.getElementById('btn-mute').textContent = muted ? 'MUTED' : 'SOUND ON';
+  if (!muted) sClick();
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('next-btn').addEventListener('click', function(){ sClick(); nextLevel(); });
+document.getElementById('resume-btn').addEventListener('click', function(){ sClick(); togglePause(false); });
+document.getElementById('restart-btn').addEventListener('click', function(){
+  sClick(); pauseScreen.classList.add('hidden');
+  buildLevel(level); resetPlayersToSpawn(); state = 'play';
+});
+document.getElementById('btn-pause').addEventListener('click', function(){ sClick(); togglePause(); });
+document.getElementById('btn-new').addEventListener('click', function(){
+  if (state !== 'play' && state !== 'pause') return;
+  sClick(); pauseScreen.classList.add('hidden');
+  buildLevel(level); resetPlayersToSpawn(); state = 'play';
+  regenToast();
+});
+document.getElementById('btn-mute').addEventListener('click', toggleMute);
+
+// ---------- Boot (render a preview maze behind the home modal) ----------
+buildLevel(1);
+resize();
+setTimeout(resize, 60);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

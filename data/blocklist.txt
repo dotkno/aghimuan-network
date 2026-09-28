@@ -1,0 +1,6 @@
+# One term per line. Lowercase, no leetspeak needed — automod.php normalizes
+# input before matching, so "badword" here also catches "b4dw0rd", "b a d w o r d", etc.
+# Lines starting with # are ignored.
+#
+# Fill this in with your actual list. Keep it out of version control history
+# if you don't want the list itself publicly readable via git blame.

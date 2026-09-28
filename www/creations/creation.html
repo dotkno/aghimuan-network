@@ -1,0 +1,304 @@
+<?php
+/**
+ * creations/creation.html — server-rendered deep link for a single creation.
+ * This is the URL the hub's "Copy project link" button shares (?id=X).
+ */
+declare(strict_types=1);
+
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/creations-lib.php';
+
+$pdo = get_db();
+$me = current_user($pdo);
+
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$row = $id > 0 ? fetch_creation($pdo, $id) : null;
+
+$status = 200;
+$error = null;
+$item = null;
+if (!$row) {
+    $status = 404;
+    $error = 'This creation does not exist or was removed.';
+} elseif ($row['status'] !== 'approved') {
+    if (!$me || (int) $me['id'] !== (int) $row['submitted_by']) {
+        $status = $me ? 403 : 401;
+        $error = $me
+            ? 'This creation is still under review and is only visible to its submitter.'
+            : 'This creation is still under review. Log in as its submitter to preview it.';
+    } else {
+        $item = attach_collaborators($pdo, [normalize_creation($row)])[0];
+    }
+} else {
+    $item = attach_collaborators($pdo, [normalize_creation($row)])[0];
+}
+
+http_response_code($status);
+
+$esc = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+$catLabel = $item ? (CREATION_CATEGORY_LABELS[$item['category']] ?? 'Other') : 'Creations Hub';
+$pageTitle = $item ? $item['title'] . ' — Aghimuan Creations Hub' : 'Creation not found — Aghimuan';
+$media = ($item && !empty($item['media'])) ? array_values($item['media']) : [];
+// Stage + thumbs are images only; a demo video (if any) gets its own button.
+$images = array_values(array_filter($media, fn($m) => ($m['type'] ?? '') === 'image' && !empty($m['src'])));
+$firstImg = $images ? $images[0]['src'] : null;
+$demoVideo = null;
+foreach ($media as $m) {
+    if (($m['type'] ?? '') === 'video' && !empty($m['url'])) {
+        $demoVideo = (string) $m['url'];
+        break;
+    }
+}
+
+// Creator identity for the avatar + profile-popup trigger. Any element with
+// data-aghi-userid is opened by js/user-profile-popup.js — same as the hub.
+$avUrl = $item['creatorAvatarUrl'] ?? null;
+$avColor = $item['creatorAvatarColor'] ?? '#5F5E5A';
+$creatorName = $item['creator'] ?? '';
+$creatorInitial = $creatorName !== '' ? mb_strtoupper(mb_substr($creatorName, 0, 1)) : '?';
+$uidAttr = ($item && !empty($item['creatorId']))
+    ? 'data-aghi-userid="' . (int) $item['creatorId'] . '"'
+    : 'data-aghi-username="' . $esc($creatorName) . '"';
+$fmtDate = static function ($d) {
+    $ts = strtotime((string) $d);
+    return $ts !== false ? date('M j, Y', $ts) : $d;
+};
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php echo $esc($pageTitle); ?></title>
+<meta name="description" content="<?php echo $esc($item ? mb_substr(trim(strip_tags($item['description'])), 0, 160) : 'Student-built ICT work from PCU-Dasmariñas.'); ?>">
+<meta name="theme-color" content="#15161C">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="<?php echo $esc($item ? $item['title'] : 'Creation not found'); ?>">
+<meta property="og:description" content="<?php echo $esc($item ? mb_substr(trim(strip_tags($item['description'])), 0, 200) : 'Student-built ICT work from PCU-Dasmariñas.'); ?>">
+<?php if ($firstImg): ?>
+<meta property="og:image" content="<?php echo $esc($firstImg); ?>">
+<?php endif; ?>
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
+<link rel="shortcut icon" href="../favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#03037E;--royal:#2B438E;--tech:#3096C7;--cyan:#55F1F8;
+  --silver:#AEB7C0;--steel:#767CA1;--white:#F1F2F5;--charcoal:#15161C;
+  --glass-bg:rgba(255,255,255,.035);--glass-bg-hover:rgba(255,255,255,.065);
+  --glass-border:rgba(255,255,255,.08);
+  --font-display:'Space Grotesk',sans-serif;--font-body:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --line-soft:rgba(118,124,161,.15);
+}
+*{box-sizing:border-box}
+html{background:var(--charcoal)}
+body{margin:0;background:var(--charcoal);color:var(--silver);font:15px/1.6 var(--font-body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(600px 460px at 8% -5%,rgba(3,3,126,.45),transparent 65%),
+  radial-gradient(640px 520px at 108% 20%,rgba(48,150,199,.12),transparent 60%)}
+h1,h2{font-family:var(--font-display);color:var(--white);margin:0;line-height:1.15}
+p{margin:0}
+.wrap{max-width:880px;margin:0 auto;padding:clamp(20px,4vw,48px) clamp(16px,4vw,40px) 80px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--silver);text-decoration:none;border:1px solid var(--glass-border);background:var(--glass-bg);border-radius:9px;padding:9px 15px}
+.back:hover{color:var(--white);border-color:rgba(85,241,248,.55)}
+.card{border:1px solid var(--glass-border);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,rgba(3,3,126,.22),rgba(21,22,28,.6) 40%)}
+/* ---- stage gallery ---- */
+.stage{position:relative;aspect-ratio:21/8;min-height:200px;overflow:hidden;background:rgba(3,3,126,.22)}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(21,22,28,.28),transparent 30%,transparent 62%,rgba(21,22,28,.55))}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.stage-count{position:absolute;left:14px;bottom:12px;z-index:3;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--white);background:rgba(21,22,28,.65);border:1px solid var(--glass-border);border-radius:999px;padding:4px 11px}
+.stage-tags{position:absolute;left:14px;top:12px;right:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:3}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px clamp(20px,4vw,36px) 0}
+.thumbs button{flex:0 0 auto;width:92px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1px solid var(--glass-border);padding:0;background:rgba(255,255,255,.03);cursor:pointer;opacity:.6;transition:opacity .18s,border-color .18s,box-shadow .18s}
+.thumbs button:hover{opacity:.9}
+.thumbs button.is-on{opacity:1;border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:640px){.stage{aspect-ratio:16/10;min-height:180px}}
+.body{padding:clamp(20px,4vw,36px)}
+.title{font-size:clamp(24px,4vw,36px)}
+.creator{display:flex;align-items:center;gap:10px;margin-top:14px}
+.avatar{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:11px;overflow:hidden;border:1px solid rgba(85,241,248,.3);color:var(--cyan);font-family:var(--font-mono);font-size:13px;font-weight:600;cursor:pointer;padding:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.creator-name{background:none;border:0;padding:0;font-size:15px;font-weight:500;color:var(--white);cursor:pointer;text-align:left}
+.creator-name:hover{color:var(--cyan)}
+.collabs{margin-top:14px}
+.collab-row{display:flex;flex-wrap:wrap;gap:8px}
+.creator--sm{display:flex;align-items:center;gap:8px}
+.avatar--sm{width:28px;height:28px;font-size:10px;border-radius:8px}
+.creator--sm .creator-name{font-size:13px}
+.link-list{display:flex;flex-direction:column;gap:8px}
+.link-list .btn{justify-content:center}
+.meta{font-family:var(--font-mono);font-size:10.5px;color:var(--steel);letter-spacing:.08em;margin-left:auto}
+.desc{margin-top:18px;white-space:pre-line}
+.desc p{margin:0 0 8px}
+.desc ul,.desc ol{margin:6px 0;padding-left:22px}
+.label{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--tech);text-transform:uppercase;margin:26px 0 12px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-family:var(--font-mono);font-size:11px;color:var(--silver);background:rgba(174,183,192,.08);border:1px solid rgba(174,183,192,.22);border-radius:6px;padding:4px 10px}
+.tag--cat{color:var(--cyan);border-color:rgba(85,241,248,.38);background:rgba(85,241,248,.08)}
+.tag--award{color:var(--cyan);border-color:rgba(85,241,248,.5);background:rgba(85,241,248,.1)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:11px 19px;border-radius:9px;text-decoration:none;border:1px solid transparent}
+.btn-primary{background:var(--cyan);color:var(--navy)}
+.btn-ghost{border-color:var(--glass-border);color:var(--silver);background:var(--glass-bg)}
+.btn-ghost:hover{color:var(--white);border-color:rgba(85,241,248,.55)}
+.record{margin:26px 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13px}
+.record dt{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;padding-top:2px}
+.record dd{margin:0;color:var(--white);overflow-wrap:anywhere}
+.empty{border:1px dashed rgba(118,124,161,.4);border-radius:16px;padding:48px 24px;text-align:center}
+.empty h1{font-size:22px;margin-bottom:10px}
+.empty p{font-size:14px;margin-bottom:22px}
+footer{border-top:1px solid var(--glass-border);padding:28px 16px;text-align:center;font-size:12.5px;color:var(--steel)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; Back to Creations Hub</a>
+    <div id="aghi-account-widget"></div>
+  </div>
+
+  <?php if (!$item): ?>
+    <div class="empty">
+      <h1><?php echo $status === 404 ? 'Creation not found' : 'Under review'; ?></h1>
+      <p><?php echo $esc($error); ?></p>
+      <a class="btn btn-ghost" href="index.html">Browse the archive</a>
+    </div>
+  <?php else: ?>
+    <article class="card">
+      <?php if ($firstImg): ?>
+<?php
+$coverPos = '50% 50%';
+if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
+    $coverPos = ((float) $item['coverFocus']['x']) . '% ' . ((float) $item['coverFocus']['y']) . '%';
+}
+?>
+      <div class="stage">
+        <img id="stageImg" src="<?php echo $esc($firstImg); ?>" style="object-position:<?php echo $esc($coverPos); ?>" alt="<?php echo $esc($item['title'] . ': image 1 of ' . count($images)); ?>">
+        <div class="stage-tags">
+          <span class="tag tag--cat"><?php echo $esc($catLabel); ?></span>
+          <?php if ($item['award']): ?><span class="tag tag--award"><?php echo $esc($item['award']); ?></span><?php endif; ?>
+        </div>
+        <?php if (count($images) > 1): ?><span class="stage-count" id="stageCount">1 / <?php echo count($images); ?></span><?php endif; ?>
+      </div>
+      <?php if (count($images) > 1): ?>
+      <div class="thumbs" id="stageThumbs" role="group" aria-label="Project images">
+        <?php foreach ($images as $i => $m): ?>
+        <button type="button" data-idx="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'is-on' : ''; ?>" aria-label="Show image <?php echo $i + 1; ?>"><img src="<?php echo $esc($m['src']); ?>" alt="" loading="lazy"></button>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+      <?php endif; ?>
+      <div class="body">
+        <h1 class="title"><?php echo $esc($item['title']); ?></h1>
+        <div class="creator">
+          <?php if ($avUrl): ?>
+          <button type="button" class="avatar" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><img src="<?php echo $esc($avUrl); ?>" alt=""></button>
+          <?php else: ?>
+          <button type="button" class="avatar" style="background:<?php echo $esc($avColor); ?>" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><span aria-hidden="true"><?php echo $esc($creatorInitial); ?></span></button>
+          <?php endif; ?>
+          <div>
+            <button type="button" class="creator-name" <?php echo $uidAttr; ?>><?php echo $esc($creatorName); ?></button>
+            <?php if ($item['batch']): ?><div class="meta">A.Y. <?php echo $esc($item['batch']); ?></div><?php endif; ?>
+          </div>
+        </div>
+        <?php if (!empty($item['collaborators'])): ?>
+        <div class="collabs">
+          <span class="label" style="margin:0 0 8px">// Built with</span>
+          <div class="collab-row">
+            <?php foreach ($item['collaborators'] as $cb):
+              $cbAttr = 'data-aghi-userid="' . (int) $cb['id'] . '"';
+              $cbInit = mb_strtoupper(mb_substr((string) $cb['username'], 0, 1));
+            ?>
+            <span class="creator creator--sm">
+              <?php if (!empty($cb['avatarUrl'])): ?>
+              <button type="button" class="avatar avatar--sm" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><img src="<?php echo $esc($cb['avatarUrl']); ?>" alt=""></button>
+              <?php else: ?>
+              <button type="button" class="avatar avatar--sm" style="background:<?php echo $esc($cb['avatarColor'] ?: '#5F5E5A'); ?>" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><span aria-hidden="true"><?php echo $esc($cbInit); ?></span></button>
+              <?php endif; ?>
+              <button type="button" class="creator-name" <?php echo $cbAttr; ?>><?php echo $esc($cb['username']); ?></button>
+            </span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+        <div class="desc"><?php echo $item['description']; ?></div>
+
+        <?php if (!empty($item['tools'])): ?>
+        <span class="label">// Tools used</span>
+        <div class="tags">
+          <?php foreach ($item['tools'] as $t): ?><span class="tag"><?php echo $esc($t); ?></span><?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($demoVideo): ?>
+        <span class="label">// Demo</span>
+        <div class="link-list">
+          <a class="btn btn-primary" href="<?php echo $esc($demoVideo); ?>" target="_blank" rel="noopener">Watch demo video</a>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($item['links'])): ?>
+        <span class="label">// Links</span>
+        <div class="link-list">
+          <?php foreach ($item['links'] as $l): ?>
+          <a class="btn btn-ghost" href="<?php echo $esc($l['url']); ?>" target="_blank" rel="noopener"><?php echo $esc($l['label']); ?></a>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <span class="label">// Record</span>
+        <dl class="record">
+          <dt>Category</dt><dd><?php echo $esc($catLabel); ?></dd>
+          <?php if ($item['batch']): ?><dt>Batch</dt><dd>A.Y. <?php echo $esc($item['batch']); ?></dd><?php endif; ?>
+          <?php if ($item['date']): ?><dt>Submitted</dt><dd><?php echo $esc($fmtDate($item['date'])); ?></dd><?php endif; ?>
+          <?php if ($item['award']): ?><dt>Award</dt><dd><?php echo $esc($item['award']); ?></dd><?php endif; ?>
+        </dl>
+
+        <div class="actions">
+          <?php if ($item['url']): ?>
+          <a class="btn btn-primary" href="<?php echo $esc($item['url']); ?>" target="_blank" rel="noopener">Visit project</a>
+          <?php endif; ?>
+          <a class="btn btn-ghost" href="index.html">Browse more</a>
+        </div>
+      </div>
+    </article>
+  <?php endif; ?>
+</div>
+<footer>AGHIMUAN &middot; ICT Student Organization &middot; Philippine Christian University - Dasmari&ntilde;as</footer>
+<script src="/js/account-widget.js" defer></script>
+<script src="/js/user-profile-popup.js" defer></script>
+<script>
+(() => {
+  const IMAGES = <?php echo json_encode(array_column($images, 'src')); ?>;
+  const stage = document.getElementById('stageImg');
+  if (!stage || IMAGES.length < 2) return;
+  const thumbs = [...document.querySelectorAll('#stageThumbs [data-idx]')];
+  const count = document.getElementById('stageCount');
+  let idx = 0;
+  const title = <?php echo json_encode($item ? $item['title'] : ''); ?>;
+  function show(i) {
+    idx = (i + IMAGES.length) % IMAGES.length;
+    stage.src = IMAGES[idx];
+    stage.alt = `${title}: image ${idx + 1} of ${IMAGES.length}`;
+    if (count) count.textContent = `${idx + 1} / ${IMAGES.length}`;
+    thumbs.forEach((b, bi) => b.classList.toggle('is-on', bi === idx));
+  }
+  thumbs.forEach(b => b.addEventListener('click', () => show(+b.dataset.idx)));
+  stage.addEventListener('click', () => window.open(IMAGES[idx], '_blank', 'noopener'));
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (document.querySelector('.aghi-up-popup, .aghi-up-mobile-sheet')) return;
+    show(idx + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+})();
+</script>
+</body>
+</html>

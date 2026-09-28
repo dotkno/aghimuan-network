@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget preview harness (dev only — safe to delete)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #03037E; --royal: #2B438E; --tech: #3096C7; --cyan: #55F1F8;
+    --silver: #AEB7C0; --steel: #767CA1; --white: #F1F2F5; --charcoal: #15161C;
+    --glass-bg: rgba(255, 255, 255, 0.035);
+    --glass-bg-hover: rgba(255, 255, 255, 0.065);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-active: rgba(85, 241, 248, 0.45);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Inter', sans-serif; color: #F1F2F5;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 14px),
+      radial-gradient(60% 80% at 20% 20%, #303a8c 0%, transparent 60%),
+      radial-gradient(50% 70% at 80% 70%, #0e5e6e 0%, transparent 55%),
+      #171326;
+    min-height: 100vh;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 14px clamp(16px, 3.5vw, 40px);
+    background: rgba(21, 22, 28, 0.65);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .busy { padding: 60px clamp(16px, 6vw, 80px); line-height: 1.5; }
+  .busy h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(28px, 5vw, 56px); margin: 0 0 12px; color: #fff; }
+  .busy p { max-width: 640px; color: #c9d2dd; font-size: 17px; }
+  .busy .card { margin-top: 28px; display: grid; gap: 12px; max-width: 720px; }
+  .busy .card div { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 16px 20px; border-radius: 12px; }
+</style>
+</head>
+<body>
+<div class="topbar"><div id="aghi-account-widget"></div></div>
+<div class="busy">
+  <h1>Busy background for readability testing</h1>
+  <p>Text, gradients and stripes sit behind the panels — everything inside the panels must stay readable on top of this.</p>
+  <p>PS: say hi to <span data-aghi-username="maria_dev" data-aghi-userid="2" style="color:#55F1F8;cursor:pointer;text-decoration:underline;">maria_dev</span> — she built this place.</p>
+  <div class="card"><div>Announcement one — club fair preparations are ongoing</div><div>Announcement two — robotics workshop this Saturday</div><div>Announcement three — reviewer uploads are live</div></div>
+</div>
+<script>
+  // ---- fetch stub: fake API so the widget renders logged-in with data ----
+  const nowStr = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
+  let nextMsgId = 500;
+  let nextNotifId = 900;
+  const me = { id: 1, username: 'renzu', pfpId: 'circuit-cyan', presence: 'online', status: 'debugging the line follower', bio: 'Robotics nerd. I build things that move.', mainRole: 'OFFICER', subRole: 'President', club: 'Aghimuan', grade: 'G12', strand: 'STEM', customRoles: [], bannerId: null };
+
+  // --- DM data ---
+  const threads = [
+    { userId: 2, username: 'maria_dev', pfpId: 'wire-purple', presence: 'online', online: true, status: 'shipping the roster page', unreadCount: 2, lastMessage: { id: 100, senderId: 2, body: 'also — can you review my pull request before the meeting?', createdAt: '2026-09-10 09:13:00', status: 'sent' } },
+    { userId: 3, username: 'kyle_builds', pfpId: 'chip-green', presence: 'away', online: true, status: '', unreadCount: 0, lastMessage: { id: 90, senderId: 1, body: 'bring the soldering station pls', createdAt: '2026-09-09 18:40:00', status: 'sent' } },
+    { userId: 4, username: 'bea.codes', pfpId: 'signal-pink', presence: 'online', online: true, status: 'in class', unreadCount: 1, lastMessage: { id: 88, senderId: 4, body: 'the css grid finally behaves 😭', createdAt: '2026-09-09 11:05:00', status: 'sent' } }
+  ];
+  const threadMsgs = {
+    2: [
+      { id: 95, senderId: 2, body: 'hey! did you see the line follower run yesterday?', createdAt: '2026-09-09 15:02:00', status: 'sent' },
+      { id: 96, senderId: 1, body: 'yeah, the new PID tuning is buttery smooth', createdAt: '2026-09-09 15:04:00', status: 'sent' },
+      { id: 97, senderId: 2, body: 'right?? the corner cuts are so clean now', createdAt: '2026-09-09 15:05:00', status: 'sent' },
+      { id: 98, senderId: 1, body: 'we should demo it at the club fair', createdAt: '2026-09-09 15:06:00', status: 'sent' },
+      { id: 99, senderId: 2, body: 'bet. ill bring the extra sensors tomorrow', createdAt: '2026-09-10 09:12:00', replyToId: 98, status: 'sent' },
+      { id: 100, senderId: 2, body: 'also — can you review my pull request before the meeting?', createdAt: '2026-09-10 09:13:00', status: 'sent' },
+      { id: 101, senderId: 1, body: 'on it after lunch 👍', createdAt: '2026-09-10 09:20:00', editedAt: '2026-09-10 09:21:00', status: 'sent' }
+    ],
+    3: [{ id: 90, senderId: 1, body: 'bring the soldering station pls', createdAt: '2026-09-09 18:40:00', status: 'sent' }],
+    4: [{ id: 88, senderId: 4, body: 'the css grid finally behaves 😭', createdAt: '2026-09-09 11:05:00', status: 'sent' }]
+  };
+  const readUpTo = { 2: 100, 3: 0, 4: 0 };
+  // Reaction state, exposed on window so tests can simulate the other
+  // participant reacting between poll ticks.
+  window.__reactions = { 97: { counts: { '🔥': 2 }, userReactions: [] } };
+
+  // --- members data (member directory + other-user profiles) ---
+  const members = [
+    { id: 10, username: 'adviser_dre', pfpId: 'circuit-blue', mainRole: 'CLUB ADVISER', subRole: 'Faculty', club: null, grade: null, strand: null, status: '', presence: 'online', online: true, bio: 'Keeping the club on track.', bannerId: null },
+    { id: 2, username: 'maria_dev', pfpId: 'wire-purple', mainRole: 'OFFICER', subRole: null, club: 'Aghimuan', grade: 'G12', strand: 'STEM', status: 'shipping the roster page', presence: 'online', online: true, bio: 'Code, robots, coffee.', bannerId: 'u2_banner.webp' },
+    { id: 1, username: 'renzu', pfpId: 'circuit-cyan', mainRole: 'OFFICER', subRole: 'President', club: 'Aghimuan', grade: 'G12', strand: 'STEM', status: 'debugging the line follower', presence: 'online', online: true, bio: 'Robotics nerd.', bannerId: null },
+    { id: 5, username: 'officer_jomar', pfpId: 'circuit-blue', mainRole: 'OFFICER', subRole: null, club: null, grade: null, strand: null, status: '', presence: 'dnd', online: true, bio: '', bannerId: null },
+    { id: 4, username: 'bea.codes', pfpId: 'signal-pink', mainRole: 'COMMITTEE MEMBER', subRole: null, club: null, grade: null, strand: 'STEM', status: 'in class', presence: 'online', online: true, bio: 'CSS survivor.', bannerId: null },
+    { id: 3, username: 'kyle_builds', pfpId: 'chip-green', mainRole: 'COMMITTEE MEMBER', subRole: null, club: null, grade: null, strand: null, status: 'soldering I guess', presence: 'away', online: true, bio: '', bannerId: null },
+    { id: 7, username: 'allen', pfpId: 'default', mainRole: 'MEMBER', subRole: null, club: null, grade: 'G11', strand: null, status: 'back in 5', presence: 'offline', online: false, bio: '', bannerId: null },
+    { id: 6, username: 'nikka', pfpId: 'spark-orange', mainRole: 'MEMBER', subRole: null, club: null, grade: null, strand: null, status: '', presence: 'offline', online: false, bio: '', bannerId: null }
+  ];
+  const profileFriendStatus = { 2: 'friends', 4: 'pending_received' };
+
+  // --- friends data (scrambled on purpose — the panel should sort it) ---
+  const friends = [
+    { id: 6, username: 'nikka', pfpId: 'spark-orange', presence: 'invisible', online: false, status: '' },
+    { id: 3, username: 'kyle_builds', pfpId: 'chip-green', presence: 'away', online: true, status: 'soldering I guess' },
+    { id: 5, username: 'officer_jomar', pfpId: 'circuit-blue', presence: 'dnd', online: true, status: '' },
+    { id: 2, username: 'maria_dev', pfpId: 'wire-purple', presence: 'online', online: true, status: 'shipping the roster page' },
+    { id: 7, username: 'allen', pfpId: 'default', presence: 'online', online: false, status: 'back in 5' },
+    { id: 4, username: 'bea.codes', pfpId: 'signal-pink', presence: 'online', online: true, status: '' }
+  ];
+
+  // --- inbox data ---
+  const pendingRequests = [
+    { requesterId: 8, actorUsername: 'newbie_nova', pfpId: 'node-teal', createdAt: '2026-09-10 08:00:00' },
+    { requesterId: 9, actorUsername: 'sam_plays', pfpId: 'default', createdAt: '2026-09-09 20:00:00' }
+  ];
+  const notifications = [
+    { id: nextNotifId++, kind: 'comment', actorUsername: 'bea.codes', pfpId: 'signal-pink', payload: { text: 'bea.codes commented on your post.' }, isRead: false, createdAt: '2026-09-10 07:30:00' },
+    { id: nextNotifId++, kind: 'system', actorUsername: null, pfpId: 'default', payload: { text: 'Welcome to Aghimuan Network!' }, isRead: true, createdAt: '2026-09-08 10:00:00' }
+  ];
+
+  // (emoji-picker-core.js is loaded via script tag below — it provides
+  //  window.AghiEmojiPicker incl. getTwemojiUrl/open)
+  const jsonResponse = (obj) => Promise.resolve({ ok: true, json: async () => obj });
+  const inboxItems = () => {
+    const reqs = pendingRequests.map((r) => ({ kind: 'friend_request', id: 'fr_' + r.requesterId, requesterId: r.requesterId, actorUsername: r.actorUsername, pfpId: r.pfpId, createdAt: r.createdAt, isRead: false }));
+    return reqs.concat(notifications).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  };
+  // Real inbox.php: mark_all_read stores a marker timestamp so pending friend
+  // requests older than it stop counting toward the summary.
+  let inboxMarkedReadAt = null;
+  const unreadCount = () => {
+    const reqUnread = pendingRequests.filter((r) => !inboxMarkedReadAt || r.createdAt > inboxMarkedReadAt).length;
+    return reqUnread + notifications.filter((n) => !n.isRead).length;
+  };
+
+  window.fetch = function (url, opts) {
+    const u = String(url);
+    const q = Object.fromEntries(new URLSearchParams(u.split('?')[1] || ''));
+    if (u.startsWith('/api/session.php')) return jsonResponse({ loggedIn: true, csrfToken: 'test-token', user: { ...me } });
+    if (u.startsWith('/api/inbox.php')) {
+      if (q.action === 'summary') return jsonResponse({ ok: true, unreadCount: unreadCount() });
+      if (q.action === 'list') {
+        if (opts && opts.method === 'POST') {
+          const body = JSON.parse(opts.body || '{}');
+          if (body.action === 'mark_read') {
+            const n = notifications.find((x) => String(x.id) === String(body.id));
+            if (n) n.isRead = true;
+            return jsonResponse({ ok: true });
+          }
+          if (body.action === 'mark_all_read') {
+            notifications.forEach((n) => { n.isRead = true; });
+            inboxMarkedReadAt = pendingRequests.reduce((mx, r) => (r.createdAt > mx ? r.createdAt : mx), inboxMarkedReadAt || '');
+            return jsonResponse({ ok: true });
+          }
+        }
+        return jsonResponse({ ok: true, items: inboxItems(), nextCursor: null });
+      }
+      return jsonResponse({ ok: false });
+    }
+    if (u.startsWith('/api/friends.php')) {
+      if (q.action === 'list') return jsonResponse({ ok: true, friends: friends.map((f) => ({ ...f })) });
+      if (q.action === 'status') return jsonResponse({ ok: true, status: 'friends' });
+    }
+    if (u.startsWith('/api/friend-respond.php') && opts && opts.method === 'POST') {
+      const body = JSON.parse(opts.body || '{}');
+      const idx = pendingRequests.findIndex((r) => r.requesterId === body.targetId);
+      if (idx !== -1) pendingRequests.splice(idx, 1);
+      return jsonResponse({ ok: true, friendStatus: 'friends' });
+    }
+    if (u.startsWith('/api/friend-remove.php') && opts && opts.method === 'POST') {
+      const body = JSON.parse(opts.body || '{}');
+      const idx = friends.findIndex((f) => f.id === body.targetId);
+      if (idx !== -1) friends.splice(idx, 1);
+      return jsonResponse({ ok: true, friendStatus: 'none' });
+    }
+    if (u.startsWith('/api/friend-request.php') && opts && opts.method === 'POST') {
+      return jsonResponse({ ok: true, friendStatus: 'pending_sent' });
+    }
+    if (u.startsWith('/api/user-list.php')) {
+      const query = (q.q || '').toLowerCase();
+      const filtered = members.filter((mm) => mm.username.toLowerCase().includes(query));
+      const order = ['CLUB ADVISER', 'OFFICER', 'COMMITTEE MEMBER', 'MEMBER'];
+      const groups = order.map((role) => {
+        const users = filtered.filter((mm) => mm.mainRole === role);
+        return users.length ? { role, count: users.length, users: users.map((mm) => ({ ...mm })) } : null;
+      }).filter(Boolean);
+      return jsonResponse({ ok: true, groups });
+    }
+    if (u.startsWith('/api/user-profile.php')) {
+      const target = members.find((mm) =>
+        (q.id ? String(mm.id) === q.id : mm.username.toLowerCase() === (q.username || '').toLowerCase()));
+      if (!target) return jsonResponse({ ok: false, error: 'not_found' });
+      return jsonResponse({
+        ok: true,
+        id: target.id,
+        username: target.username,
+        avatarUrl: null,
+        pfpId: target.pfpId,
+        mainRole: target.mainRole,
+        subRole: target.subRole || null,
+        grade: target.grade || null,
+        strand: target.strand || null,
+        club: target.club || null,
+        customRoles: [],
+        bio: target.bio || '',
+        status: target.status || '',
+        bannerId: target.bannerId || null,
+        presence: target.presence,
+        online: !!target.online,
+        isSelf: target.id === me.id,
+        friendStatus: profileFriendStatus[target.id] || 'none',
+        blockedByYou: false
+      });
+    }
+    if (u.startsWith('/api/profile.php')) {
+      if (opts && opts.method === 'POST') {
+        const body = JSON.parse(opts.body || '{}');
+        ['bio', 'status', 'presence', 'pfpId', 'bannerId'].forEach((k) => {
+          if (k in body) me[k] = body[k];
+        });
+        if ('username' in body && body.username !== me.username) {
+          me.username = body.username;
+          me.usernameChangeAvailableAt = new Date(Date.now() + 7 * 86400000).toISOString();
+        }
+        return jsonResponse({ profile: { ...me, role: me.mainRole, createdAt: '2025-01-01', usernameChangeAvailableAt: me.usernameChangeAvailableAt || null } });
+      }
+      return jsonResponse({ profile: { ...me } });
+    }
+    if (u.startsWith('/api/upload-avatar.php') && opts && opts.method === 'POST') {
+      const kind = opts.body && opts.body.get ? (opts.body.get('kind') || 'avatar') : 'avatar';
+      const name = 'u1_' + Math.random().toString(16).slice(2, 14) + '.webp';
+      return jsonResponse(kind === 'banner' ? { profile: { bannerId: name } } : { profile: { pfpId: name } });
+    }
+    if (u.startsWith('/api/dms.php')) {
+      if (q.action === 'unread_count') return jsonResponse({ ok: true, unreadCount: 3 });
+      if (q.action === 'threads') return jsonResponse({ ok: true, threads, nextCursor: null });
+      if (q.action === 'thread') {
+        const uid = Number(q.userId);
+        const t = threads.find((t) => String(t.userId) === String(uid));
+        return jsonResponse({ ok: true, messages: threadMsgs[uid] || [], readUpToId: readUpTo[uid] || 0, otherUser: { presence: t ? t.presence : 'offline', online: !!t && t.online, status: t ? t.status : '' } });
+      }
+      if (q.action === 'poll') {
+        const uid = Number(q.userId);
+        const t = threads.find((t) => String(t.userId) === String(uid));
+        return jsonResponse({ ok: true, messages: [], readUpToId: readUpTo[uid] || 0, otherUser: { presence: t ? t.presence : 'offline', online: !!t && t.online, status: t ? t.status : '' } });
+      }
+      if (q.action === 'typing_status') return jsonResponse({ ok: true, typing: false });
+      if (opts && opts.method === 'POST') {
+        const body = JSON.parse(opts.body || '{}');
+        if (body.action === 'send') {
+          const msg = { id: ++nextMsgId, senderId: 1, body: body.body, createdAt: nowStr(), status: 'sent' };
+          threadMsgs[body.recipientId] = (threadMsgs[body.recipientId] || []).concat(msg);
+          const t = threads.find((t) => String(t.userId) === String(body.recipientId));
+          if (t) t.lastMessage = msg;
+          // 2.5s artificial latency: guarantees a poll tick lands while the
+          // send is in flight, so the send/poll dedupe can be tested.
+          return new Promise((r) => setTimeout(() => r({ ok: true, json: async () => ({ ok: true, message: msg }) }), 2500));
+        }
+        if (body.action === 'edit') return jsonResponse({ ok: true, message: { id: body.messageId, senderId: 1, body: body.body, createdAt: nowStr(), editedAt: nowStr(), status: 'sent' } });
+        return jsonResponse({ ok: true });
+      }
+    }
+    if (u.startsWith('/api/emoji-data.php')) {
+      return jsonResponse({ categories: [
+        { id: 'smileys', label: 'Smileys & Emotion', icon: '😀', emoji: [
+          { char: '😀', name: 'grinning face', keywords: ['grin', 'happy', 'smile'] },
+          { char: '🔥', name: 'fire', keywords: ['fire', 'lit', 'flame'] },
+          { char: '💜', name: 'purple heart', keywords: ['purple', 'heart', 'love'] },
+          { char: '👍', name: 'thumbs up', keywords: ['thumbsup', 'ok', 'like'] }
+        ] },
+        { id: 'objects', label: 'Objects', icon: '🛠', emoji: [
+          { char: '🤖', name: 'robot', keywords: ['robot', 'bot'] }
+        ] }
+      ] });
+    }
+    if (u.startsWith('/api/reactions.php')) {
+      if (opts && opts.method === 'POST') {
+        const body = JSON.parse(opts.body || '{}');
+        const key = String(body.targetId);
+        const state = window.__reactions[key] || (window.__reactions[key] = { counts: {}, userReactions: [] });
+        const emoji = body.reactionType;
+        if (state.userReactions.includes(emoji)) {
+          state.userReactions = state.userReactions.filter((x) => x !== emoji);
+          state.counts[emoji] = (state.counts[emoji] || 1) - 1;
+          if (state.counts[emoji] <= 0) delete state.counts[emoji];
+        } else {
+          state.userReactions = state.userReactions.concat(emoji);
+          state.counts[emoji] = (state.counts[emoji] || 0) + 1;
+        }
+        return jsonResponse({ ok: true, success: true, counts: { ...state.counts }, userReactions: [...state.userReactions] });
+      }
+      // GET uses the real param names (target_type/target_id) — an unknown
+      // target id returns empty counts, exactly like the real endpoint.
+      const key = String(q.target_id || '');
+      return jsonResponse(window.__reactions[key] || { counts: {}, userReactions: [] });
+    }
+    return jsonResponse({ ok: false });
+  };
+</script>
+<script src="js/emoji-picker-core.js"></script>
+<script src="js/account-widget.js"></script>
+<script src="js/user-profile-popup.js"></script>
+<script src="js/member-list.js"></script>
+<script>
+  // Hash-driven demo states for headless screenshots:
+  //   #quick | #thread | #full | #full-thread | #send
+  const state = (location.hash || '').replace('#', '');
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function waitFor(sel, tries = 60) {
+    for (let i = 0; i < tries; i++) {
+      const el = document.querySelector(sel);
+      if (el) return el;
+      await sleep(50);
+    }
+    throw new Error('waitFor timeout: ' + sel);
+  }
+  (async () => {
+    await waitFor('.aghi-aw-dm-btn');
+    if (state === 'quick' || state === 'thread' || state === 'full' || state === 'full-thread' || state === 'send') {
+      document.querySelector('.aghi-aw-dm-btn').click();
+      await waitFor('.aghi-aw-dm-panel');
+      await sleep(600);
+      if (state === 'thread' || state === 'send') {
+        document.querySelector('.aghi-aw-dm-thread-item[data-user-id="2"]').click();
+        await waitFor('.aghi-aw-dm-messages .aghi-aw-dm-bubble');
+        await sleep(500);
+      }
+      if (state === 'full' || state === 'full-thread' || state === 'send') {
+        document.querySelector('.aghi-aw-dm-panel [data-action="expand"]').click();
+        await sleep(600);
+      }
+      if (state === 'full-thread' || state === 'send') {
+        document.querySelector('.aghi-aw-dm-thread-item[data-user-id="2"]').click();
+        await waitFor('.aghi-aw-dm-messages .aghi-aw-dm-bubble');
+        await sleep(500);
+      }
+      if (state === 'send') {
+        const input = document.querySelector('.aghi-aw-dm-panel [data-el="input"]');
+        input.value = 'sounds good, see you at the lab!';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await sleep(100);
+        document.querySelector('.aghi-aw-dm-panel [data-action="send"]').click();
+        await sleep(600);
+      }
+    }
+    document.title = 'READY:' + state;
+  })().catch((err) => { document.title = 'ERROR:' + err.message; });
+</script>
+</body>
+</html>

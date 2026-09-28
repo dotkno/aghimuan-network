@@ -1,0 +1,23 @@
+Drop officer/adviser photos in this folder using these exact filenames.
+Portrait orientation works best (the cards are portrait, ~5:7 ratio).
+JPGs, matched to the id in about.html's OFFICER_DATA array.
+
+adviser.jpg     Club Adviser
+pres.jpg        President
+vp.jpg          Vice President
+sec.jpg         Secretary
+treasurer.jpg   Treasurer
+auditor.jpg     Auditor
+pio.jpg         PIO / PRO
+sgt1.jpg        Sgt. at Arms #1
+sgt2.jpg        Sgt. at Arms #2
+media1.jpg      Media Team #1
+media2.jpg      Media Team #2
+media3.jpg      Media Team #3
+media4.jpg      Media Team #4
+
+No photo yet? No problem — the card just shows the person's initials
+until a matching file shows up. Nothing breaks either way.
+
+Full instructions (including how to edit names/positions) are in
+README.md at the root of the www folder.

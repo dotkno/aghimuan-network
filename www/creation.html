@@ -1,0 +1,526 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/session.php';
+$aghiCsrfToken = csrf_token();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creation - Aghimuan Network</title>
+<meta name="description" content="View ICT student project details at Aghimuan Network PCU-D.">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="stylesheet" href="styles.css?v=7">
+<script src="/js/reactions.js" defer></script>
+<script src="js/emoji-picker-core.js" defer></script>
+<script src="js/comment-reactions.js" defer></script>
+<script src="js/comments.js" defer></script>
+<meta name="csrf-token" content="<?php echo htmlspecialchars($aghiCsrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+<style>
+  .creation-header {
+    margin-bottom: 2rem;
+  }
+
+  .creation-title {
+    font-size: 2rem;
+    color: var(--white);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .creation-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--steel);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .creation-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cyan);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+  }
+
+  .creator-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--white);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .creator-link:hover {
+    color: var(--cyan);
+  }
+
+  .creator-link img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+
+  .creation-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .creation-gallery img {
+    width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .creation-gallery img:hover {
+    transform: scale(1.02);
+  }
+
+  .creation-description {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .creation-description h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: var(--white);
+  }
+
+  .creation-description p {
+    color: var(--silver);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .creation-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .detail-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .detail-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--steel);
+    margin-bottom: 0.5rem;
+  }
+
+  .detail-value {
+    color: var(--white);
+    font-size: 0.95rem;
+  }
+
+  .detail-value a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+
+  .detail-value a:hover {
+    text-decoration: underline;
+  }
+
+  .tools-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tool-tag {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--cyan);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+
+  .external-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--tech) 100%);
+    border: none;
+    border-radius: 8px;
+    color: var(--navy);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .external-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(85, 241, 248, 0.3);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--steel);
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--cyan);
+  }
+
+  .fb-avatar-mono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-weight: 700;
+    border-radius: 50%;
+  }
+
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-overlay.open {
+    display: flex;
+  }
+
+  .lightbox-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--white);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--steel);
+  }
+
+  @media (max-width: 768px) {
+    .creation-title {
+      font-size: 1.5rem;
+    }
+
+    .creation-gallery {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a href="index.html" class="brand-block" style="display:flex;flex-direction:column;gap:2px;">
+        <span class="brand">AGHIMUAN<span class="brand-dot">.</span> NETWORK</span>
+        <span class="motto">Connect &middot; Innovate &middot; Explore</span>
+      </a>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">&times;</button>
+    </div>
+
+    <nav class="sidebar-rail" aria-label="Primary">
+      <a href="index.html" class="rail-link"><span class="node"></span>Home</a>
+      <a href="about.html" class="rail-link"><span class="node"></span>About</a>
+      <a href="faq.html" class="rail-link"><span class="node"></span>FAQ</a>
+      <a href="reviewers.html" class="rail-link"><span class="node"></span>Reviewers</a>
+      <a href="creations.html" class="rail-link"><span class="node"></span>Creations Hub</a>
+      <a href="games/index.html" class="rail-link"><span class="node"></span>Games</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);">PCU-D · ICT ORG</span>
+      <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg>
+      </a>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="appSidebar">menu</button>
+      <div class="topbar-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-line"><span id="bootText"></span><span class="caret"></span></span>
+      </div>
+      <div class="topbar-clock" id="topbarClock" aria-hidden="true"></div>
+      <div id="aghi-account-widget"></div>
+      <script src="/js/account-widget.js" defer></script>
+    </header>
+
+    <main id="main">
+      <a href="creations.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to Creations Hub
+      </a>
+
+      <div id="creationContent"></div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-brand">AGHIMUAN</div>
+        <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">&times;</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+  const PFP_PRESETS = [
+    { id: 'default',      color: '#5F5E5A' },
+    { id: 'circuit-blue', color: '#185FA5' },
+    { id: 'circuit-cyan', color: '#0F6E56' },
+    { id: 'node-teal',    color: '#04342C' },
+    { id: 'spark-orange', color: '#993C1D' },
+    { id: 'wire-purple',  color: '#534AB7' },
+    { id: 'chip-green',   color: '#3B6D11' },
+    { id: 'signal-pink',  color: '#993556' },
+  ];
+
+  function presetColor(pfpId) {
+    const match = PFP_PRESETS.find((p) => p.id === pfpId);
+    return (match || PFP_PRESETS[0]).color;
+  }
+
+  function resolveAvatar(pfpId) {
+    const id = (pfpId !== null && pfpId !== undefined && pfpId !== '') ? pfpId : 'default';
+    const isPreset = PFP_PRESETS.includes(id);
+    return {
+      isPreset,
+      color: isPreset ? presetColor(id) : null,
+      url: isPreset ? null : ('/uploads/pfp/' + id),
+    };
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const creationId = urlParams.get('id');
+
+  async function loadCreation() {
+    const container = document.getElementById('creationContent');
+    
+    if (!creationId) {
+      container.innerHTML = '<p class="empty-state">No creation specified.</p>';
+      return;
+    }
+
+    try {
+      const response = await fetch(`api/creations.php?id=${creationId}`);
+      const data = await response.json();
+
+      if (!data.ok || !data.creation) {
+        container.innerHTML = '<p class="empty-state">Creation not found.</p>';
+        return;
+      }
+
+      const c = data.creation;
+      const avatar = resolveAvatar(c.pfp_id);
+      const avatarHtml = c.pfp_id && !avatar.isPreset
+        ? `<img src="${avatar.url}" alt="${escapeHtml(c.username)}">`
+        : `<div class="fb-avatar fb-avatar-mono" style="background-color:${avatar.color};width:24px;height:24px;">${escapeHtml(c.username.charAt(0).toUpperCase())}</div>`;
+
+      const mediaUrls = c.media_urls ? JSON.parse(c.media_urls) : [];
+      const toolsUsed = c.tools_used ? JSON.parse(c.tools_used) : [];
+
+      const galleryHtml = mediaUrls.length > 0 
+        ? `<div class="creation-gallery">${mediaUrls.map(url => `<img src="${url}" alt="${escapeHtml(c.title)}" onclick="openLightbox('${url}')">`).join('')}</div>`
+        : '';
+
+      const toolsHtml = toolsUsed.length > 0
+        ? `<div class="tools-list">${toolsUsed.map(tool => `<span class="tool-tag">${escapeHtml(tool)}</span>`).join('')}</div>`
+        : '<span class="detail-value">None specified</span>';
+
+      const externalLinkHtml = c.external_link
+        ? `<a href="${escapeHtml(c.external_link)}" target="_blank" rel="noopener noreferrer" class="external-link-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            View Project
+           </a>`
+        : '';
+
+      container.innerHTML = `
+        <div class="creation-header">
+          <h1 class="creation-title">${escapeHtml(c.title)}</h1>
+          <div class="creation-meta">
+            <span class="creation-category">${escapeHtml(c.category.replace('_', ' '))}</span>
+            <a href="profile.html?username=${escapeHtml(c.username)}" class="creator-link">
+              ${avatarHtml}
+              ${escapeHtml(c.username)}
+            </a>
+            <span>&bull;</span>
+            <span>${new Date(c.created_at).toLocaleDateString()}</span>
+          </div>
+        </div>
+
+        ${galleryHtml}
+
+        <div class="creation-description">
+          <h3>About This Project</h3>
+          <p>${escapeHtml(c.description).replace(/\n/g, '<br>')}</p>
+        </div>
+
+        <div class="creation-details">
+          <div class="detail-item">
+            <div class="detail-label">Tools Used</div>
+            <div class="detail-value">${toolsHtml}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Project Link</div>
+            <div class="detail-value">${externalLinkHtml || 'No external link provided'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Submitted</div>
+            <div class="detail-value">${new Date(c.created_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Comments</h2>
+          </div>
+          <div class="fb-comments" data-post-id="creation-${c.id}"></div>
+        </div>
+      `;
+
+      // Initialize reactions and comments
+      if (window.initPostReactions) {
+        window.initPostReactions(`creation-${c.id}`, 'creation');
+      }
+      if (window.AghiComments) {
+        window.AghiComments.init();
+      }
+    } catch (err) {
+      container.innerHTML = '<p class="empty-state">Failed to load creation.</p>';
+    }
+  }
+
+  function openLightbox(url) {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightboxImg');
+    img.src = url;
+    lightbox.classList.add('open');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+
+  function setupSidebar() {
+    const appSidebar = document.getElementById('appSidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+
+    function openDrawer() {
+      appSidebar.classList.add('open');
+      sidebarBackdrop.classList.add('open');
+      menuToggle.setAttribute('aria-expanded', 'true');
+    }
+    function closeDrawer() {
+      appSidebar.classList.remove('open');
+      sidebarBackdrop.classList.remove('open');
+      menuToggle.setAttribute('aria-expanded', 'false');
+    }
+    menuToggle.addEventListener('click', () => {
+      appSidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+    });
+    sidebarClose.addEventListener('click', closeDrawer);
+    sidebarBackdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDrawer();
+    });
+  }
+
+  function setupClock() {
+    const clockEl = document.getElementById('topbarClock');
+    function updateClock() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      clockEl.textContent = `${dateStr} · ${timeStr}`;
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+  }
+
+  function setupBootText() {
+    const el = document.getElementById('bootText');
+    el.textContent = "aghimuan.net // status: online";
+  }
+
+  document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox').addEventListener('click', (e) => {
+    if (e.target.id === 'lightbox') closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  loadCreation();
+  setupSidebar();
+  setupClock();
+  setupBootText();
+</script>
+</body>
+</html>

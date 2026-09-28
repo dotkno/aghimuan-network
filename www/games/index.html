@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Games — Aghimuan</title>
+<meta name="description" content="Play free browser games from Aghimuan, the ICT student organization at PCU-D — no account needed.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="Games — Aghimuan">
+<meta property="og:description" content="Play free browser games from Aghimuan, the ICT student organization at PCU-D — no account needed.">
+<meta property="og:url" content="https://aghimuan.renyuzaki.me/games/index.html">
+<meta property="og:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Games — Aghimuan">
+<meta name="twitter:description" content="Play free browser games from Aghimuan, the ICT student organization at PCU-D — no account needed.">
+<meta name="twitter:image" content="https://aghimuan.renyuzaki.me/og-banner.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
+<link rel="shortcut icon" href="../favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="../styles.css?v=7">
+<style>
+  :root {
+    --navy: #03037E;
+    --royal: #2B438E;
+    --tech: #3096C7;
+    --cyan: #55F1F8;
+    --silver: #AEB7C0;
+    --steel: #767CA1;
+    --white: #F1F2F5;
+    --charcoal: #15161C;
+    --glass-bg: rgba(255, 255, 255, 0.035);
+    --glass-bg-hover: rgba(255, 255, 255, 0.065);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-active: rgba(85, 241, 248, 0.45);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --line: rgba(118, 124, 161, 0.28);
+    --line-soft: rgba(118, 124, 161, 0.15);
+    --glass-line: rgba(255, 255, 255, 0.08);
+    --sidebar-w: 275px;
+    --radius: 14px;
+  }
+
+  .ic {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    display: block;
+  }
+
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--silver);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    padding: 0;
+    flex: none;
+  }
+  .icon-btn:hover {
+    color: var(--white);
+    border-color: rgba(85, 241, 248, 0.55);
+    background: var(--glass-bg-hover);
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+  }
+
+  .app-main {
+    min-width: 0;
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    z-index: 70;
+    background: linear-gradient(180deg, rgba(3, 3, 126, 0.25), rgba(21, 22, 28, 0.65) 40%, rgba(21, 22, 28, 0.5));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: 1px 0 20px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+  }
+
+  .sidebar-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--white);
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .brand-logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 11px;
+    flex: none;
+    filter: drop-shadow(0 2px 10px rgba(85, 241, 248, 0.25));
+  }
+
+  .brand-text {
+    min-width: 0;
+    text-align: left;
+    flex: 1;
+  }
+
+  .brand-text strong {
+    font-family: var(--font-display);
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: block;
+    white-space: nowrap;
+  }
+
+  .brand-text small {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--steel);
+    display: block;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .sidebar-close {
+    display: none;
+    margin-left: auto;
+    flex: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 32px;
+    flex: 1;
+  }
+  .nav-section {
+    margin: 14px 14px 0;
+    color: var(--steel);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .rail-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    color: var(--silver);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 500;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .rail-link .ic {
+    width: 19px;
+    height: 19px;
+    color: var(--steel);
+    transition: color 0.18s;
+    flex: none;
+  }
+
+  .rail-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--white);
+  }
+
+  .rail-link:hover .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active {
+    background: rgba(85, 241, 248, 0.1);
+    color: var(--white);
+    border: 1px solid rgba(85, 241, 248, 0.22);
+    font-weight: 600;
+  }
+
+  .rail-link.is-active .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 6px;
+    height: 16px;
+    transform: translateY(-50%);
+    border-radius: 0 4px 4px 0;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(85, 241, 248, 0.8);
+  }
+
+  .sidebar-foot {
+    margin-top: 20px;
+    border-top: 1px dashed var(--line-soft);
+    padding-top: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .side-fb {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--steel);
+    text-decoration: none;
+    padding: 9px 15px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .side-fb:hover {
+    color: var(--cyan);
+    border-color: rgba(85, 241, 248, 0.4);
+    background: rgba(85, 241, 248, 0.08);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 16, 22, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px clamp(16px, 3.5vw, 40px);
+    background: rgba(21, 22, 28, 0.65);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid var(--glass-border);
+    width: 100%;
+  }
+
+  .menu-btn {
+    display: none;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 920px) {
+    .app-shell {
+      grid-template-columns: 1fr;
+    }
+    .app-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: min(300px, 85vw);
+      overflow-y: auto;
+      transform: translateX(-103%);
+      transition: transform 0.28s ease;
+      box-shadow: 24px 0 60px rgba(0, 0, 0, 0.45);
+    }
+    .app-sidebar.open, .app-sidebar.is-open {
+      transform: none;
+    }
+    .menu-btn {
+      display: inline-grid;
+    }
+    .sidebar-close {
+      display: inline-grid;
+    }
+  }
+
+  /* ============ Games page ============ */
+  main {
+    position: relative;
+    width: 100%;
+    max-width: min(1200px, 100%);
+    margin: 0 auto;
+    padding: 40px clamp(16px, 4vw, 48px) 80px;
+  }
+  main section { padding: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    display: inline-block;
+  }
+
+  .hub-intro { padding: 0 0 8px; max-width: 760px; }
+  .hub-intro h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.12;
+    margin: 12px 0 14px;
+    letter-spacing: -0.01em;
+  }
+  .hub-intro h1 .accent {
+    color: var(--cyan);
+    text-shadow: 0 0 20px rgba(85, 241, 248, 0.35);
+  }
+  .hub-lede {
+    font-size: clamp(1rem, 1.8vw, 1.12rem);
+    color: var(--silver);
+    max-width: 68ch;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .hub-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .stat-pill {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    color: var(--steel);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    text-transform: uppercase;
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+  .stat-pill b { color: var(--cyan); font-weight: 600; }
+
+  /* Featured spotlight */
+  .hub-spotlight { margin-top: 36px; width: 100%; }
+  .spotlight-frame {
+    position: relative;
+    border: 1px solid var(--glass-border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 18px;
+    overflow: hidden;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(3,3,126,0.22), rgba(255,255,255,0.03) 50%, rgba(21,22,28,0.4));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+  .spotlight-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    min-height: 380px;
+    width: 100%;
+  }
+  .spotlight-media { position: relative; min-height: 260px; width: 100%; overflow: hidden; background: rgba(3,3,126,0.35); }
+  .spotlight-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .spotlight-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(75deg, transparent 55%, rgba(3,3,126,0.28));
+    pointer-events: none;
+  }
+  .spotlight-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 78% 18%, rgba(85,241,248,0.12), transparent 60%),
+      linear-gradient(150deg, var(--navy), var(--royal) 75%);
+  }
+  .spotlight-body {
+    padding: clamp(22px, 3.4vw, 40px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: flex-start;
+    min-width: 0;
+    width: 100%;
+  }
+  .spotlight-toprow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 5px 12px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .status-badge--live {
+    color: var(--cyan);
+    border-color: rgba(85,241,248,0.5);
+    background: rgba(85,241,248,0.10);
+  }
+  .status-badge--live::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 50% { opacity: 0.35; } }
+  .spotlight-kicker {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--steel);
+    white-space: nowrap;
+  }
+  .spotlight-title {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.15;
+    margin: 0;
+  }
+  .spotlight-desc { color: var(--silver); font-size: 14.5px; line-height: 1.6; margin: 0; max-width: 52ch; }
+  .spotlight-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    color: var(--silver);
+    background: rgba(174,183,192,0.08);
+    border: 1px solid rgba(174,183,192,0.22);
+    border-radius: 6px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+  .tag-chip--cat {
+    color: var(--cyan);
+    border-color: rgba(85,241,248,0.38);
+    background: rgba(85,241,248,0.08);
+  }
+  .spotlight-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--steel);
+  }
+  .spotlight-meta b { color: var(--silver); font-weight: 600; }
+  .spotlight-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 8px;
+    width: 100%;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 11px 19px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    line-height: 1;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .btn .ic { width: 14px; height: 14px; }
+  .btn-primary { background: var(--cyan); color: var(--navy); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(85,241,248,0.28); filter: brightness(1.06); }
+  .btn-ghost {
+    border-color: var(--glass-border);
+    color: var(--silver);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .btn-ghost:hover { border-color: rgba(85,241,248,0.55); color: var(--white); background: var(--glass-bg-hover); }
+
+  /* Browse */
+  .hub-browse { margin-top: 52px; width: 100%; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 20px;
+    width: 100%;
+  }
+  .section-kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .section-trace {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(85,241,248,0.35), rgba(85,241,248,0.05));
+    min-width: 10px;
+  }
+  .section-node {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    transform: rotate(45deg);
+    background: var(--cyan);
+    box-shadow: 0 0 8px rgba(85,241,248,0.55);
+  }
+
+  .hub-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin: 0 0 16px;
+    width: 100%;
+  }
+  .search-field { position: relative; display: flex; align-items: center; flex: 1 1 280px; min-width: 0; max-width: 100%; }
+  .search-field > .ic { position: absolute; left: 14px; width: 16px; height: 16px; color: var(--steel); pointer-events: none; }
+  .search-field input {
+    width: 100%;
+    height: 42px;
+    font: 13.5px/1.4 var(--font-body);
+    color: var(--white);
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 0 42px 0 40px;
+    transition: all 0.18s ease;
+  }
+  .search-field input::placeholder { color: var(--steel); }
+  .search-field input:hover { border-color: rgba(85,241,248,0.35); background: var(--glass-bg-hover); }
+  .search-field input:focus { outline: none; border-color: rgba(85,241,248,0.7); box-shadow: 0 0 0 3px rgba(85,241,248,0.13); }
+  .search-clear {
+    position: absolute;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(118,124,161,0.2);
+    color: var(--silver);
+    cursor: pointer;
+    padding: 0;
+  }
+  .search-clear:hover { color: var(--white); background: rgba(118,124,161,0.35); }
+  .search-clear .ic { width: 12px; height: 12px; }
+
+  .category-wrapper { width: 100%; margin-bottom: 16px; overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; }
+  .filter-row {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 8px;
+    width: max-content;
+    min-width: 100%;
+    padding-right: 16px;
+    margin-bottom: 0;
+  }
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--silver);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .filter-btn::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--steel);
+    opacity: 0.55;
+    transition: all 0.18s;
+  }
+  .filter-btn:hover { color: var(--white); border-color: rgba(85,241,248,0.45); background: var(--glass-bg-hover); }
+  .filter-btn[aria-pressed="true"] {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: var(--navy);
+    font-weight: 600;
+    box-shadow: 0 0 14px rgba(85,241,248,0.25);
+  }
+  .filter-btn[aria-pressed="true"]::before { background: var(--navy); opacity: 1; }
+
+  .result-line {
+    margin: 0 0 16px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    color: var(--steel);
+    text-transform: uppercase;
+  }
+
+  .library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 22px;
+    width: 100%;
+  }
+  .library-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    min-width: 0;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+    animation: cardIn 0.4s ease backwards;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } }
+  .library-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--glass-border-active);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 15px rgba(85,241,248,0.1);
+  }
+  .library-card[hidden] { display: none; }
+  .library-card .cover-art { aspect-ratio: 16/10; width: 100%; }
+  .cover-art { position: relative; overflow: hidden; background: rgba(43,67,142,0.14); width: 100%; }
+  .cover-art-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; position: absolute; inset: 0; }
+  .library-card:hover .cover-art-img { transform: scale(1.045); }
+  .cover-art-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background:
+      radial-gradient(circle at 78% 18%, rgba(85,241,248,0.12), transparent 60%),
+      linear-gradient(150deg, var(--navy), var(--royal) 75%);
+  }
+  .cover-art-fallback svg { width: 100%; height: 100%; max-width: 220px; opacity: 0.9; }
+  .cover-sheen {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--cyan);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+    z-index: 2;
+  }
+  .library-card:hover .cover-sheen { transform: scaleX(1); }
+  .cover-play {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(21,22,28,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(85,241,248,0.35);
+    border-radius: 999px;
+    padding: 4px 10px;
+    z-index: 2;
+  }
+  .cover-play .ic { width: 10px; height: 10px; }
+  .library-card-body { display: flex; flex-direction: column; gap: 10px; padding: 18px; flex: 1; min-width: 0; }
+  .library-card-title { font-family: var(--font-display); font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--white); line-height: 1.3; margin: 0; overflow-wrap: break-word; }
+  .library-card-desc { font-size: 13px; line-height: 1.55; color: var(--silver); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+  .library-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+  .library-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; border-top: 1px dashed var(--line-soft); margin-top: 2px; padding-top: 12px; }
+  .card-cta { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); }
+  .card-cta .ic { width: 13px; height: 13px; transition: transform 0.18s ease; }
+  .library-card:hover .card-cta .ic { transform: translateX(3px); }
+  .card-meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--steel); text-transform: uppercase; white-space: nowrap; }
+
+  .hub-empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    border: 1px dashed var(--line);
+    border-radius: 16px;
+    padding: 40px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    width: 100%;
+  }
+  .hub-empty.is-visible { display: flex; }
+  .hub-empty h3 { font-family: var(--font-display); font-size: 19px; color: var(--white); margin: 0; }
+  .hub-empty p { font-size: 13.5px; color: var(--silver); max-width: 46ch; margin: 0 0 16px; }
+
+  .hub-cta-section { margin-top: 56px; width: 100%; }
+  .hub-cta {
+    position: relative;
+    border: 1px dashed var(--glass-border);
+    border-radius: 18px;
+    padding: clamp(28px, 5vw, 48px) clamp(16px, 4vw, 32px);
+    text-align: center;
+    overflow: hidden;
+    width: 100%;
+    background-color: rgba(43,67,142,0.08);
+    background-image: radial-gradient(rgba(174,183,192,0.06) 1px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  .hub-cta h2 { font-family: var(--font-display); font-size: clamp(21px, 3vw, 28px); color: var(--white); margin: 12px 0 10px; }
+  .hub-cta > p { max-width: 54ch; margin: 0 auto 24px; font-size: 14px; color: var(--silver); }
+  .hub-cta-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--cyan);
+    text-transform: uppercase;
+  }
+  .hub-cta-kicker::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: pulseDot 1.6s ease-in-out infinite;
+  }
+
+  /* ---- footer ---- */
+  footer { border-top: 1px solid var(--glass-border); padding: 32px clamp(16px,4vw,40px) 40px; margin-top: 56px; }
+  footer .wrap { max-width: 1100px; margin: 0 auto; text-align: center; }
+  footer .foot-brand { font-family: var(--font-mono); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; color: var(--silver); text-transform: uppercase; }
+  footer p { margin-top: 8px; font-size: 12.5px; color: var(--steel); }
+  footer .foot-social { margin-top: 14px; display: flex; justify-content: center; }
+  footer .foot-social a { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--silver); text-decoration: none; transition: color 0.18s ease; }
+  footer .foot-social a:hover { color: var(--cyan); }
+  footer .foot-social a .ic { width: 15px; height: 15px; }
+
+  @media (max-width: 860px) {
+    .spotlight-card { grid-template-columns: 1fr; min-height: 0; }
+    .spotlight-media { min-height: 220px; aspect-ratio: 16/9; }
+    .spotlight-media img { position: absolute; }
+  }
+  @media (max-width: 640px) {
+    main { padding: 28px 16px 64px; }
+    .spotlight-actions .btn { flex: 1 1 auto; justify-content: center; }
+    footer { margin-top: 40px; }
+  }
+
+  /* ---- mobile / low-end GPU: drop stacked backdrop blurs + infinite loops ---- */
+  @media (max-width: 1024px), (hover: none), (pointer: coarse) {
+    .app-sidebar, .app-topbar, .sidebar-overlay, .icon-btn, .btn-ghost, .side-fb,
+    .stat-pill, .spotlight-frame, .library-card, .cover-play, .filter-btn,
+    .tag-chip, .search-field input, .hub-cta, .hub-empty, .menu-btn {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .status-badge--live::before,
+    .hub-cta-kicker::before {
+      animation: none !important;
+    }
+    .app-topbar { background: rgba(21, 22, 28, 0.96) !important; }
+    .app-sidebar { background: #15161C !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ icon sprite ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.6c-.7.3-.9.8-.9 1.7"/><path d="M12 16.8h.01"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></symbol>
+  <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><path d="M15.5 10.6h.01M18.2 13.2h.01"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+</svg>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+
+<!-- ============ sticky sidebar chrome ============ -->
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sidebar-head">
+    <a class="brand" href="../index.html">
+      <img class="brand-logo" src="../CLUB LOGO.png" alt="Aghimuan logo" width="46" height="46">
+      <span class="brand-text">
+        <strong>AGHIMUAN.ONLINE</strong>
+        <small>Connect · Innovate · Explore</small>
+      </span>
+    </a>
+    <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Close menu"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" aria-label="Primary">
+    <a class="rail-link" href="../index.html"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a>
+    <span class="nav-section">General</span>
+    <a class="rail-link" href="../about.html"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>About</span></a>
+    <a class="rail-link" href="../faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>FAQ</span></a>
+    <span class="nav-section">Educational</span>
+    <a class="rail-link" href="../reviewers.html"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Reviewers</span></a>
+    <a class="rail-link" href="../creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
+    <span class="nav-section">Entertainment</span>
+    <a class="rail-link is-active" href="index.html" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <a class="side-fb" href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener" aria-label="Aghimuan on Facebook">
+      <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+      <span>PCU - D · ICT ORG</span>
+    </a>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+  <div class="app-main">
+  <!-- ============ topbar chrome ============ -->
+  <header class="app-topbar">
+    <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <div class="topbar-actions">
+      <div id="aghi-account-widget"></div>
+    </div>
+  </header>
+
+    <main id="main">
+
+      <!-- ============ INTRO ============ -->
+      <div class="hub-intro">
+        <span class="eyebrow">Aghimuan Arcade</span>
+        <h1>Play something built <span class="accent">by students.</span></h1>
+        <p class="hub-lede">Free browser games from the ICT org at PCU-D — no installs, no account needed. Just pick a game and play.</p>
+        <div class="hub-stats">
+          <span class="stat-pill"><b id="statTotal">4</b>&nbsp;games live</span>
+          <span class="stat-pill"><b>100%</b>&nbsp;free to play</span>
+          <span class="stat-pill"><b>0</b>&nbsp;downloads needed</span>
+        </div>
+      </div>
+
+      <!-- ============ FEATURED GAME ============ -->
+      <section class="hub-spotlight" aria-label="Featured game">
+        <div class="spotlight-frame">
+          <div class="spotlight-card">
+            <div class="spotlight-media">
+              <div class="spotlight-fallback" aria-hidden="true">
+                <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" fill="none" style="width:100%;height:100%;max-width:260px;opacity:.9">
+                  <rect x="10" y="10" width="180" height="120" rx="10" stroke="#3096C7" stroke-width="2"/>
+                  <rect x="24" y="24" width="152" height="72" rx="6" stroke="#55F1F8" stroke-width="1.4" stroke-dasharray="4 4" opacity="0.7"/>
+                  <line x1="30" y1="30" x2="170" y2="30" stroke="#767CA1" stroke-width="1.5"/>
+                  <circle cx="100" cy="30" r="3" fill="#55F1F8"/>
+                  <line x1="100" y1="30" x2="100" y2="60" stroke="#55F1F8" stroke-width="1.8"/>
+                  <path d="M100 60 L84 78 M100 60 L100 82 M100 60 L116 78" stroke="#55F1F8" stroke-width="2.2" stroke-linecap="round"/>
+                  <circle cx="60" cy="82" r="9" fill="#2B438E" stroke="#3096C7" stroke-width="1.5"/>
+                  <circle cx="90" cy="88" r="9" fill="#03037E" stroke="#3096C7" stroke-width="1.5"/>
+                  <circle cx="128" cy="83" r="9" fill="#2B438E" stroke="#3096C7" stroke-width="1.5"/>
+                  <circle cx="150" cy="90" r="9" fill="#03037E" stroke="#3096C7" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <img src="art/aghiclaw-hero.jpg" alt="AghiClaw 3D key art" loading="eager" onerror="this.remove()">
+            </div>
+            <div class="spotlight-body">
+              <div class="spotlight-toprow">
+                <span class="status-badge status-badge--live">Now playable</span>
+                <span class="spotlight-kicker">Featured · Arcade</span>
+              </div>
+              <h2 class="spotlight-title">AghiClaw 3D</h2>
+              <p class="spotlight-desc">A neon arcade claw machine, re-built in 3D by renyuzaki. Line up the drop, mind the sway, and see if you can walk away with the prize.</p>
+              <div class="spotlight-tags">
+                <span class="tag-chip tag-chip--cat">3D</span>
+                <span class="tag-chip">Arcade</span>
+                <span class="tag-chip">Single player</span>
+                <span class="tag-chip">Mouse + touch</span>
+              </div>
+              <div class="spotlight-meta">
+                <span>BY <b>renyuzaki</b></span>
+                <span>PLAYS IN <b>browser</b></span>
+              </div>
+              <div class="spotlight-actions">
+                <a href="game1.html" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Play now</a>
+                <a href="game1.html" class="btn btn-ghost">How to play</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ALL GAMES ============ -->
+      <section class="hub-browse" aria-label="All games">
+        <div class="section-head">
+          <span class="section-kicker">Browse the arcade</span>
+          <span class="section-trace" aria-hidden="true"></span>
+          <span class="section-node" aria-hidden="true"></span>
+        </div>
+
+        <div class="hub-toolbar">
+          <label class="search-field">
+            <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" id="gameSearch" placeholder="Search games…" autocomplete="off" aria-label="Search games">
+            <button type="button" class="search-clear" id="searchClear" aria-label="Clear search" hidden><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+          </label>
+        </div>
+
+        <div class="category-wrapper">
+          <div class="filter-row category-row" id="categoryRow" role="group" aria-label="Filter by category">
+            <button class="filter-btn" data-category="all" aria-pressed="true">All</button>
+            <button class="filter-btn" data-category="arcade" aria-pressed="false">Arcade</button>
+            <button class="filter-btn" data-category="puzzle" aria-pressed="false">Puzzle</button>
+            <button class="filter-btn" data-category="educational" aria-pressed="false">Educational</button>
+            <button class="filter-btn" data-category="simulation" aria-pressed="false">Simulation</button>
+          </div>
+        </div>
+
+        <p class="result-line" id="resultLine" aria-live="polite">Showing 4 of 4 games</p>
+
+        <div class="library-grid" id="libraryGrid">
+
+          <a class="library-card" data-category="arcade" data-title="aghiclaw 3d" data-tags="3d arcade single player claw neon" href="game1.html">
+            <div class="cover-art">
+              <div class="cover-art-fallback" aria-hidden="true">
+                <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <rect x="10" y="10" width="180" height="120" rx="10" stroke="#3096C7" stroke-width="2"/>
+                  <rect x="24" y="24" width="152" height="72" rx="6" stroke="#55F1F8" stroke-width="1.4" stroke-dasharray="4 4" opacity="0.7"/>
+                  <line x1="100" y1="30" x2="100" y2="60" stroke="#55F1F8" stroke-width="1.8"/>
+                  <path d="M100 60 L84 78 M100 60 L100 82 M100 60 L116 78" stroke="#55F1F8" stroke-width="2.2" stroke-linecap="round"/>
+                  <circle cx="65" cy="84" r="10" fill="#2B438E" stroke="#3096C7" stroke-width="1.5"/>
+                  <circle cx="130" cy="86" r="10" fill="#03037E" stroke="#3096C7" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <img class="cover-art-img" src="art/aghiclaw-cover.jpg" alt="AghiClaw 3D cover art" loading="lazy" onerror="this.remove()">
+              <span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Play</span>
+              <span class="cover-sheen" aria-hidden="true"></span>
+            </div>
+            <div class="library-card-body">
+              <h3 class="library-card-title">AghiClaw 3D</h3>
+              <p class="library-card-desc">Neon claw machine re-built in 3D. Time the drop and grab the prize.</p>
+              <div class="library-card-tags">
+                <span class="tag-chip tag-chip--cat">Arcade</span>
+                <span class="tag-chip">3D</span>
+                <span class="tag-chip">Single player</span>
+              </div>
+              <div class="library-card-foot">
+                <span class="card-cta">Play now <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+                <span class="card-meta">Browser</span>
+              </div>
+            </div>
+          </a>
+
+          <a class="library-card" data-category="puzzle" data-title="aghi-sudoku" data-tags="puzzle logic numbers brain sudoku" href="game2.html">
+            <div class="cover-art">
+              <div class="cover-art-fallback" aria-hidden="true">
+                <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <rect x="20" y="16" width="160" height="128" rx="8" stroke="#3096C7" stroke-width="2"/>
+                  <line x1="73.3" y1="16" x2="73.3" y2="144" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="126.6" y1="16" x2="126.6" y2="144" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="20" y1="58.6" x2="180" y2="58.6" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="20" y1="101.3" x2="180" y2="101.3" stroke="#767CA1" stroke-width="1.4"/>
+                  <circle cx="46.6" cy="37.3" r="3" fill="#55F1F8"/>
+                  <circle cx="100" cy="37.3" r="3" fill="#2B438E"/>
+                  <circle cx="153.3" cy="80" r="3" fill="#55F1F8"/>
+                  <circle cx="46.6" cy="122.6" r="3" fill="#2B438E"/>
+                  <circle cx="153.3" cy="122.6" r="3" fill="#55F1F8"/>
+                </svg>
+              </div>
+              <img class="cover-art-img" src="art/aghi-sudoku-cover.jpg" alt="Aghi-Sudoku cover art" loading="lazy" onerror="this.remove()">
+              <span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Play</span>
+              <span class="cover-sheen" aria-hidden="true"></span>
+            </div>
+            <div class="library-card-body">
+              <h3 class="library-card-title">Aghi-Sudoku</h3>
+              <p class="library-card-desc">Classic number logic with a clean Aghimuan twist. Pick a difficulty and solve.</p>
+              <div class="library-card-tags">
+                <span class="tag-chip tag-chip--cat">Puzzle</span>
+                <span class="tag-chip">Logic</span>
+                <span class="tag-chip">Single player</span>
+              </div>
+              <div class="library-card-foot">
+                <span class="card-cta">Play now <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+                <span class="card-meta">Browser</span>
+              </div>
+            </div>
+          </a>
+
+          <a class="library-card" data-category="arcade" data-title="aghiaim" data-tags="aim trainer reflex fps arcade accuracy shooter 3d range recoil" href="game3.html">
+            <div class="cover-art">
+              <div class="cover-art-fallback" aria-hidden="true">
+                <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <circle cx="100" cy="78" r="46" stroke="#55F1F8" stroke-width="2"/>
+                  <circle cx="100" cy="78" r="30" stroke="#3096C7" stroke-width="1.6"/>
+                  <circle cx="100" cy="78" r="14" stroke="#55F1F8" stroke-width="1.6"/>
+                  <circle cx="100" cy="78" r="4" fill="#F1F2F5"/>
+                  <line x1="100" y1="16" x2="100" y2="32" stroke="#767CA1" stroke-width="1.6"/>
+                  <line x1="100" y1="124" x2="100" y2="140" stroke="#767CA1" stroke-width="1.6"/>
+                  <line x1="38" y1="78" x2="54" y2="78" stroke="#767CA1" stroke-width="1.6"/>
+                  <line x1="146" y1="78" x2="162" y2="78" stroke="#767CA1" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <img class="cover-art-img" src="art/aghi-aim-cover.jpg" alt="AghiAim cover art" loading="lazy" onerror="this.remove()">
+              <span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Play</span>
+              <span class="cover-sheen" aria-hidden="true"></span>
+            </div>
+            <div class="library-card-body">
+              <h3 class="library-card-title">AghiAim</h3>
+              <p class="library-card-desc">Arcade FPS aim trainer. 30 seconds on the clock, click fast, top score wins.</p>
+              <div class="library-card-tags">
+                <span class="tag-chip tag-chip--cat">Arcade</span>
+                <span class="tag-chip">Aim trainer</span>
+                <span class="tag-chip">Single player</span>
+              </div>
+              <div class="library-card-foot">
+                <span class="card-cta">Play now <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+                <span class="card-meta">Browser</span>
+              </div>
+            </div>
+          </a>
+
+          <a class="library-card" data-category="puzzle" data-title="aghi duo escape" data-tags="2 player two player co-op escape maze puzzle duo wasd arrows keyboard campaign biome rooms" href="game4.html">
+            <div class="cover-art">
+              <div class="cover-art-fallback" aria-hidden="true">
+                <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  <rect x="20" y="16" width="160" height="128" rx="8" stroke="#3096C7" stroke-width="2"/>
+                  <line x1="73.3" y1="16" x2="73.3" y2="144" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="126.6" y1="16" x2="126.6" y2="144" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="20" y1="58.6" x2="180" y2="58.6" stroke="#767CA1" stroke-width="1.4"/>
+                  <line x1="20" y1="101.3" x2="180" y2="101.3" stroke="#767CA1" stroke-width="1.4"/>
+                  <rect x="38" y="68" width="22" height="22" rx="5" fill="#55F1F8"/>
+                  <rect x="140" y="68" width="22" height="22" rx="5" fill="#FF9F43"/>
+                  <rect x="89" y="68" width="22" height="22" rx="5" stroke="#4EF2A0" stroke-width="2"/>
+                </svg>
+              </div>
+              <span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Play</span>
+              <span class="cover-sheen" aria-hidden="true"></span>
+            </div>
+            <div class="library-card-body">
+              <h3 class="library-card-title">Aghi Duo Escape</h3>
+              <p class="library-card-desc">Two players, one keyboard. P1 uses WASD, P2 uses arrows. Escape together.</p>
+              <div class="library-card-tags">
+                <span class="tag-chip tag-chip--cat">Puzzle</span>
+                <span class="tag-chip">2-player</span>
+                <span class="tag-chip">Campaign</span>
+              </div>
+              <div class="library-card-foot">
+                <span class="card-cta">Play now <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+                <span class="card-meta">2P · Keyboard</span>
+              </div>
+            </div>
+          </a>
+
+        </div>
+
+        <div class="hub-empty" id="categoryEmpty">
+          <h3>No games found</h3>
+          <p id="emptyText">No games in this category yet — check back as the library grows.</p>
+          <div class="hub-empty-actions">
+            <button class="btn btn-ghost" id="resetFilters" type="button">Reset filters</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CTA ============ -->
+      <section class="hub-cta-section" aria-label="Submit a game">
+        <div class="hub-cta">
+          <span class="hub-cta-kicker">Student-built</span>
+          <h2>Built a game? Ship it here.</h2>
+          <p>The arcade grows with student work. If you're in the ICT org and have a playable browser build, send it over and we'll feature it.</p>
+          <a class="btn btn-primary" href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener">Contact the club</a>
+        </div>
+      </section>
+
+    </main>
+
+   <footer>
+  <div class="wrap">
+    <div class="foot-brand">AGHIMUAN</div>
+    <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+    <div class="foot-social">
+      <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+        <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+        Facebook
+      </a>
+    </div>
+  </div>
+</footer>
+
+  </div>
+</div>
+
+<script src="/js/account-widget.js" defer></script>
+<script src="/js/user-profile-popup.js" defer></script>
+<script src="/js/member-list.js" defer></script>
+<script>
+  // Sidebar drawer toggling
+  const appSidebar = document.getElementById('appSidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebarClose = document.getElementById('sidebarClose');
+
+  function openSidebar() {
+    appSidebar.classList.add('open');
+    appSidebar.classList.add('is-open');
+    sidebarOverlay.hidden = false;
+    menuBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('nav-open');
+  }
+  function closeSidebar() {
+    appSidebar.classList.remove('open');
+    appSidebar.classList.remove('is-open');
+    sidebarOverlay.hidden = true;
+    menuBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('nav-open');
+  }
+  menuBtn.addEventListener('click', () => {
+    (appSidebar.classList.contains('open') || appSidebar.classList.contains('is-open')) ? closeSidebar() : openSidebar();
+  });
+  sidebarClose.addEventListener('click', closeSidebar);
+  sidebarOverlay.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+
+  // ---------- search + category filter ----------
+  const categoryRow = document.getElementById('categoryRow');
+  const libraryCards = Array.from(document.querySelectorAll('#libraryGrid .library-card'));
+  const emptyState = document.getElementById('categoryEmpty');
+  const emptyText = document.getElementById('emptyText');
+  const searchInput = document.getElementById('gameSearch');
+  const searchClear = document.getElementById('searchClear');
+  const resultLine = document.getElementById('resultLine');
+  const resetFilters = document.getElementById('resetFilters');
+  const statTotal = document.getElementById('statTotal');
+
+  let activeCategory = 'all';
+  statTotal.textContent = libraryCards.length;
+
+  function applyFilters() {
+    const q = searchInput.value.trim().toLowerCase();
+    searchClear.hidden = q.length === 0;
+    searchInput.parentElement.classList.toggle('has-text', q.length > 0);
+
+    let visibleCount = 0;
+    libraryCards.forEach(card => {
+      const matchCat = activeCategory === 'all' || card.dataset.category === activeCategory;
+      const hay = ((card.dataset.title || '') + ' ' + (card.dataset.tags || '')).toLowerCase();
+      const matchQuery = q === '' || hay.includes(q);
+      const show = matchCat && matchQuery;
+      card.hidden = !show;
+      if (show) visibleCount++;
+    });
+
+    const total = libraryCards.length;
+    resultLine.textContent = visibleCount === total
+      ? `Showing ${total} of ${total} games`
+      : `Showing ${visibleCount} of ${total} games`;
+
+    emptyState.classList.toggle('is-visible', visibleCount === 0);
+    if (visibleCount === 0) {
+      emptyText.textContent = q
+        ? `Nothing matches “${searchInput.value.trim()}”${activeCategory !== 'all' ? ' in this category' : ''} — try another search.`
+        : 'No games in this category yet — check back as the library grows.';
+    }
+  }
+
+  categoryRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    categoryRow.querySelectorAll('.filter-btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    btn.setAttribute('aria-pressed', 'true');
+    activeCategory = btn.dataset.category;
+    applyFilters();
+  });
+
+  searchInput.addEventListener('input', applyFilters);
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchInput.focus();
+    applyFilters();
+  });
+  resetFilters.addEventListener('click', () => {
+    searchInput.value = '';
+    activeCategory = 'all';
+    categoryRow.querySelectorAll('.filter-btn').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.category === 'all' ? 'true' : 'false');
+    });
+    applyFilters();
+  });
+
+  applyFilters();
+</script>
+</body>
+</html>

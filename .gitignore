@@ -1,0 +1,117 @@
+# ============================================================
+# aghiweb — root .gitignore
+# Nothing here deletes or moves files. It only stops
+# local / secret / runtime files from being committed.
+# ============================================================
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Editors / IDE ----------
+# Keep the existing inner ignore files working
+.idea/*
+!.idea/.gitignore
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---------- Env / secrets ----------
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.csr
+*.p12
+*.pfx
+secrets.json
+
+# TLS certificates and ACME data
+letsencrypt/
+.certbot.lock
+
+# Local access-control list (not for version control)
+data/atlas-whitelist.json
+
+# ---------- SQLite / DB runtime ----------
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sql.gz
+
+# DB dumps / snapshots (folder itself stays via .gitkeep)
+db backups/*
+!db backups/.gitkeep
+
+# Compressed archives inside data/
+data/*.tar.gz
+data/*.tgz
+data/*.zip
+
+# ---------- Backups / big zips at repo root ----------
+*.zip
+*.tar.gz
+*.tgz
+*.tar
+*.bak
+*.backup
+*.old
+
+# ---------- Logs / pids / runtime ----------
+logs/*
+!logs/.gitkeep
+*.log
+*.pid
+tmp/*
+!tmp/.gitkeep
+
+# PHP file sessions (child php/sessions/.gitignore already covers this;
+# listed here for visibility — the ! rule there still wins)
+php/sessions/*
+!php/sessions/.gitignore
+
+# ---------- User uploads (runtime content, NOT site assets) ----------
+# NOTE: must use ** (not *) here — with `www/uploads/*` the pfp/banner/
+# subdirs themselves would be excluded and the ! rules below could
+# never re-include anything inside them (git can't re-include under
+# an excluded directory).
+www/uploads/**
+!www/uploads/pfp/
+!www/uploads/banner/
+!www/uploads/creations/
+!www/uploads/**/.gitkeep
+
+# ---------- Local-only / personal / trash ----------
+.trash/
+ren's notes/
+
+# ---------- Atlas app and content (local only) ----------
+www/atlas/
+www/atlas-icons/
+www/atlas-login.php
+www/atlas-manifest.json
+www/atlas-shared.css
+www/atlas-sw.js
+data/atlas-content/
+data/atlas-subjects.json
+
+# ---------- Library reviewer content (local only) ----------
+# The www/library/ app code (engines, gates) IS versioned; only the
+# material served through data-gate.php is excluded.
+data/library-content/
+
+# ---------- Internal docs (local only) ----------
+.claude/PRPs/
+AGENTS.md
+AGHIWEB-EXPLAINED.md
+
+# ---------- Misc ----------
+node_modules/
