@@ -30,7 +30,7 @@
   const BREAKPOINT = 768; // matches index.html's mobile-tab-bar breakpoint
   const REFRESH_MS = 5 * 1000; // matches the site's existing DM/notification poll interval
 
-  const PFP_PRESETS = [
+  const FALLBACK_PRESETS = [
     { id: 'default',      color: '#5F5E5A' },
     { id: 'circuit-blue', color: '#185FA5' },
     { id: 'circuit-cyan', color: '#0F6E56' },
@@ -40,6 +40,7 @@
     { id: 'chip-green',   color: '#3B6D11' },
     { id: 'signal-pink',  color: '#993556' },
   ];
+  const PFP_PRESETS = (window.AGHI_CONFIG && window.AGHI_CONFIG.presets) || FALLBACK_PRESETS;
 
   const PRESENCE_META = {
     online:  { label: 'Online',         color: '#3ddc84' },
@@ -50,6 +51,7 @@
 
   const ROLE_HEADER_COLOR = {
     'CLUB ADVISER':     '#4facfe',
+    'FACULTY':          '#5eead4',
     'OFFICER':          '#00c6ff',
     'COMMITTEE MEMBER': '#1e88e5',
     'MEMBER':           '#55F1F8',
@@ -212,13 +214,23 @@
     this.refreshTimer = null;
   }
 
+  function monogramInner(color, username) {
+    const initial = (username || '?').charAt(0).toUpperCase();
+    return `<div class="aghi-ml-avatar" style="background-color:${color};"><span>${escapeHtml(initial)}</span></div>`;
+  }
+
   MemberList.prototype.avatarInner = function (user) {
     if (user.avatarUrl) {
-      return `<div class="aghi-ml-avatar" style="background-image:url('${user.avatarUrl}');background-color:#0a1520;"></div>`;
+      // Known-ghost files skip the network and go straight to monogram.
+      // Unknown ones render the photo; renderBody() probes and swaps any
+      // that fail (results cached per page load).
+      const fb = window.AghiImgFallback;
+      if (fb && fb.isBad(user.avatarUrl)) {
+        return monogramInner(presetColor(user.pfpId), user.username);
+      }
+      return `<div class="aghi-ml-avatar" data-avatar-check="${escapeHtml(user.avatarUrl)}" data-username="${escapeHtml(user.username)}" data-color="${escapeHtml(presetColor(user.pfpId))}" style="background-image:url('${user.avatarUrl}');background-color:#0a1520;"></div>`;
     }
-    const color = presetColor(user.pfpId);
-    const initial = (user.username || '?').charAt(0).toUpperCase();
-    return `<div class="aghi-ml-avatar" style="background-color:${color};"><span>${escapeHtml(initial)}</span></div>`;
+    return monogramInner(presetColor(user.pfpId), user.username);
   };
 
   MemberList.prototype.renderUserRow = function (user) {
@@ -322,6 +334,23 @@
       : `<div class="aghi-ml-empty">Login to see members.</div>`;
     // Row clicks: only tag/route via data-aghi-* attrs -- the existing
     // global listener in user-profile-popup.js does the rest.
+    // Ghost-file sweep: any photo avatar that fails to load becomes a
+    // monogram (cached, so polls stop re-requesting it).
+    const fb = window.AghiImgFallback;
+    if (fb) {
+      this.bodyEl.querySelectorAll('[data-avatar-check]').forEach((el) => {
+        const url = el.getAttribute('data-avatar-check');
+        fb.probe(url, function () {}, function () {
+          const name = el.getAttribute('data-username') || '?';
+          el.style.backgroundImage = 'none';
+          el.style.backgroundColor = el.getAttribute('data-color') || '#5F5E5A';
+          el.innerHTML = '';
+          const s = document.createElement('span');
+          s.textContent = name.charAt(0).toUpperCase();
+          el.appendChild(s);
+        });
+      });
+    }
   };
 
   MemberList.prototype.setOpen = function (open) {

@@ -69,15 +69,22 @@ function load_users(PDO $pdo): array {
 }
 
 function load_postable_users(PDO $pdo): array {
+    // POSTABLE_ROLES single-sources the announce gate — FACULTY is
+    // intentionally excluded (display-only identity, no posting power).
+    // Values are internal constants, so inline quoting is safe.
+    $quoted = implode(',', array_map(fn($r) => "'" . str_replace("'", "''", $r) . "'", POSTABLE_ROLES));
+    $case = implode(' ', array_map(
+        fn($i, $r) => "WHEN '" . str_replace("'", "''", $r) . "' THEN $i",
+        array_keys(POSTABLE_ROLES),
+        array_values(POSTABLE_ROLES)
+    ));
     return $pdo->query(
         "SELECT id, username, main_role
          FROM users
-         WHERE main_role IN ('CLUB ADVISER', 'OFFICER', 'COMMITTEE MEMBER')
+         WHERE main_role IN ($quoted)
          ORDER BY
             CASE main_role
-                WHEN 'CLUB ADVISER' THEN 0
-                WHEN 'OFFICER' THEN 1
-                WHEN 'COMMITTEE MEMBER' THEN 2
+                $case
             END,
             username COLLATE NOCASE"
     )->fetchAll();

@@ -26,6 +26,8 @@ function handle_create_announcement(PDO $pdo): array {
     $poster_pfp_id = null;
     $requested_poster_id = (int) ($_POST['post_as_user_id'] ?? 0);
     if ($requested_poster_id > 0) {
+        // Keep in sync with POSTABLE_ROLES in admin-config.php —
+        // FACULTY is intentionally excluded (display-only identity).
         $poster_check = $pdo->prepare(
             "SELECT id, username, pfp_id FROM users WHERE id = :id AND main_role IN ('CLUB ADVISER', 'OFFICER', 'COMMITTEE MEMBER')"
         );
@@ -269,26 +271,34 @@ function handle_update_user_role(PDO $pdo): array {
     } elseif (!in_array($mainRole, MAIN_ROLES, true)) {
         return ['error' => 'Invalid main role.'];
     } else {
+        // Free-text title: any non-MEMBER role may carry an admin-typed
+        // sub_role (≤40 chars) with SUB_ROLES_BY_MAIN as suggestions only.
+        // Blank input falls back to the first suggestion (e.g. Faculty).
+        // MEMBER always stores NULL. Grade/strand/club are allowed on EVERY
+        // role (including CLUB ADVISER and FACULTY) — all optional.
         $subRole = null;
         $grade   = null;
         $strand  = null;
         $club    = null;
 
         if ($mainRole !== 'MEMBER') {
-            $validSubRoles = SUB_ROLES_BY_MAIN[$mainRole] ?? [];
-            $requestedSub  = $_POST['sub_role'] ?? '';
-            $subRole = in_array($requestedSub, $validSubRoles, true) ? $requestedSub : ($validSubRoles[0] ?? null);
+            $requestedSub = trim((string) ($_POST['sub_role'] ?? ''));
+            $requestedSub = preg_replace('/\s+/', ' ', $requestedSub);
+            if ($requestedSub !== '') {
+                $subRole = mb_substr($requestedSub, 0, 40);
+            } else {
+                $suggestions = SUB_ROLES_BY_MAIN[$mainRole] ?? [];
+                $subRole = $suggestions[0] ?? null;
+            }
         }
 
-        if ($mainRole !== 'CLUB ADVISER') {
-            $grade  = $_POST['grade'] ?? '';
-            $strand = $_POST['strand'] ?? '';
-            $club   = trim($_POST['club'] ?? '');
-            if (!in_array($grade, GRADES, true)) $grade = null;
-            if (!in_array($strand, STRANDS, true)) $strand = null;
-            $allClubs = array_merge(CLUBS['Non-academic'], CLUBS['Academic']);
-            if ($club === '' || !in_array($club, $allClubs, true)) $club = null;
-        }
+        $grade  = $_POST['grade'] ?? '';
+        $strand = $_POST['strand'] ?? '';
+        $club   = trim($_POST['club'] ?? '');
+        if (!in_array($grade, GRADES, true)) $grade = null;
+        if (!in_array($strand, STRANDS, true)) $strand = null;
+        $allClubs = array_merge(CLUBS['Non-academic'], CLUBS['Academic']);
+        if ($club === '' || !in_array($club, $allClubs, true)) $club = null;
 
         $stmt = $pdo->prepare(
             'UPDATE users SET main_role = :mr, sub_role = :sr, grade = :g, strand = :s, club = :c, updated_at = datetime(\'now\') WHERE id = :id'

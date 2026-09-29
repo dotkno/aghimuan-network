@@ -19,7 +19,7 @@ window.AghiUserProfile = (function () {
     return window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
-  const PFP_PRESETS = [
+  const FALLBACK_PRESETS = [
     { id: 'default',      color: '#5F5E5A' },
     { id: 'circuit-blue', color: '#185FA5' },
     { id: 'circuit-cyan', color: '#0F6E56' },
@@ -29,6 +29,7 @@ window.AghiUserProfile = (function () {
     { id: 'chip-green',   color: '#3B6D11' },
     { id: 'signal-pink',  color: '#993556' },
   ];
+  const PFP_PRESETS = (window.AGHI_CONFIG && window.AGHI_CONFIG.presets) || FALLBACK_PRESETS;
 
   const PRESENCE_META = {
     online:    { label: 'Online',         color: '#3ddc84' },
@@ -81,6 +82,9 @@ window.AghiUserProfile = (function () {
     if (r === 'CLUB ADVISER') {
       return 'background: linear-gradient(135deg, #00f2fe, #4facfe); color: #060b10; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(0,242,254,0.4);';
     }
+    if (r === 'FACULTY') {
+      return 'background: linear-gradient(135deg, #5eead4, #0ea5e9); color: #06202a; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(94,234,212,0.35);';
+    }
     if (r === 'OFFICER') {
       return 'background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(0,198,255,0.35);';
     }
@@ -93,6 +97,31 @@ window.AghiUserProfile = (function () {
   function presetColor(pfpId) {
     const match = PFP_PRESETS.find((p) => p.id === pfpId);
     return (match || PFP_PRESETS[0]).color;
+  }
+
+  // Ghost-file safe avatar: a photo URL that 404s (DB points at a missing
+  // upload) falls back to the monogram instead of a dark box. Results are
+  // cached per page load by AghiImgFallback.
+  function setAvatarWithFallback(avatarEl, data) {
+    if (!avatarEl) return;
+    avatarEl.innerHTML = '';
+    avatarEl.style.backgroundImage = 'none';
+    function showMono() {
+      avatarEl.style.backgroundColor = presetColor(data.pfpId);
+      const mono = document.createElement('span');
+      mono.textContent = (data.username || '?').charAt(0).toUpperCase();
+      avatarEl.appendChild(mono);
+    }
+    if (!data.avatarUrl) { showMono(); return; }
+    avatarEl.style.backgroundColor = '#0a1520';
+    const fb = window.AghiImgFallback;
+    if (fb) {
+      fb.probe(data.avatarUrl, function () {
+        if (document.contains(avatarEl)) avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
+      }, showMono);
+    } else {
+      avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
+    }
   }
 
   function escapeHtml(str) {
@@ -859,15 +888,7 @@ window.AghiUserProfile = (function () {
     popupEl.querySelector('[data-el="status"]').textContent = data.status || '';
     popupEl.querySelector('[data-el="bio"]').textContent = data.bio || 'No bio yet.';
 
-    const avatarEl = popupEl.querySelector('[data-el="avatar"]');
-    if (data.avatarUrl) {
-      avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
-    } else {
-      avatarEl.style.backgroundColor = presetColor(data.pfpId);
-      const mono = document.createElement('span');
-      mono.textContent = (data.username || '?').charAt(0).toUpperCase();
-      avatarEl.appendChild(mono);
-    }
+    setAvatarWithFallback(popupEl.querySelector('[data-el="avatar"]'), data);
 
     bindMessageButtons();
     popupEl.addEventListener('click', onPopupClick);
@@ -952,15 +973,7 @@ window.AghiUserProfile = (function () {
     popupEl.querySelector('[data-el="username"]').innerHTML = `${escapeHtml(data.username)}${data.is_verified ? '<span class="aghi-up-verified-badge" data-tooltip="Verified at PCU" aria-label="Verified at PCU" tabindex="0">✓</span>' : ''}`;
     popupEl.querySelector('[data-el="bio"]').textContent = data.bio || 'No bio yet.';
 
-    const avatarEl = popupEl.querySelector('[data-el="avatar"]');
-    if (data.avatarUrl) {
-      avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
-    } else {
-      avatarEl.style.backgroundColor = presetColor(data.pfpId);
-      const mono = document.createElement('span');
-      mono.textContent = (data.username || '?').charAt(0).toUpperCase();
-      avatarEl.appendChild(mono);
-    }
+    setAvatarWithFallback(popupEl.querySelector('[data-el="avatar"]'), data);
 
     popupEl.querySelector('[data-action="close"]').addEventListener('click', () => close());
 

@@ -8,7 +8,10 @@
 
   const MOUNT_ID = 'aghi-account-widget';
 
-  const PFP_PRESETS = [
+  // Shared values owned by /js/aghi-config.js (generated from
+  // includes/app-config.php). Fallback lists keep old cached pages working
+  // if aghi-config.js hasn't loaded yet.
+  const FALLBACK_PRESETS = [
     { id: 'default',      color: '#5F5E5A' },
     { id: 'circuit-blue', color: '#185FA5' },
     { id: 'circuit-cyan', color: '#0F6E56' },
@@ -18,7 +21,8 @@
     { id: 'chip-green',   color: '#3B6D11' },
     { id: 'signal-pink',  color: '#993556' },
   ];
-  const PRESET_IDS = PFP_PRESETS.map((p) => p.id);
+  const PFP_PRESETS = (window.AGHI_CONFIG && window.AGHI_CONFIG.presets) || FALLBACK_PRESETS;
+  const PRESET_IDS = ((window.AGHI_CONFIG && window.AGHI_CONFIG.presetIds) || PFP_PRESETS.map((p) => p.id));
 
   const PRESENCE_OPTIONS = [
     { id: 'online', label: 'Online',         color: '#3ddc84' },
@@ -27,11 +31,12 @@
     { id: 'invisible', label: 'Invisible',   color: '#6b8b9a' },
   ];
 
-  const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-  const MAX_BIO_LENGTH = 300;
-  const MAX_STATUS_LENGTH = 60;
+  const CFG = (window.AGHI_CONFIG || {});
+  const MAX_AVATAR_BYTES = CFG.maxAvatarBytes || 2 * 1024 * 1024;
+  const MAX_BIO_LENGTH = CFG.maxBioLength || 300;
+  const MAX_STATUS_LENGTH = CFG.maxStatusLength || 60;
   const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
-  const HEARTBEAT_INTERVAL_MS = 15 * 1000;
+  const HEARTBEAT_INTERVAL_MS = CFG.heartbeatIntervalMs || 15 * 1000;
 
   const SUBROLE_STYLES = {
     'Dagitab': 'background: #d4a017; color: #fff;',
@@ -70,6 +75,9 @@
     const r = (role || 'MEMBER').toUpperCase();
     if (r === 'CLUB ADVISER') {
       return 'background: linear-gradient(135deg, #00f2fe, #4facfe); color: #060b10; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(0,242,254,0.4);';
+    }
+    if (r === 'FACULTY') {
+      return 'background: linear-gradient(135deg, #5eead4, #0ea5e9); color: #06202a; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(94,234,212,0.35);';
     }
     if (r === 'OFFICER') {
       return 'background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff; font-weight: 700; border: none; box-shadow: 0 0 10px rgba(0,198,255,0.35);';
@@ -300,16 +308,31 @@
 
   function applyAvatar(el, pfpId, username) {
     el.innerHTML = '';
-    if (isCustomAvatar(pfpId)) {
-      el.style.backgroundImage = `url('/uploads/pfp/${encodeURIComponent(pfpId)}')`;
-      el.style.backgroundColor = '#0a1520';
-    } else {
+    el.style.backgroundImage = 'none';
+    function showMonogram() {
       el.style.backgroundImage = 'none';
       el.style.backgroundColor = presetColor(pfpId);
       const span = document.createElement('span');
       span.className = 'aghi-aw-monogram';
       span.textContent = (username || '?').charAt(0).toUpperCase();
       el.appendChild(span);
+    }
+    if (isCustomAvatar(pfpId)) {
+      // Probe first so a ghost file (DB points at a missing upload) falls
+      // back to the monogram instead of a dark box + repeat 404s. Results
+      // are cached per page load in AghiImgFallback.
+      const url = '/uploads/pfp/' + encodeURIComponent(pfpId);
+      el.style.backgroundColor = '#0a1520';
+      const fb = window.AghiImgFallback;
+      if (fb) {
+        fb.probe(url, function () {
+          el.style.backgroundImage = `url('${url}')`;
+        }, showMonogram);
+      } else {
+        el.style.backgroundImage = `url('${url}')`;
+      }
+    } else {
+      showMonogram();
     }
   }
 
@@ -865,6 +888,8 @@
       .aghi-aw-dm-send { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; border: 1px solid rgba(85, 241, 248, 0.3); background: linear-gradient(135deg, var(--tech, #3096C7), var(--royal, #2B438E)); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(21, 145, 196, 0.3); transition: transform 0.15s ease, filter 0.15s ease; }
       .aghi-aw-dm-send:hover { transform: translateY(-1px); filter: brightness(1.12); }
       .aghi-aw-dm-send:active { transform: scale(0.94); }
+      .aghi-aw-dm-emoji { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.35); color: var(--dm-text-dim); font-size: 19px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+      .aghi-aw-dm-emoji:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); transform: translateY(-1px); }
       .aghi-aw-dm-send svg { width: 16px; height: 16px; }
 
       /* Quick panel head (conversation list state) */
@@ -1542,7 +1567,7 @@
           import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
         ]);
-        const config = { apiKey: 'AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE', authDomain: 'aghimuan-network.firebaseapp.com', projectId: 'aghimuan-network' };
+        const config = (window.AGHI_CONFIG && window.AGHI_CONFIG.firebase) || { apiKey: 'AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE', authDomain: 'aghimuan-network.firebaseapp.com', projectId: 'aghimuan-network' };
         const app = getApps().length ? getApps()[0] : initializeApp(config);
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ hd: 'pcu.edu.ph' });
@@ -2050,6 +2075,7 @@
         </div>
         <div class="aghi-aw-dm-composer-row">
           <textarea class="aghi-aw-dm-input" data-el="input" rows="1" maxlength="2000" placeholder="Type a message…"></textarea>
+          <button type="button" class="aghi-aw-dm-emoji" data-action="emoji" aria-label="Insert emoji" title="Emoji">🙂</button>
           <button type="button" class="aghi-aw-dm-send" data-action="send" aria-label="Send">${SEND_ICON}</button>
         </div>
       </div>
@@ -2118,6 +2144,31 @@
         e.preventDefault();
         this.sendDmMessage(panel);
       });
+    }
+
+    // Emoji button reuses the shared picker (emoji-picker-core.js). Hidden
+    // on pages that don't load the picker script, mirroring the canReact
+    // pattern used for message react buttons.
+    const emojiBtn = panel.querySelector('[data-action="emoji"]');
+    if (emojiBtn) {
+      if (!window.AghiEmojiPicker) {
+        emojiBtn.style.display = 'none';
+      } else {
+        emojiBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.AghiEmojiPicker.open(emojiBtn, (emoji) => {
+            const start = input.selectionStart != null ? input.selectionStart : input.value.length;
+            const end = input.selectionEnd != null ? input.selectionEnd : input.value.length;
+            input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+            const caret = start + emoji.length;
+            input.focus();
+            try { input.selectionStart = input.selectionEnd = caret; } catch (_) {}
+            // Reuse the input listener: autoresize + typing ping.
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        });
+      }
     }
 
     const cancelReplyBtn = panel.querySelector('[data-action="cancel-reply"]');
@@ -2441,16 +2492,30 @@
       if (!data.messages.length && !readChanged) return;
 
       if (data.messages.length) {
+        // Merge by id: brand-new messages append, edited/deleted messages
+        // replace their stale copy in place (poll now returns those too).
         // A poll can race an in-flight send: the POST lands on the server
         // between our afterId snapshot and the poll query, so the poll
         // returns the just-sent message before sendDmMessage pushes it.
         // Dedupe by id or the bubble appears twice until refresh.
-        const known = new Set(this.dmMessages.map((m) => m.id));
-        const fresh = data.messages.filter((m) => !known.has(m.id));
-        if (fresh.length) {
-          this.dmMessages = this.dmMessages.concat(fresh);
+        const myIdStr = String(this.state.user.id);
+        let appendedOther = false;
+        const byId = new Map(this.dmMessages.map((m) => [m.id, m]));
+        for (const m of data.messages) {
+          if (byId.has(m.id)) {
+            byId.set(m.id, m);
+          } else {
+            this.dmMessages.push(m);
+            byId.set(m.id, m);
+            if (String(m.senderId) !== myIdStr) appendedOther = true;
+          }
         }
+        // Edited merges keep their position; keep the array chronological.
+        this.dmMessages.sort((a, b) => a.id - b.id);
         this.dmLastMessageId = Math.max(this.dmLastMessageId, ...data.messages.map((m) => m.id));
+        // Only a genuinely NEW message from the partner pulls the scroll
+        // down — their edit to an old bubble must not yank the view.
+        if (appendedOther) this.scrollDmMessagesToBottom();
       }
       // A full render() rebuilds every bubble's HTML, which would wipe out an
       // in-progress edit textarea mid-keystroke. Skip the rebuild while
@@ -2458,9 +2523,6 @@
       // changed in the meantime.
       if (this.dmEditingMessageId !== null) return;
       this.renderDmMessages(document.querySelector('.aghi-aw-dm-panel .aghi-aw-dm-messages'));
-      if (data.messages.some((m) => String(m.senderId) !== String(this.state.user.id))) {
-        this.scrollDmMessagesToBottom();
-      }
       this.fetchDmUnreadCount();
     } catch (e) {
     }
@@ -2686,6 +2748,7 @@
       if (reactBtn) {
         reactBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (!window.AghiEmojiPicker) return;
           window.AghiEmojiPicker.open(reactBtn, (emoji) => {
             this.toggleDmMessageReaction(id, emoji, reactionsEl);
           });

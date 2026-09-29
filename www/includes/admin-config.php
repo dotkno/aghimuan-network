@@ -7,13 +7,18 @@ declare(strict_types=1);
 
 const MAIN_ADMIN_USERNAME = 'rennyrenren';
 
-const MAIN_ROLES = ['CLUB ADVISER', 'OFFICER', 'COMMITTEE MEMBER', 'MEMBER'];
+const MAIN_ROLES = ['CLUB ADVISER', 'FACULTY', 'OFFICER', 'COMMITTEE MEMBER', 'MEMBER'];
 
 const SUB_ROLES_BY_MAIN = [
     'CLUB ADVISER'     => ['Faculty'],
+    'FACULTY'          => ['Faculty', 'Staff'],
     'OFFICER'          => ['President', 'Vice President', 'Secretary', 'Treasurer', 'Auditor', 'PIO/PRO'],
     'COMMITTEE MEMBER' => ['Sgt. at Arms', 'Media Tech 1', 'Media Tech 2', 'Media Tech 3', 'Media Tech 4'],
 ];
+
+// Announcement post-as gate — FACULTY intentionally excluded: faculty
+// identity is display-only and confers no posting power.
+const POSTABLE_ROLES = ['CLUB ADVISER', 'OFFICER', 'COMMITTEE MEMBER'];
 
 const CLUBS = [
     'Non-academic' => [

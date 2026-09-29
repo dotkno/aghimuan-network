@@ -10,6 +10,7 @@
  *   "ok": true,
  *   "groups": [
  *     { "role": "CLUB ADVISER", "count": 1, "users": [ {...} ] },
+ *     { "role": "FACULTY", "count": 2, "users": [ {...} ] },
  *     { "role": "OFFICER", "count": 6, "users": [ {...} ] },
  *     { "role": "COMMITTEE MEMBER", "count": 5, "users": [ {...} ] },
  *     { "role": "MEMBER", "count": 81, "users": [ {...} ] }
@@ -26,6 +27,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -36,20 +38,14 @@ function json_error(int $code, string $message): never {
     exit;
 }
 
-// Keep in sync with PRESET_IDS in account-widget.js / user-profile-popup.js / profile.php.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
-
-// Keep in sync with ONLINE_THRESHOLD_SECONDS in user-profile.php.
-const ONLINE_THRESHOLD_SECONDS = 45;
+// Presence + avatar rules owned by includes/app-config.php.
 
 // Display order for role groups (top to bottom in the list).
 // 'COMMITEE MEMBER' (missing second T) is tolerated as an alias since
 // account-widget.js's getMainRoleStyle() already has to guard against it.
 const ROLE_GROUPS = [
     'CLUB ADVISER',
+    'FACULTY',
     'OFFICER',
     'COMMITTEE MEMBER',
     'MEMBER',
@@ -64,11 +60,7 @@ function normalize_role(?string $role): string {
 }
 
 function avatar_url(?string $pfpId): ?string {
-    $pfpId = $pfpId !== null && $pfpId !== '' ? $pfpId : 'default';
-    if (in_array($pfpId, PRESET_IDS, true)) {
-        return null;
-    }
-    return '/uploads/pfp/' . basename($pfpId);
+    return aghi_avatar_url($pfpId);
 }
 
 $pdo = get_db();
@@ -99,7 +91,7 @@ $buckets = array_fill_keys(ROLE_GROUPS, []);
 
 foreach ($rows as $row) {
     $lastSeen = $row['last_seen'] !== null ? (int) $row['last_seen'] : null;
-    $online = $lastSeen !== null && ($now - $lastSeen) < ONLINE_THRESHOLD_SECONDS;
+    $online = $lastSeen !== null && ($now - $lastSeen) < AGHI_ONLINE_THRESHOLD_SECONDS;
     $rawPresence = $row['presence'] ?: 'online';
     $effectivePresence = (!$online || $rawPresence === 'invisible') ? 'offline' : $rawPresence;
 

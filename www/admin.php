@@ -347,6 +347,7 @@ $default_tab = get_default_tab();
             .page-title { font-size: 1.1rem; }
         }
     </style>
+<script src="/js/aghi-img-fallback.js"></script>
 </head>
 <body>
 
@@ -607,7 +608,7 @@ $default_tab = get_default_tab();
                         ?>
                             <div class="post-thumbs">
                                 <?php foreach ($imgs as $img_src): ?>
-                                    <img src="<?php echo htmlspecialchars($img_src); ?>" alt="thumbnail">
+                                    <img src="<?php echo htmlspecialchars($img_src); ?>" alt="thumbnail" data-fallback="hide">
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
@@ -722,6 +723,7 @@ $default_tab = get_default_tab();
                                     $customIds = !empty($u['custom_role_ids']) ? array_map('intval', explode(',', $u['custom_role_ids'])) : [];
                                     $mainRoleStyle = match ($u['main_role']) {
                                         'CLUB ADVISER' => 'background: linear-gradient(135deg, #00f2fe, #4facfe); color: #060b10;',
+                                        'FACULTY' => 'background: linear-gradient(135deg, #5eead4, #0ea5e9); color: #06202a;',
                                         'OFFICER' => 'background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff;',
                                         'COMMITTEE MEMBER' => 'background: #1e88e5; color: #fff;',
                                         default => 'background: rgba(85,241,248,0.1); color: #55F1F8; border: 1px solid rgba(85,241,248,0.35);',
@@ -780,20 +782,23 @@ $default_tab = get_default_tab();
                     </select>
 
                     <div id="presetSubRoleWrap" style="display:none;">
-                        <label class="field-label" for="editSubRole">Sub-Role</label>
-                        <select class="field-input" name="sub_role" id="editSubRole"></select>
+                        <label class="field-label" for="editSubRole">Title / Sub-Role (optional, free text)</label>
+                        <input class="field-input" type="text" name="sub_role" id="editSubRole" maxlength="40" placeholder="e.g. Faculty" list="subRoleList" autocomplete="off">
+                        <datalist id="subRoleList"></datalist>
                     </div>
 
-                    <div id="memberFieldsWrap" style="display:none;">
-                        <label class="field-label" for="editGrade">Grade Level</label>
+                    <div id="memberFieldsWrap">
+                        <label class="field-label" for="editGrade">Grade Level (optional)</label>
                         <select class="field-input" name="grade" id="editGrade">
+                            <option value="">None</option>
                             <?php foreach (GRADES as $g): ?>
                                 <option value="<?php echo $g; ?>"><?php echo $g; ?></option>
                             <?php endforeach; ?>
                         </select>
 
-                        <label class="field-label" for="editStrand">Strand / Course</label>
+                        <label class="field-label" for="editStrand">Strand / Course (optional)</label>
                         <select class="field-input" name="strand" id="editStrand">
+                            <option value="">None</option>
                             <?php foreach (STRANDS as $s): ?>
                                 <option value="<?php echo $s; ?>"><?php echo $s; ?></option>
                             <?php endforeach; ?>
@@ -1187,17 +1192,21 @@ $default_tab = get_default_tab();
         const mainRole = document.getElementById('editMainRole').value;
         const subWrap = document.getElementById('presetSubRoleWrap');
         const memberWrap = document.getElementById('memberFieldsWrap');
-        const subSelect = document.getElementById('editSubRole');
+        const subInput = document.getElementById('editSubRole');
+        const dataList = document.getElementById('subRoleList');
 
         if (mainRole === 'MEMBER') {
             subWrap.style.display = 'none';
         } else {
+            // Free-text title: suggestions only, admin may type anything.
             const options = SUB_ROLES_BY_MAIN[mainRole] || [];
-            subSelect.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
-            subWrap.style.display = options.length ? 'block' : 'none';
+            dataList.innerHTML = options.map(o => `<option value="${o}"></option>`).join('');
+            subInput.placeholder = options.length ? ('e.g. ' + options[0]) : 'e.g. Faculty';
+            subWrap.style.display = 'block';
         }
 
-        memberWrap.style.display = (mainRole === 'CLUB ADVISER') ? 'none' : 'block';
+        // Grade/strand/club are optional for EVERY role — always visible.
+        memberWrap.style.display = 'block';
     }
 
     function openUserEdit(row) {
@@ -1210,9 +1219,7 @@ $default_tab = get_default_tab();
         document.getElementById('editGrade').value = d.grade || '';
         document.getElementById('editStrand').value = d.strand || '';
         document.getElementById('editClub').value = d.club || '';
-        if (d.mainRole !== 'MEMBER') {
-            document.getElementById('editSubRole').value = d.subRole || '';
-        }
+        document.getElementById('editSubRole').value = d.subRole || '';
 
         const assigned = (d.customRoleIds || '').split(',').filter(Boolean);
         document.querySelectorAll('.custom-role-checkbox').forEach(cb => {
