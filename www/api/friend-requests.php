@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -21,11 +22,7 @@ if (!$me) {
     exit;
 }
 
-// Keep in sync with PRESET_IDS in profile.php / user-profile.php / account-widget.js.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
+// Avatar rule owned by includes/app-config.php.
 
 $stmt = $pdo->prepare(
     'SELECT f.user_id AS requester_id, f.created_at, u.username, u.pfp_id
@@ -39,7 +36,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $requests = array_map(function (array $row): array {
     $pfpId = $row['pfp_id'] !== null && $row['pfp_id'] !== '' ? $row['pfp_id'] : 'default';
-    $isPreset = in_array($pfpId, PRESET_IDS, true);
+    $isPreset = in_array($pfpId, AGHI_PRESET_IDS, true);
     return [
         'id' => (int) $row['requester_id'],
         'username' => $row['username'],

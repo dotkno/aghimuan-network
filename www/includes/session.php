@@ -8,14 +8,22 @@
 
 declare(strict_types=1);
 
-const SESSION_LIFETIME_DAYS = 30;
+require_once __DIR__ . '/app-config.php';
+
+// Back-compat aliases — new code should use AGHI_* from app-config.php.
+if (!defined('SESSION_LIFETIME_DAYS')) {
+    define('SESSION_LIFETIME_DAYS', AGHI_SESSION_LIFETIME_DAYS);
+}
+if (!defined('LAST_SEEN_WRITE_THROTTLE_SECONDS')) {
+    define('LAST_SEEN_WRITE_THROTTLE_SECONDS', AGHI_LAST_SEEN_THROTTLE_SECONDS);
+}
 
 function start_secure_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
     session_set_cookie_params([
-        'lifetime' => 60 * 60 * 24 * SESSION_LIFETIME_DAYS,
+        'lifetime' => 60 * 60 * 24 * AGHI_SESSION_LIFETIME_DAYS,
         'path'     => '/',
         'secure'   => true,      // HTTPS only — aghimuan.renyuzaki.me should be serving TLS
         'httponly' => true,      // JS can never read the cookie
@@ -54,7 +62,7 @@ function login_user(PDO $pdo, int $userId): void {
 
     $rawToken    = bin2hex(random_bytes(32));
     $tokenHash   = hash('sha256', $rawToken);
-    $expiresAt   = (new DateTime("+" . SESSION_LIFETIME_DAYS . " days"))->format('Y-m-d H:i:s');
+    $expiresAt   = (new DateTime("+" . AGHI_SESSION_LIFETIME_DAYS . " days"))->format('Y-m-d H:i:s');
 
     $stmt = $pdo->prepare(
         'INSERT INTO sessions (token, user_id, user_agent, ip_hash, expires_at)
@@ -111,17 +119,16 @@ function current_user(PDO $pdo): ?array {
 
 // How stale last_seen has to be before we bother writing again. Keeps this
 // from turning into a write on every single request — most page loads/polls
-// land inside this window and skip the UPDATE entirely. Keep this comfortably
-// shorter than ONLINE_THRESHOLD_SECONDS in api/user-profile.php so a user's
-// last_seen never goes stale-looking while they're still actively browsing.
+// land inside this window and skip the UPDATE entirely. AGHI_LAST_SEEN_THROTTLE_SECONDS
+// stays comfortably shorter than AGHI_ONLINE_THRESHOLD_SECONDS (see app-config.php)
+// so a user's last_seen never goes stale-looking while they're still browsing.
 // Deliberately short: the sendBeacon offline signal on tab-close isn't
 // guaranteed to fire (some privacy extensions block sendBeacon outright), so
 // this timeout is the real safety net, not just an optimization.
-const LAST_SEEN_WRITE_THROTTLE_SECONDS = 20;
 
 /** Best-effort activity heartbeat — failure here should never break the request. */
 function touch_last_seen(PDO $pdo, int $userId, ?int $lastSeen): void {
-    if ($lastSeen !== null && (time() - $lastSeen) < LAST_SEEN_WRITE_THROTTLE_SECONDS) {
+    if ($lastSeen !== null && (time() - $lastSeen) < AGHI_LAST_SEEN_THROTTLE_SECONDS) {
         return;
     }
     try {

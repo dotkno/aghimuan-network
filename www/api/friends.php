@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -22,12 +23,7 @@ function json_error(int $code, string $message): never {
     exit;
 }
 
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
-
-const ONLINE_THRESHOLD_SECONDS = 45;
+// Avatar + online rules owned by includes/app-config.php.
 
 function normalize_pfp(?string $pfpId): string {
     return $pfpId !== null && $pfpId !== '' ? $pfpId : 'default';
@@ -61,7 +57,7 @@ if ($method === 'GET') {
         $friends = [];
         foreach ($rows as $row) {
             $lastSeen = $row['last_seen'] !== null ? (int) $row['last_seen'] : null;
-            $online = $lastSeen !== null && (time() - $lastSeen) < ONLINE_THRESHOLD_SECONDS;
+            $online = $lastSeen !== null && (time() - $lastSeen) < AGHI_ONLINE_THRESHOLD_SECONDS;
 
             $friends[] = [
                 'id' => (int) $row['id'],

@@ -1365,11 +1365,7 @@ window.addEventListener('load', () => {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE",
-    authDomain: "aghimuan-network.firebaseapp.com",
-    projectId: "aghimuan-network",
-  };
+  const firebaseConfig = (window.AGHI_CONFIG && window.AGHI_CONFIG.firebase) || <?php echo json_encode(aghi_firebase_config(), JSON_UNESCAPED_SLASHES); ?>;
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);

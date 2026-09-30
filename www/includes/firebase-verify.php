@@ -15,8 +15,12 @@
 
 declare(strict_types=1);
 
-// Must match the project used by reviewers.php / verify-firebase.php.
-const FIREBASE_PROJECT_ID = 'aghimuan-network';
+require_once __DIR__ . '/app-config.php';
+
+// Owned by includes/app-config.php (AGHI_FIREBASE_PROJECT_ID).
+if (!defined('FIREBASE_PROJECT_ID')) {
+    define('FIREBASE_PROJECT_ID', AGHI_FIREBASE_PROJECT_ID);
+}
 
 // Reuse the Firebase JWT library from the library/vendor directory (same
 // vendored copy the other two verifiers use).

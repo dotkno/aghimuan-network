@@ -8,24 +8,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-// Keep in sync with PRESET_IDS in upload-avatar.php / profile.php / account-widget.js
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
-
-// A user counts as "online" if their session touched last_seen within this
-// window. Keep this in sync with however often current_user() refreshes it
-// (see includes/session.php) — it should comfortably outlast the refresh
-// interval so normal polling/page-views don't flicker someone to offline.
-// Deliberately short: this is the real fallback for "actually offline"
-// detection, since the sendBeacon signal on tab-close isn't guaranteed to
-// fire in every browser/extension setup.
-const ONLINE_THRESHOLD_SECONDS = 45;
+// Values owned by includes/app-config.php — do not redefine here.
 
 $pdo = get_db();
 $me = current_user($pdo);
@@ -63,11 +51,11 @@ if (!$row || (int)$row['is_banned'] === 1) {
 // in signup) is NOT a custom-upload filename — treat it as the 'default'
 // preset rather than building a broken /uploads/pfp/ URL out of nothing.
 $pfpId = $row['pfp_id'] !== null && $row['pfp_id'] !== '' ? $row['pfp_id'] : 'default';
-$isPreset = in_array($pfpId, PRESET_IDS, true);
+$isPreset = in_array($pfpId, AGHI_PRESET_IDS, true);
 $avatarUrl = $isPreset ? null : '/uploads/pfp/' . basename((string) $pfpId);
 
 $lastSeen = $row['last_seen'] !== null ? (int) $row['last_seen'] : null;
-$online = $lastSeen !== null && (time() - $lastSeen) < ONLINE_THRESHOLD_SECONDS;
+$online = $lastSeen !== null && (time() - $lastSeen) < AGHI_ONLINE_THRESHOLD_SECONDS;
 
 $targetId = (int) $row['id'];
 $isSelf = $targetId === (int) $me['id'];

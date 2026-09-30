@@ -8,6 +8,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/app-config.php';
+
 // Canonical taxonomy — keep in sync with the filter buttons in
 // creations/index.html and the <select> in creations/submit.html.
 const CREATION_CATEGORIES = ['web', 'games', 'art', 'design', 'robotics', 'video', '3d', 'other'];
@@ -40,26 +42,16 @@ const CREATION_RICH_TAGS = '<p><div><br><b><strong><i><em><u><s><strike><ul><ol>
 const CREATION_RICH_FONTS = ['Inter', 'Space Grotesk', 'JetBrains Mono', 'Georgia', 'serif', 'sans-serif', 'monospace'];
 const CREATION_DESC_HTML_MAX = 10000; // raw markup cap; text cap stays 2000
 
-// Avatar preset IDs — keep in sync with PRESET_IDS in api/user-profile.php,
-// api/upload-avatar.php and js/account-widget.js. A pfp_id outside this list
-// is a custom upload served from /uploads/pfp/ (same rule as user-profile.php).
-const CREATION_PFP_PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
+// Avatar preset IDs — owned by includes/app-config.php (AGHI_PRESET_IDS).
+// Kept as aliases so existing creations code keeps working.
+if (!defined('CREATION_PFP_PRESET_IDS')) {
+    define('CREATION_PFP_PRESET_IDS', AGHI_PRESET_IDS);
+}
 
-// Fill colors for preset avatars — mirrors PFP_PRESETS in
-// js/user-profile-popup.js so hub chips match the popup monograms.
-const CREATION_PFP_COLORS = [
-    'default'      => '#5F5E5A',
-    'circuit-blue' => '#185FA5',
-    'circuit-cyan' => '#0F6E56',
-    'node-teal'    => '#04342C',
-    'spark-orange' => '#993C1D',
-    'wire-purple'  => '#534AB7',
-    'chip-green'   => '#3B6D11',
-    'signal-pink'  => '#993556',
-];
+// Fill colors for preset avatars — owned by AGHI_PRESET_COLORS.
+if (!defined('CREATION_PFP_COLORS')) {
+    define('CREATION_PFP_COLORS', AGHI_PRESET_COLORS);
+}
 
 /**
  * Resolve a user's pfp_id to something renderable.

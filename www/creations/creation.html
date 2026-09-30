@@ -181,7 +181,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
 }
 ?>
       <div class="stage">
-        <img id="stageImg" src="<?php echo $esc($firstImg); ?>" style="object-position:<?php echo $esc($coverPos); ?>" alt="<?php echo $esc($item['title'] . ': image 1 of ' . count($images)); ?>">
+        <img id="stageImg" src="<?php echo $esc($firstImg); ?>" style="object-position:<?php echo $esc($coverPos); ?>" data-fallback="hide" alt="<?php echo $esc($item['title'] . ': image 1 of ' . count($images)); ?>">
         <div class="stage-tags">
           <span class="tag tag--cat"><?php echo $esc($catLabel); ?></span>
           <?php if ($item['award']): ?><span class="tag tag--award"><?php echo $esc($item['award']); ?></span><?php endif; ?>
@@ -191,7 +191,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
       <?php if (count($images) > 1): ?>
       <div class="thumbs" id="stageThumbs" role="group" aria-label="Project images">
         <?php foreach ($images as $i => $m): ?>
-        <button type="button" data-idx="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'is-on' : ''; ?>" aria-label="Show image <?php echo $i + 1; ?>"><img src="<?php echo $esc($m['src']); ?>" alt="" loading="lazy"></button>
+        <button type="button" data-idx="<?php echo $i; ?>" class="<?php echo $i === 0 ? 'is-on' : ''; ?>" aria-label="Show image <?php echo $i + 1; ?>"><img src="<?php echo $esc($m['src']); ?>" alt="" loading="lazy" data-fallback="hide"></button>
         <?php endforeach; ?>
       </div>
       <?php endif; ?>
@@ -200,7 +200,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
         <h1 class="title"><?php echo $esc($item['title']); ?></h1>
         <div class="creator">
           <?php if ($avUrl): ?>
-          <button type="button" class="avatar" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><img src="<?php echo $esc($avUrl); ?>" alt=""></button>
+          <button type="button" class="avatar" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><img src="<?php echo $esc($avUrl); ?>" alt="" data-avatar-name="<?php echo $esc($creatorName); ?>" data-avatar-color="<?php echo $esc($avColor); ?>"></button>
           <?php else: ?>
           <button type="button" class="avatar" style="background:<?php echo $esc($avColor); ?>" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><span aria-hidden="true"><?php echo $esc($creatorInitial); ?></span></button>
           <?php endif; ?>
@@ -219,7 +219,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
             ?>
             <span class="creator creator--sm">
               <?php if (!empty($cb['avatarUrl'])): ?>
-              <button type="button" class="avatar avatar--sm" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><img src="<?php echo $esc($cb['avatarUrl']); ?>" alt=""></button>
+              <button type="button" class="avatar avatar--sm" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><img src="<?php echo $esc($cb['avatarUrl']); ?>" alt="" data-avatar-name="<?php echo $esc($cb['username']); ?>" data-avatar-color="<?php echo $esc($cb['avatarColor'] ?: '#5F5E5A'); ?>"></button>
               <?php else: ?>
               <button type="button" class="avatar avatar--sm" style="background:<?php echo $esc($cb['avatarColor'] ?: '#5F5E5A'); ?>" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><span aria-hidden="true"><?php echo $esc($cbInit); ?></span></button>
               <?php endif; ?>
@@ -273,6 +273,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
   <?php endif; ?>
 </div>
 <footer>AGHIMUAN &middot; ICT Student Organization &middot; Philippine Christian University - Dasmari&ntilde;as</footer>
+<script src="/js/aghi-img-fallback.js"></script>
 <script src="/js/account-widget.js" defer></script>
 <script src="/js/user-profile-popup.js" defer></script>
 <script>

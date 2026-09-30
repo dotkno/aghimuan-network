@@ -579,11 +579,7 @@ start_secure_session();
           import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js')
         ]);
-        const a = getApps().length ? getApps()[0] : initializeApp({
-          apiKey: 'AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE',
-          authDomain: 'aghimuan-network.firebaseapp.com',
-          projectId: 'aghimuan-network'
-        });
+        const a = getApps().length ? getApps()[0] : initializeApp((window.AGHI_CONFIG && window.AGHI_CONFIG.firebase) || <?php echo json_encode(aghi_firebase_config(), JSON_UNESCAPED_SLASHES); ?>);
         const r = await signInWithPopup(getAuth(a), new GoogleAuthProvider());
         const d = await (await fetch('/api/auth-google.php', {
           method: 'POST',

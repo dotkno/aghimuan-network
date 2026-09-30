@@ -11,6 +11,8 @@ $aghiCsrfToken = csrf_token();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/aghi-config.js"></script>
 <script src="/js/reactions.js" defer></script>
 <script src="js/emoji-picker-core.js" defer></script>
 <script src="js/comment-reactions.js" defer></script>
@@ -1526,7 +1528,7 @@ $aghiCsrfToken = csrf_token();
   // ---------- announcements ----------
   let galleryStore = [];
 
-  const PFP_PRESETS = [
+  const FALLBACK_PRESETS = [
     { id: 'default',      color: '#5F5E5A' },
     { id: 'circuit-blue', color: '#185FA5' },
     { id: 'circuit-cyan', color: '#0F6E56' },
@@ -1536,7 +1538,8 @@ $aghiCsrfToken = csrf_token();
     { id: 'chip-green',   color: '#3B6D11' },
     { id: 'signal-pink',  color: '#993556' },
   ];
-  const PRESET_IDS = PFP_PRESETS.map(p => p.id);
+  const PFP_PRESETS = (window.AGHI_CONFIG && window.AGHI_CONFIG.presets) || FALLBACK_PRESETS;
+  const PRESET_IDS = ((window.AGHI_CONFIG && window.AGHI_CONFIG.presetIds) || PFP_PRESETS.map(p => p.id));
 
   function presetColor(pfpId) {
     const match = PFP_PRESETS.find((p) => p.id === pfpId);
@@ -1590,7 +1593,7 @@ $aghiCsrfToken = csrf_token();
         : '';
       return `
         <div class="gallery-item" data-gallery="${galleryIndex}" data-index="${i}" onclick="openLightbox(this)">
-          <img src="${src}" alt="Announcement photo ${i + 1}" loading="lazy">
+          <img src="${src}" alt="Announcement photo ${i + 1}" loading="lazy" data-fallback="hide">
           ${overlay}
         </div>`;
     }).join('');
@@ -1624,7 +1627,7 @@ $aghiCsrfToken = csrf_token();
       const avatarHtml = isUserPost
         ? (avatar.isPreset
             ? `<div class="fb-avatar fb-avatar-mono" style="background-color:${avatar.color}" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">${escapeHtml(post.poster_username.charAt(0).toUpperCase())}</div>`
-            : `<img class="fb-avatar" src="${avatar.url}" alt="${escapeHtml(post.poster_username)}" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">`)
+            : `<img class="fb-avatar" src="${avatar.url}" alt="${escapeHtml(post.poster_username)}" data-avatar-name="${escapeHtml(post.poster_username)}" data-avatar-color="${avatar.color}" data-aghi-userid="${post.poster_user_id}" data-aghi-username="${escapeHtml(post.poster_username)}">`)
         : '';
       const headHtml = isUserPost ? `
           ${avatarHtml}
@@ -1760,12 +1763,12 @@ $aghiCsrfToken = csrf_token();
         const c = data.creation;
         const avatar = resolveAvatar(c.pfp_id);
         const avatarHtml = c.pfp_id && !avatar.isPreset
-          ? `<img class="fb-avatar" src="${avatar.url}" alt="${escapeHtml(c.username)}">`
+          ? `<img class="fb-avatar" src="${avatar.url}" alt="${escapeHtml(c.username)}" data-avatar-name="${escapeHtml(c.username)}" data-avatar-color="${avatar.color}">`
           : `<div class="fb-avatar fb-avatar-mono" style="background-color:${avatar.color}">${escapeHtml(c.username.charAt(0).toUpperCase())}</div>`;
 
         const mediaUrls = c.media_urls ? JSON.parse(c.media_urls) : [];
         const thumbnail = mediaUrls.length > 0
-          ? `<img src="${mediaUrls[0]}" alt="${escapeHtml(c.title)}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;">`
+          ? `<img src="${mediaUrls[0]}" alt="${escapeHtml(c.title)}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;" data-fallback="hide">`
           : '';
 
         container.innerHTML = `

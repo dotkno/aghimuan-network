@@ -28,7 +28,7 @@ declare(strict_types=1);
  *
  * GET  /api/dms.php?action=typing_status&userId=<id>
  *   -> { ok, typing: bool }
- *   Whether <id> is currently typing to me — see TYPING_FRESHNESS_SECONDS.
+ *   Whether <id> is currently typing to me — see AGHI_TYPING_FRESHNESS_SECONDS.
  *
  * POST /api/dms.php  body: { action: 'send', recipientId, body, csrf_token }
  *   -> { ok, message: {...} }
@@ -49,6 +49,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -59,13 +60,7 @@ function json_error(int $code, string $message): never {
     exit;
 }
 
-// Keep in sync with PRESET_IDS in account-widget.js / inbox.php / profile.php.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
-
-const MAX_DM_BODY_LENGTH = 2000;
+// Avatar + presence rules owned by includes/app-config.php.
 
 // A typing row older than this is treated as "stopped typing" rather than
 // requiring an explicit clear call — simpler than wiring a clear-on-blur/
@@ -74,11 +69,6 @@ const MAX_DM_BODY_LENGTH = 2000;
 // every TYPING_PING_INTERVAL_MS (see account-widget.js) which must stay
 // comfortably shorter than this window or the indicator will flicker off
 // mid-typing.
-const TYPING_FRESHNESS_SECONDS = 5;
-
-// Keep in sync with LAST_SEEN_WRITE_THROTTLE_SECONDS / ONLINE_THRESHOLD_SECONDS
-// in includes/session.php and api/user-profile.php.
-const ONLINE_THRESHOLD_SECONDS = 45;
 
 function normalize_pfp(?string $pfpId): string {
     return $pfpId !== null && $pfpId !== '' ? $pfpId : 'default';
@@ -109,7 +99,7 @@ function other_user_info(PDO $pdo, int $userId): ?array {
     if (!$row) return null;
 
     $lastSeen = $row['last_seen'] !== null ? (int) $row['last_seen'] : null;
-    $online   = $lastSeen !== null && (time() - $lastSeen) < ONLINE_THRESHOLD_SECONDS;
+    $online   = $lastSeen !== null && (time() - $lastSeen) < AGHI_ONLINE_THRESHOLD_SECONDS;
 
     return [
         'id'       => (int) $row['id'],
@@ -258,11 +248,18 @@ if ($method === 'GET') {
             json_error(400, 'Missing userId.');
         }
 
+        // New messages (id > cursor) PLUS anything changed in the last 15s
+        // (edits + deletes stamp edited_at). Edits keep their old id so an
+        // afterId-only query would never return them — that's why edited
+        // bubbles stayed stale until reopen. Stateless server-side window
+        // (no client watermark to lose): poll ticks every ~2s, so a 15s
+        // window can't be missed; duplicates are harmless because the
+        // client merges by id.
         $stmt = $pdo->prepare(
-            'SELECT id, sender_id, body, status, is_read, edited_at, reply_to_id, created_at FROM direct_messages
+            "SELECT id, sender_id, body, status, is_read, edited_at, reply_to_id, created_at FROM direct_messages
              WHERE ((sender_id = :me AND recipient_id = :other) OR (sender_id = :other AND recipient_id = :me))
-             AND id > :after_id
-             ORDER BY id ASC LIMIT 50'
+             AND (id > :after_id OR (edited_at IS NOT NULL AND edited_at >= datetime('now', '-15 seconds')))
+             ORDER BY id ASC LIMIT 50"
         );
         $stmt->execute([':me' => $myId, ':other' => $otherId, ':after_id' => $afterId]);
         $rows = $stmt->fetchAll();
@@ -297,7 +294,7 @@ if ($method === 'GET') {
              WHERE user_id = :other AND other_id = :me
              AND updated_at > datetime('now', :window)"
         );
-        $stmt->execute([':other' => $otherId, ':me' => $myId, ':window' => '-' . TYPING_FRESHNESS_SECONDS . ' seconds']);
+        $stmt->execute([':other' => $otherId, ':me' => $myId, ':window' => '-' . AGHI_TYPING_FRESHNESS_SECONDS . ' seconds']);
         echo json_encode(['ok' => true, 'typing' => (bool) $stmt->fetchColumn()]);
         exit;
     }
@@ -333,7 +330,7 @@ if ($method === 'POST') {
         if ($text === '') {
             json_error(400, "Message can't be empty.");
         }
-        if (mb_strlen($text) > MAX_DM_BODY_LENGTH) {
+        if (mb_strlen($text) > AGHI_MAX_DM_BODY_LENGTH) {
             json_error(400, 'Message is too long.');
         }
 
@@ -386,7 +383,7 @@ if ($method === 'POST') {
         if ($text === '') {
             json_error(400, "Message can't be empty.");
         }
-        if (mb_strlen($text) > MAX_DM_BODY_LENGTH) {
+        if (mb_strlen($text) > AGHI_MAX_DM_BODY_LENGTH) {
             json_error(400, 'Message is too long.');
         }
 
@@ -408,7 +405,7 @@ if ($method === 'POST') {
         );
         $upd->execute([':body' => $text, ':id' => $messageId]);
 
-        $stmt = $pdo->prepare('SELECT id, sender_id, body, status, is_read, edited_at, created_at FROM direct_messages WHERE id = :id');
+        $stmt = $pdo->prepare('SELECT id, sender_id, body, status, is_read, edited_at, reply_to_id, created_at FROM direct_messages WHERE id = :id');
         $stmt->execute([':id' => $messageId]);
         echo json_encode(['ok' => true, 'message' => format_message($stmt->fetch())]);
         exit;
@@ -430,7 +427,11 @@ if ($method === 'POST') {
             json_error(403, "You can't delete this message.");
         }
 
-        $upd = $pdo->prepare("UPDATE direct_messages SET status = 'deleted' WHERE id = :id");
+        // Stamp edited_at on delete too so the delete propagates through the
+        // same live-poll path as edits (poll returns edited_at >= since).
+        // Display-safe: deleted bubbles render early as "Message deleted"
+        // without the "(edited)" label.
+        $upd = $pdo->prepare("UPDATE direct_messages SET status = 'deleted', edited_at = datetime('now') WHERE id = :id");
         $upd->execute([':id' => $messageId]);
 
         echo json_encode(['ok' => true]);

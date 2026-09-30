@@ -22,30 +22,18 @@ set_exception_handler(function ($e) {
 
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 $pdo = get_db();
 
-// Preset (color monogram) avatar ids — must stay identical to PRESET_IDS in
-// api/upload-avatar.php and PFP_PRESETS ids in js/account-widget.js.
+// Preset (color monogram) avatar ids — owned by includes/app-config.php.
 // Anything sent here that ISN'T one of these is rejected — real custom
 // avatars are set exclusively through /api/upload-avatar.php, never through
 // this endpoint, so a client can't just POST an arbitrary filename here and
 // point pfp_id at a file that was never actually validated/re-encoded.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
-
-const MAX_BIO_LENGTH    = 300;
-const MAX_STATUS_LENGTH = 60;
-
-// Discord-style presence, separate from the free-text "status" message above
-// (that's the custom text bubble; this is the colored-dot online/away/dnd/
-// invisible indicator).
-const PRESENCE_VALUES = ['online', 'away', 'dnd', 'invisible'];
 
 const USERNAME_COOLDOWN_DAYS = 7;
 const USERNAME_PATTERN = '/^[a-zA-Z0-9_]{3,20}$/'; // keep identical to signup.php's check
@@ -178,19 +166,19 @@ if ($method === 'POST') {
     // Only validate pfpId when the client is actually asking to change it.
     // Previously this re-validated the ALREADY-STORED pfp_id on every request
     // (even bio/status-only edits), which meant any account whose stored
-    // pfp_id wasn't in PRESET_IDS (e.g. drifted out of sync with signup.php's
-    // list) got every single profile edit rejected with a 422 — not just
+    // pfp_id wasn't in AGHI_PRESET_IDS (e.g. a legacy stored value from before
+    // the app-config.php centralization) got every single profile edit rejected with a 422 — not just
     // avatar changes. Only check the value when it's actually incoming.
     $changingPfp = array_key_exists('pfpId', $body);
     $pfpId       = $changingPfp ? trim((string) $body['pfpId']) : $currentUser['pfp_id'];
 
-    if (mb_strlen($bio) > MAX_BIO_LENGTH) {
-        json_error(422, 'Bio is too long (max ' . MAX_BIO_LENGTH . ' characters).');
+    if (mb_strlen($bio) > AGHI_MAX_BIO_LENGTH) {
+        json_error(422, 'Bio is too long (max ' . AGHI_MAX_BIO_LENGTH . ' characters).');
     }
-    if (mb_strlen($status) > MAX_STATUS_LENGTH) {
-        json_error(422, 'Status is too long (max ' . MAX_STATUS_LENGTH . ' characters).');
+    if (mb_strlen($status) > AGHI_MAX_STATUS_LENGTH) {
+        json_error(422, 'Status is too long (max ' . AGHI_MAX_STATUS_LENGTH . ' characters).');
     }
-    if ($changingPfp && !in_array($pfpId, PRESET_IDS, true)) {
+    if ($changingPfp && !in_array($pfpId, AGHI_PRESET_IDS, true)) {
         json_error(422, "Invalid avatar selection. Use /api/upload-avatar.php to set a custom photo.");
     }
 
@@ -222,7 +210,7 @@ if ($method === 'POST') {
     // ---- presence (online/away/dnd/invisible) ----
     $changingPresence = array_key_exists('presence', $body);
     $presence = $changingPresence ? trim((string) $body['presence']) : ($currentUser['presence'] ?? 'online');
-    if ($changingPresence && !in_array($presence, PRESENCE_VALUES, true)) {
+    if ($changingPresence && !in_array($presence, AGHI_PRESENCE_VALUES, true)) {
         json_error(422, 'Invalid presence value.');
     }
 
@@ -259,7 +247,7 @@ if ($method === 'POST') {
     // If they're switching away from a custom uploaded photo to a color preset,
     // clean up the now-orphaned file instead of leaving it on disk forever.
     $previousPfp = (string) $currentUser['pfp_id'];
-    if ($previousPfp !== $pfpId && !in_array($previousPfp, PRESET_IDS, true)) {
+    if ($previousPfp !== $pfpId && !in_array($previousPfp, AGHI_PRESET_IDS, true)) {
         $oldPath = __DIR__ . '/../uploads/pfp/' . basename($previousPfp);
         if (is_file($oldPath)) {
             @unlink($oldPath);

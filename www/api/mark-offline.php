@@ -2,7 +2,7 @@
 /**
  * POST /api/mark-offline.php
  * Explicitly clears last_seen so a user shows as offline immediately,
- * instead of waiting out ONLINE_THRESHOLD_SECONDS in user-profile.php.
+ * instead of waiting out AGHI_ONLINE_THRESHOLD_SECONDS (see includes/app-config.php).
  * Fired via navigator.sendBeacon() on the 'pagehide' event — see the
  * heartbeat code in account-widget.js. sendBeacon can't set custom headers,
  * so the CSRF token travels in the body as regular form data.

@@ -11,8 +11,13 @@
 session_name('AGHI_REVIEWER_SESS');
 session_start();
 
+require_once __DIR__ . '/../../includes/app-config.php';
+
 // How long a verified sign-in is trusted before Firebase must re-verify.
-define('REVIEWER_SESSION_TTL', 60 * 60 * 8); // 8 hours
+// Owned by includes/app-config.php — AGHI_REVIEWER_SESSION_TTL.
+if (!defined('REVIEWER_SESSION_TTL')) {
+    define('REVIEWER_SESSION_TTL', AGHI_REVIEWER_SESSION_TTL);
+}
 
 function has_reviewer_access(): bool {
     if (empty($_SESSION['reviewer_email']) || empty($_SESSION['reviewer_verified_at'])) {

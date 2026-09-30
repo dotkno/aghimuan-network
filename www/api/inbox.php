@@ -28,6 +28,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/notifications.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -38,18 +39,10 @@ function json_error(int $code, string $message): never {
     exit;
 }
 
-// Keep in sync with PRESET_IDS in account-widget.js / user-profile-popup.js / profile.php.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
+// Avatar rule owned by includes/app-config.php.
 
 function avatar_url(?string $pfpId): ?string {
-    $pfpId = $pfpId !== null && $pfpId !== '' ? $pfpId : 'default';
-    if (in_array($pfpId, PRESET_IDS, true)) {
-        return null;
-    }
-    return '/uploads/pfp/' . basename($pfpId);
+    return aghi_avatar_url($pfpId);
 }
 
 $pdo = get_db();

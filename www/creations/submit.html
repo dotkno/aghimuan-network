@@ -785,6 +785,9 @@ $needsVerification = (int)($me['is_verified'] ?? 0) !== 1;
   </div>
 </div>
 
+<script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/aghi-config.js"></script>
+<script src="/js/emoji-picker-core.js" defer></script>
 <script src="/js/account-widget.js" defer></script>
 <script src="/js/user-profile-popup.js" defer></script>
 <script src="/js/member-list.js" defer></script>
@@ -793,7 +796,7 @@ $needsVerification = (int)($me['is_verified'] ?? 0) !== 1;
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  const firebaseConfig = {
+  const firebaseConfig = (window.AGHI_CONFIG && window.AGHI_CONFIG.firebase) || {
     apiKey: "AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE",
     authDomain: "aghimuan-network.firebaseapp.com",
     projectId: "aghimuan-network",
@@ -1109,8 +1112,8 @@ $needsVerification = (int)($me['is_verified'] ?? 0) !== 1;
   /* ---- collaborators (autocomplete over /api/user-list.php) ---- */
   function personAvatar(u, cls = 'suggest-av') {
     const name = u.username || '?';
-    if (u.avatarUrl) return `<span class="${cls}"><img src="${escapeHtml(u.avatarUrl)}" alt=""></span>`;
     const color = PFP_COLORS[u.pfpId] || PFP_COLORS.default;
+    if (u.avatarUrl) return `<span class="${cls}"><img src="${escapeHtml(u.avatarUrl)}" alt="" data-avatar-name="${escapeHtml(name)}" data-avatar-color="${escapeHtml(color)}"></span>`;
     return `<span class="${cls}" style="background:${color}">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
   }
 
@@ -1330,7 +1333,7 @@ $needsVerification = (int)($me['is_verified'] ?? 0) !== 1;
     const coverStyle = coverFocus ? ` style="object-position:${coverFocus.x}% ${coverFocus.y}%"` : '';
     $('#reviewBox').innerHTML = `
       <div class="review-card">
-        <div class="review-cover">${cover ? `<img src="${escapeHtml(cover)}" alt=""${coverStyle}>` : `<span>NO COVER IMAGE</span>`}</div>
+        <div class="review-cover">${cover ? `<img src="${escapeHtml(cover)}" alt=""${coverStyle} data-fallback="hide">` : `<span>NO COVER IMAGE</span>`}</div>
         <div class="review-body">
           <div class="review-title">${escapeHtml(title)}</div>
           <div class="review-meta">${escapeHtml(CAT_LABELS[category] || 'Uncategorized')}</div>
@@ -1413,7 +1416,7 @@ $needsVerification = (int)($me['is_verified'] ?? 0) !== 1;
     const box = document.getElementById('mediaPreview');
     box.innerHTML = uploadedUrls.map((url, i) => `
       <div class="media-item${i === 0 ? ' is-cover' : ''}">
-        <img src="${escapeHtml(url)}" alt="Upload ${i + 1}" loading="lazy">
+        <img src="${escapeHtml(url)}" alt="Upload ${i + 1}" loading="lazy" data-fallback="hide">
         ${i === 0 ? `<span class="media-cover-flag">COVER</span>` : `<span class="media-num">#${i + 1}</span>`}
         <div class="media-tools">
           ${i === 0 ? `<button type="button" class="mini-btn" data-adjust="1" title="Position the cover crop">⤢ Adjust</button>` : ''}

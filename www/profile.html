@@ -1024,7 +1024,7 @@ try {
       <div class="profile-card">
         <div class="profile-banner">
           <?php if ($bannerId): ?>
-            <img class="profile-banner-img" src="/uploads/banner/<?php echo htmlspecialchars(basename($bannerId)); ?>" alt="">
+            <img class="profile-banner-img" src="/uploads/banner/<?php echo htmlspecialchars(basename($bannerId)); ?>" alt="" data-fallback="hide">
           <?php else: ?>
             <div class="profile-banner-fallback" aria-hidden="true"></div>
           <?php endif; ?>
@@ -1046,7 +1046,7 @@ try {
                   $color = $presetColors[$pfpId] ?? $presetColors['default'];
                   echo '<div class="profile-avatar-mono" style="background-color:' . htmlspecialchars($color) . ';">' . htmlspecialchars(mb_strtoupper(mb_substr($user['username'], 0, 1))) . '</div>';
               } else {
-                  echo '<div class="profile-avatar"><img src="/uploads/pfp/' . htmlspecialchars(basename($pfpId)) . '" alt="' . htmlspecialchars($user['username']) . '"></div>';
+                  echo '<div class="profile-avatar"><img src="/uploads/pfp/' . htmlspecialchars(basename($pfpId)) . '" alt="' . htmlspecialchars($user['username']) . '" data-avatar-name="' . htmlspecialchars($user['username']) . '"></div>';
               }
               ?>
             </div>
@@ -1231,6 +1231,9 @@ try {
   </div>
 </div>
 
+<script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/aghi-config.js"></script>
+<script src="/js/emoji-picker-core.js" defer></script>
 <script src="/js/account-widget.js" defer></script>
 <script src="/js/user-profile-popup.js" defer></script>
 <script src="/js/member-list.js" defer></script>
@@ -1238,7 +1241,7 @@ try {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  const firebaseConfig = {
+  const firebaseConfig = (window.AGHI_CONFIG && window.AGHI_CONFIG.firebase) || {
     apiKey: "AIzaSyAavb6fsEoM2r55AIFG2uHZAOQBg2YPGIE",
     authDomain: "aghimuan-network.firebaseapp.com",
     projectId: "aghimuan-network",
@@ -1316,7 +1319,7 @@ try {
         const images = (c.media || []).filter(m => m.type === 'image' && m.src);
         const pos = c.coverFocus ? `${c.coverFocus.x}% ${c.coverFocus.y}%` : '50% 50%';
         const thumbnail = images.length > 0
-          ? `<img src="${escapeHtml(images[0].src)}" alt="${escapeHtml(c.title)}" loading="lazy" style="object-position:${pos}">`
+          ? `<img src="${escapeHtml(images[0].src)}" alt="${escapeHtml(c.title)}" loading="lazy" style="object-position:${pos}" data-fallback="hide">`
           : '<div class="placeholder">✦</div>';
         const badge = c.status && c.status !== 'approved'
           ? `<div class="creation-status">${escapeHtml(c.status)}</div>` : '';

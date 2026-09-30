@@ -16,6 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <!-- Global Aghimuan Integrations (no comment/reaction UI on this page) -->
+<script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/emoji-picker-core.js" defer></script>
 <script src="/js/account-widget.js" defer></script>
 <script src="/js/user-profile-popup.js" defer></script>
 <script src="/js/member-list.js" defer></script>
@@ -730,10 +732,10 @@ function creatorAvatarHTML(it, lg = false) {
   const name = it.creator || 'Unknown student';
   const cls = 'creator-avatar' + (lg ? ' creator-avatar--lg' : '');
   const tip = `View ${name}'s profile`;
-  if (it.creatorAvatarUrl) {
-    return `<span class="${cls} is-img" ${profileTrigger(it)} title="${esc(tip)}"><img src="${esc(it.creatorAvatarUrl)}" alt="" loading="lazy" decoding="async"></span>`;
-  }
   const color = it.creatorAvatarColor || PFP_PRESET_COLORS[it.creatorPfpId] || PFP_PRESET_COLORS.default;
+  if (it.creatorAvatarUrl) {
+    return `<span class="${cls} is-img" ${profileTrigger(it)} title="${esc(tip)}"><img src="${esc(it.creatorAvatarUrl)}" alt="" loading="lazy" decoding="async" data-avatar-name="${esc(name)}" data-avatar-color="${esc(color)}"></span>`;
+  }
   return `<span class="${cls}" style="background:${color}" ${profileTrigger(it)} title="${esc(tip)}"><span aria-hidden="true">${esc(initials(name))}</span></span>`;
 }
 
@@ -864,7 +866,7 @@ function cardHTML(it, i) {
   return `<article class="library-card" data-cat="${esc(it.category)}" data-id="${esc(it.id)}" tabindex="0" role="button"
     aria-label="${esc(it.title)} by ${esc(it.creator)}: open details" style="animation-delay:${Math.min(i * 45, 420)}ms">
     <div class="cover-art">
-      ${imgM ? `<img class="cover-art-img" src="${esc(imgM.src)}" alt="" loading="lazy" decoding="async" style="object-position:${coverPos(it)}">` : fallbackHTML(it)}
+      ${imgM ? `<img class="cover-art-img" src="${esc(imgM.src)}" alt="" loading="lazy" decoding="async" style="object-position:${coverPos(it)}" data-fallback="hide">` : fallbackHTML(it)}
       <span class="cover-sheen" aria-hidden="true"></span>
       ${it.url ? `<button type="button" class="cover-link" data-ext="${esc(it.url)}" aria-label="Open external project link in a new tab"><svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></button>` : ''}
       ${hasVideo ? `<span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Video</span>` : ''}
@@ -892,7 +894,7 @@ function spotlightHTML(f) {
     : '';
   return `<article class="spotlight-card" data-cat="${esc(f.category)}">
     <div class="spotlight-media cover-art">
-      ${imgM ? `<img src="${esc(imgM.src)}" alt="" decoding="async" style="object-position:${coverPos(f)}">` : fallbackHTML(f)}
+      ${imgM ? `<img src="${esc(imgM.src)}" alt="" decoding="async" style="object-position:${coverPos(f)}" data-fallback="hide">` : fallbackHTML(f)}
     </div>
     <div class="spotlight-body">
       <div class="spotlight-toprow">
@@ -1031,7 +1033,7 @@ function buildModal(it) {
   const stage = gallery.length ? `
       <div class="detail-stage" data-cat="${esc(it.category)}">
         <img class="detail-stage-img" id="detailStageImg" src="${esc(gallery[0].src)}"
-             alt="${esc(it.title)}: image 1 of ${gallery.length}" data-lb-open style="object-position:${coverPos(it)}">
+             alt="${esc(it.title)}: image 1 of ${gallery.length}" data-lb-open data-fallback="hide" style="object-position:${coverPos(it)}">
         ${gallery.length > 1 ? `
         <button type="button" class="icon-btn stage-nav stage-prev" data-stage="-1" aria-label="Previous image"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg></button>
         <button type="button" class="icon-btn stage-nav stage-next" data-stage="1" aria-label="Next image"><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>` : ''}
@@ -1040,7 +1042,7 @@ function buildModal(it) {
       </div>
       ${gallery.length > 1 ? `
       <div class="detail-thumbs" id="detailThumbs" role="group" aria-label="Project images">
-        ${gallery.map((m, i) => `<button type="button" data-thumb="${i}" class="${i === 0 ? 'is-on' : ''}"${i === 0 ? ' aria-current="true"' : ''} aria-label="Show image ${i + 1}"><img src="${esc(m.src)}" alt="" loading="lazy" decoding="async"></button>`).join('')}
+        ${gallery.map((m, i) => `<button type="button" data-thumb="${i}" class="${i === 0 ? 'is-on' : ''}"${i === 0 ? ' aria-current="true"' : ''} aria-label="Show image ${i + 1}"><img src="${esc(m.src)}" alt="" loading="lazy" decoding="async" data-fallback="hide"></button>`).join('')}
       </div>` : ''}` : '';
 
   $('#hubModal').innerHTML = `

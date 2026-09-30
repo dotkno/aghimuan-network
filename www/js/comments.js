@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const PFP_PRESETS = [
+  const FALLBACK_PRESETS = [
     { id: 'default',      color: '#5F5E5A' },
     { id: 'circuit-blue', color: '#185FA5' },
     { id: 'circuit-cyan', color: '#0F6E56' },
@@ -17,7 +17,8 @@
     { id: 'chip-green',   color: '#3B6D11' },
     { id: 'signal-pink',  color: '#993556' },
   ];
-  const PRESET_IDS = PFP_PRESETS.map((p) => p.id);
+  const PFP_PRESETS = (window.AGHI_CONFIG && window.AGHI_CONFIG.presets) || FALLBACK_PRESETS;
+  const PRESET_IDS = ((window.AGHI_CONFIG && window.AGHI_CONFIG.presetIds) || PFP_PRESETS.map((p) => p.id));
   const MAX_COMMENT_LENGTH = 500;
   const POLL_INTERVAL_MS = 4000;
   const DRIP_DELAY_MS = 1000;
@@ -87,10 +88,18 @@
       el.innerHTML = `<span>${escapeHtml(monogram(username))}</span>`;
     }
     if (isCustomAvatar(pfpId)) {
-      const img = new Image();
-      img.onload = () => { el.style.backgroundImage = `url('${img.src}')`; el.style.backgroundColor = '#0a1520'; };
-      img.onerror = showMonogram;
-      img.src = `/uploads/pfp/${encodeURIComponent(pfpId)}`;
+      // Shared ghost-file cache: a missing upload is requested ONCE per
+      // page load, then monogram forever (this rebuilds every poll tick).
+      const url = `/uploads/pfp/${encodeURIComponent(pfpId)}`;
+      const fb = window.AghiImgFallback;
+      if (fb) {
+        fb.probe(url, () => { el.style.backgroundImage = `url('${url}')`; el.style.backgroundColor = '#0a1520'; }, showMonogram);
+      } else {
+        const img = new Image();
+        img.onload = () => { el.style.backgroundImage = `url('${img.src}')`; el.style.backgroundColor = '#0a1520'; };
+        img.onerror = showMonogram;
+        img.src = url;
+      }
     } else {
       showMonogram();
     }

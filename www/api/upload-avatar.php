@@ -20,19 +20,16 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/app-config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2MB — mirrors AGHI_MAX_AVATAR_BYTES in app-config.php
 const WEBP_QUALITY     = 85;
 
-// Keep this identical to PRESET_IDS in profile.php / PFP_PRESETS ids in the widget —
-// anything NOT in this list is treated as an uploaded filename on disk.
-const PRESET_IDS = [
-    'default', 'circuit-blue', 'circuit-cyan', 'node-teal',
-    'spark-orange', 'wire-purple', 'chip-green', 'signal-pink',
-];
+// Preset rule owned by includes/app-config.php —
+// anything NOT in aghi_preset_ids() is treated as an uploaded filename on disk.
 
 // Uploaded ids are always generated below as u<userId>_<12hex>.webp —
 // profile.php validates bannerId against the same shape.
@@ -195,7 +192,7 @@ if ($kind === 'banner') {
 }
 
 $old = (string) $user['pfp_id'];
-if (!in_array($old, PRESET_IDS, true)) {
+if (!in_array($old, AGHI_PRESET_IDS, true)) {
     $oldPath = $uploadDir . '/' . basename($old);
     if (is_file($oldPath)) {
         @unlink($oldPath);
