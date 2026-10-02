@@ -120,3 +120,7 @@ body {
   top: auto; left: auto; z-index: auto;
   flex-shrink: 0;
 }
+/* Kill sideways scrolling site-wide without breaking sticky headers
+   (overflow-x:hidden would turn an ancestor into a scroll container and
+   disable position:sticky; clip does not). */
+html, body { overflow-x: clip; }

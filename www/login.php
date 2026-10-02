@@ -240,6 +240,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: var(--steel);
       letter-spacing: 0.05em;
     }
+    .brand-footer .brand-sub {
+      display: block;
+      margin-top: 4px;
+      opacity: 0.75;
+    }
+    .brand-footer a {
+      color: inherit;
+    }
 
     .form-pane {
       display: flex;
@@ -523,6 +531,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="brand-footer">
         © AGHIMUAN NETWORK - CONNECT INNOVATE EXPLORE
+        <span class="brand-sub">© 2025–2026 <a href="https://renyuzaki.me" target="_blank" rel="noopener">renyuzaki</a> · All rights reserved.</span>
       </div>
     </section>
 

@@ -24,6 +24,8 @@ require_reviewer_access();
   * { box-sizing:border-box; }
   html, body { margin:0; padding:0; min-height:100%; width:100%; overscroll-behavior:none; }
   html { background:#03030f; }
+  /* No sideways scrolling (clip, not hidden, so the sticky header keeps working). */
+  html, body { overflow-x: clip; }
   body { font-family:'Rajdhani',sans-serif; background:radial-gradient(ellipse at 50% 20%, #0a1029 0%, var(--bg) 80%); color:#fff; min-height:100vh; }
   .font-display { font-family:'Orbitron',sans-serif; letter-spacing:0.05em; }
   .neon-pink { color:var(--pink); text-shadow:0 0 8px var(--pink),0 0 16px rgba(48,150,199,0.6); }
@@ -89,19 +91,26 @@ require_reviewer_access();
   }
 </style>
 </head>
-<body class="bg-grid relative min-h-screen flex flex-col justify-between overflow-x-hidden">
+<body class="bg-grid relative min-h-screen flex flex-col justify-between">
 
 <div class="scanline-effect"></div>
 
 <div>
   <!-- Standard Header -->
   <header class="sticky top-0 z-30 px-4 md:px-8 py-3 flex items-center justify-between bg-black/70 backdrop-blur-md border-b border-[#3096C7]/30">
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="btn-neon w-8 h-8 md:w-9 md:h-9 rounded-full bg-black/50 border border-[#3096C7]/40 flex items-center justify-center text-[#3096C7] text-sm" title="Back to Aghimuan Network" aria-label="Back to Aghimuan Network">&#8592;</a>
-      <div class="text-lg md:text-2xl font-display font-black neon-pink">AGHIMUAN</div>
-      <div class="text-lg md:text-2xl font-display font-black text-white/80">LIBRARY</div>
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="index.html" class="btn-neon w-8 h-8 md:w-9 md:h-9 rounded-full bg-black/50 border border-[#3096C7]/40 flex items-center justify-center text-[#3096C7] text-sm flex-shrink-0" title="Back to Aghimuan Network" aria-label="Back to Aghimuan Network">&#8592;</a>
+      <span class="hidden sm:flex items-center gap-3 min-w-0">
+        <span class="text-lg md:text-2xl font-display font-black neon-pink truncate">AGHIMUAN</span>
+        <span class="text-lg md:text-2xl font-display font-black text-white/80 truncate">LIBRARY</span>
+      </span>
+      <span class="sm:hidden flex items-center gap-1.5 min-w-0" aria-label="Aghimuan Library">
+        <span class="text-lg font-display font-black neon-pink truncate">AGHI</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#55F1F8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 8h7"/></svg>
+      </span>
     </div>
     <div class="flex items-center gap-3">
+      <?php echo reviewer_account_inline(); ?>
       <div class="text-[9px] md:text-[10px] uppercase tracking-[0.25em] text-white/40 font-display hidden sm:inline">PCU-D &middot; ICT</div>
       <a href="/library/reviewer-logout.php" class="btn-neon w-8 h-8 md:w-9 md:h-9 rounded-full bg-black/50 border border-red-400/40 flex items-center justify-center text-red-400 text-sm" title="Sign out of PCU account" aria-label="Sign out of PCU account">&#9099;</a>
     </div>

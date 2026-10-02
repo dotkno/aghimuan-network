@@ -117,7 +117,10 @@ require_reviewer_access();
         <h1 id="pageTitle" class="font-display text-sm md:text-base font-bold neon-subject truncate leading-tight">REVIEWER</h1>
       </div>
     </div>
-    <div id="crumb" class="font-display text-[9px] md:text-[10px] tracking-[0.2em] text-white/50 uppercase truncate ml-2"></div>
+    <div class="flex items-center gap-3 min-w-0 flex-shrink-0">
+      <div id="crumb" class="font-display text-[9px] md:text-[10px] tracking-[0.2em] text-white/50 uppercase truncate ml-2"></div>
+      <?php echo reviewer_account_inline(true); ?>
+    </div>
   </header>
 
   <!-- Address / Breadcrumb Bar -->
