@@ -9,6 +9,8 @@ What members can do here:
 - Read announcements and events posted by officers
 - Comment, react, add friends, block or report users, and send DMs
 - Submit projects to the Creations Hub (officers approve them first)
+- Browse the Resource Hub: free, hand-picked links for ICT classes. Anyone
+  can read it, members can save favourites and suggest new links
 - Open reviewers in the Library (needs a verified PCU email)
 - Play the mini games in the Games section
 
@@ -35,15 +37,21 @@ www/                  the actual website, what visitors see
   login.php           password login plus Google sign-in
   logout.php          ends the session
   admin.php           admin panel, has its own separate login
-  api/                handles app actions: comments, DMs, friends, reactions, uploads
+  resources/          the Resource Hub: link library plus the suggest form
+  api/                handles app actions: comments, DMs, friends, reactions,
+                      uploads, and Resource Hub entries
   includes/db.php     the one place the database gets opened, also updates tables
   includes/session.php logins, security tokens, session checks
   library/            reviewer pages, locked to PCU emails
   games/              mini games
   creations/          project showcase pages
   uploads/            member uploads like avatars (not saved in git)
+  robots.txt          tells search engines what to crawl
+  sitemap.php         writes sitemap.xml, served at /sitemap.xml
+  llms.txt            short plain-text summary for search and AI assistants
 data/                 stays off the public web
   library-content/    reviewer lessons (not saved in git, PCU only)
+  library-pdfs/       offline PDF reviewers (not saved in git, PCU only)
 modules/              background services: web server, certificates, schedules
 nginx/ php/           server settings
 start-modules.sh      starts everything on the server
@@ -57,15 +65,20 @@ start-modules.sh      starts everything on the server
   or logins break.
 - The main site and the Library reviewers each have their own login.
   Never mix their checks.
+- Anyone can read the Resource Hub, but only the admin panel's Resources
+  tab can approve, feature, or reject an entry. A student's suggestion sits
+  at "pending" until an officer looks at it, and only that one place can
+  change the status.
 - Answers from the server are always in the same shape: success
   (`{ ok: true, ... }`) or an error code (`{ ok: false, error }`).
 
 ## Please note
 
-The Library reviewer lessons (`data/library-content/`) are missing from this
-repo on purpose and only exist on the live server. They are only for verified
-PCU emails. The code that runs them, like the gate and the quiz pages, is
-still here. Just not the lesson files themselves.
+The Library reviewer lessons (`data/library-content/`) and the offline PDF
+reviewers (`data/library-pdfs/`) are missing from this repo on purpose and
+only exist on the live server. They are only for verified PCU emails. The
+code that runs them, like the gates and the quiz pages, is still here. Just
+not the lesson and PDF files themselves.
 
 If you clone this repo, expect that gap. That is normal.
 
