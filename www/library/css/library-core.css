@@ -90,8 +90,6 @@ body {
 }
 .shake { animation: shake .4s; }
 
-.hidden { display: none!important; }
-
 @media (prefers-reduced-motion: reduce) {
   .pulse-glow, .flicker, .fade-up, .shake { animation: none!important; }
 }

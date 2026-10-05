@@ -49,6 +49,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Log in — Aghimuan Network</title>
+  <meta name="description" content="Log in to Aghimuan Network with Google or your password to reach projects, reviewers, and the PCU-D ICT community.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Aghimuan">
+  <meta property="og:title" content="Log in — Aghimuan Network">
+  <meta property="og:description" content="Log in to Aghimuan Network with Google or your password to reach projects, reviewers, and the PCU-D ICT community.">
+  <meta property="og:url" content="https://aghimuan.online/login.php">
+  <meta property="og:image" content="https://aghimuan.online/og-banner.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Log in — Aghimuan Network">
+  <meta name="twitter:description" content="Log in to Aghimuan Network with Google or your password to reach projects, reviewers, and the PCU-D ICT community.">
+  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+  <link rel="canonical" href="https://aghimuan.online/login.php">
+  <link rel="describedby" href="https://aghimuan.online/llms.txt">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -510,7 +523,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <span class="status-dot"></span>
           <span>MEMBER PORTAL</span>
         </div>
-        <h1 class="hero-heading">Welcome back to the <span class="accent">network</span>.</h1>
+        <div class="hero-heading">Welcome back to the <span class="accent">network</span>.</div>
         <p class="hero-subtext">Access your account to engage with projects, reviewers, and ICT community activities at PCU-D.</p>
 
         <div class="tech-card-grid">

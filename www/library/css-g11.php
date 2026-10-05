@@ -9,7 +9,9 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <meta charset="UTF-8">
-<title>Aghimuan Library — Redirecting.</title>
+<title>Aghimuan Library — Redirecting…</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://aghimuan.online/library/topics.php?subject=CSS&grade=11">
 </head>
 <body style="background:#03030f;">
   <script>

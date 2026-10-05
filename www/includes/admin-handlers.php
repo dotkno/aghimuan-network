@@ -16,6 +16,57 @@ function sanitize_post_html($html) {
     return $html;
 }
 
+/**
+ * Re-encode an announcement photo into a bounded WebP (max 1600px, q80).
+ * Same model as api/creation-upload.php: getimagesize() gates real images,
+ * GD re-encode strips EXIF/payloads. Returns the 'uploads/...' web path
+ * or false when conversion isn't possible (caller falls back to raw move).
+ */
+function aghi_admin_convert_photo(string $tmp, string $uploads_dir, array &$upload_debug, string $orig_name) {
+    $info = @getimagesize($tmp);
+    if ($info === false) {
+        return false;
+    }
+    $loaders = [
+        IMAGETYPE_JPEG => 'imagecreatefromjpeg',
+        IMAGETYPE_PNG  => 'imagecreatefrompng',
+        IMAGETYPE_WEBP => 'imagecreatefromwebp',
+    ];
+    if (!isset($loaders[$info[2]])) {
+        return false;
+    }
+    $loaderFn = $loaders[$info[2]];
+    $src = @$loaderFn($tmp);
+    if (!$src) {
+        return false;
+    }
+    $srcW = imagesx($src);
+    $srcH = imagesy($src);
+    $maxSize = 1600;
+    if ($srcW > $maxSize || $srcH > $maxSize) {
+        $ratio = min($maxSize / $srcW, $maxSize / $srcH);
+        $newW = (int) ($srcW * $ratio);
+        $newH = (int) ($srcH * $ratio);
+        $dest = imagecreatetruecolor($newW, $newH);
+        imagealphablending($dest, false);
+        imagesavealpha($dest, true);
+        $transparent = imagecolorallocatealpha($dest, 0, 0, 0, 127);
+        imagefilledrectangle($dest, 0, 0, $newW, $newH, $transparent);
+        imagecopyresampled($dest, $src, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
+        imagedestroy($src);
+        $src = $dest;
+    }
+    $filename = 'announcement_' . time() . '_' . bin2hex(random_bytes(4)) . '.webp';
+    $fullPath = rtrim($uploads_dir, '/') . '/' . $filename;
+    if (!@imagewebp($src, $fullPath, 80)) {
+        imagedestroy($src);
+        $upload_debug[] = "\"$orig_name\" skipped: WebP conversion failed, saved original instead.";
+        return false;
+    }
+    imagedestroy($src);
+    return 'uploads/' . $filename;
+}
+
 function handle_create_announcement(PDO $pdo): array {
     $upload_debug = [];
     $text = sanitize_post_html(trim($_POST['content'] ?? ''));
@@ -90,7 +141,16 @@ function handle_create_announcement(PDO $pdo): array {
             $filename = 'announcement_' . time() . '_' . $i . '_' . rand(100, 999) . '.' . $ext;
             $destination = $uploads_dir . '/' . $filename;
 
-            if (move_uploaded_file($tmp, $destination)) {
+            // Photos: re-encode through GD into a bounded WebP (same pipeline
+            // as api/creation-upload.php) so announcement galleries stay fast.
+            // GIFs are kept as-is to preserve animation.
+            $converted = false;
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true) && extension_loaded('gd')) {
+                $converted = aghi_admin_convert_photo($tmp, $uploads_dir, $upload_debug, $orig_name);
+            }
+            if ($converted !== false) {
+                $images[] = $converted;
+            } elseif (move_uploaded_file($tmp, $destination)) {
                 $images[] = 'uploads/' . $filename;
             } else {
                 $upload_debug[] = "\"$orig_name\" failed: move_uploaded_file() could not write to $destination. Check that uploads/ is writable by the web server user.";
@@ -623,6 +683,185 @@ function handle_creation_delete(PDO $pdo): array {
     return ['success' => 'Creation "' . $row['title'] . '" deleted.'];
 }
 
+/**
+ * Notify a resource's suggester about a review decision. Best-effort: a
+ * failed insert must never block moderation. Staff-seeded rows (NULL
+ * submitted_by) have nobody to notify.
+ */
+function notify_resource_suggester(PDO $pdo, array $row, string $type, string $text, ?string $reason = null): void {
+    $uid = isset($row['submitted_by']) ? (int) $row['submitted_by'] : 0;
+    if ($uid <= 0) {
+        return;
+    }
+    try {
+        create_notification($pdo, $uid, $type, null, [
+            'text' => $text,
+            'title' => $row['title'],
+            'reason' => $reason,
+            'resourceId' => (int) $row['id'],
+        ]);
+    } catch (PDOException $e) {
+    }
+}
+
+function handle_resource_review(PDO $pdo): array {
+    $resourceId = (int) ($_POST['resource_id'] ?? 0);
+    $decision = $_POST['decision'] ?? '';
+    $reason = trim($_POST['rejection_reason'] ?? '');
+
+    if ($resourceId <= 0) {
+        return ['error' => 'No resource selected.'];
+    }
+    if (!in_array($decision, ['approve', 'reject'], true)) {
+        return ['error' => 'Invalid review decision.'];
+    }
+
+    $stmt = $pdo->prepare('SELECT id, title, status, submitted_by FROM resources WHERE id = :id');
+    $stmt->execute([':id' => $resourceId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['error' => 'That resource no longer exists.'];
+    }
+
+    if ($decision === 'approve') {
+        $pdo->prepare(
+            "UPDATE resources SET status = 'approved', rejection_reason = NULL, updated_at = datetime('now') WHERE id = :id"
+        )->execute([':id' => $resourceId]);
+        notify_resource_suggester(
+            $pdo,
+            $row,
+            'resource_approved',
+            'Your suggestion "' . $row['title'] . '" was approved and is now live in the Resource Hub.'
+        );
+        return ['success' => 'Resource "' . $row['title'] . '" approved — it is now live in the hub.'];
+    }
+
+    $pdo->prepare(
+        "UPDATE resources SET status = 'rejected', rejection_reason = :r, updated_at = datetime('now') WHERE id = :id"
+    )->execute([':id' => $resourceId, ':r' => $reason !== '' ? $reason : null]);
+    $reasonSuffix = $reason !== ''
+        ? ' Reason given: "' . $reason . '".'
+        : ' You can revise and suggest it again.';
+    notify_resource_suggester(
+        $pdo,
+        $row,
+        'resource_rejected',
+        'Your suggestion "' . $row['title'] . '" was not approved.' . $reasonSuffix,
+        $reason !== '' ? $reason : null
+    );
+    return ['success' => 'Resource "' . $row['title'] . '" rejected.'];
+}
+
+function handle_resource_feature(PDO $pdo): array {
+    $resourceId = (int) ($_POST['resource_id'] ?? 0);
+    $featured = $_POST['featured'] ?? '';
+
+    if ($resourceId <= 0) {
+        return ['error' => 'No resource selected.'];
+    }
+
+    $stmt = $pdo->prepare('SELECT id, title, status, featured FROM resources WHERE id = :id');
+    $stmt->execute([':id' => $resourceId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['error' => 'That resource no longer exists.'];
+    }
+    if ($row['status'] !== 'approved') {
+        return ['error' => 'Only approved resources can be featured. Approve it first.'];
+    }
+
+    if ($featured === '' || $featured === 'none' || $featured === '0') {
+        $pdo->prepare(
+            "UPDATE resources
+             SET featured = 0, featured_at = NULL, updated_at = datetime('now')
+             WHERE id = :id"
+        )->execute([':id' => $resourceId]);
+        return ['success' => 'Resource "' . $row['title'] . '" removed from staff picks.'];
+    }
+
+    $pdo->prepare(
+        "UPDATE resources
+         SET featured = 1, featured_at = datetime('now'), updated_at = datetime('now')
+         WHERE id = :id"
+    )->execute([':id' => $resourceId]);
+    return ['success' => 'Resource "' . $row['title'] . '" is now a staff pick.'];
+}
+
+function handle_resource_delete(PDO $pdo): array {
+    $resourceId = (int) ($_POST['resource_id'] ?? 0);
+    if ($resourceId <= 0) {
+        return ['error' => 'No resource selected.'];
+    }
+
+    $stmt = $pdo->prepare('SELECT id, title FROM resources WHERE id = :id');
+    $stmt->execute([':id' => $resourceId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['error' => 'That resource no longer exists.'];
+    }
+
+    // Favorites cascade via the resource_favorites foreign key — no orphans.
+    $pdo->prepare('DELETE FROM resources WHERE id = :id')->execute([':id' => $resourceId]);
+    return ['success' => 'Resource "' . $row['title'] . '" deleted.'];
+}
+
+function handle_resource_seed(PDO $pdo): array {
+    require_once __DIR__ . '/resources-lib.php';
+
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $category = trim($_POST['category'] ?? 'other');
+    $resType = trim($_POST['type'] ?? 'website');
+    $urlInput = trim($_POST['url'] ?? '');
+    $tagsInput = trim($_POST['tags'] ?? '');
+
+    if ($title === '' || mb_strlen($title) > RESOURCE_MAX_TITLE_LENGTH) {
+        return ['error' => 'Title is required (max ' . RESOURCE_MAX_TITLE_LENGTH . ' characters).'];
+    }
+    if ($description === '' || mb_strlen($description) > RESOURCE_MAX_DESCRIPTION_LENGTH) {
+        return ['error' => 'Description is required (max ' . RESOURCE_MAX_DESCRIPTION_LENGTH . ' characters).'];
+    }
+    if (!in_array($category, RESOURCE_CATEGORIES, true)) {
+        return ['error' => 'Invalid category.'];
+    }
+    if (!in_array($resType, RESOURCE_TYPES, true)) {
+        return ['error' => 'Invalid type.'];
+    }
+    $urlNorm = normalize_resource_url($urlInput);
+    if ($urlNorm === null) {
+        return ['error' => 'Link must be a valid http(s) URL.'];
+    }
+
+    $dup = $pdo->prepare('SELECT id, status FROM resources WHERE url_norm = :n');
+    $dup->execute([':n' => $urlNorm]);
+    if ($existing = $dup->fetch()) {
+        return ['error' => 'That link is already in the hub (status: ' . $existing['status'] . ').'];
+    }
+
+    $tags = array_values(array_filter(array_map(
+        fn($t) => mb_substr(trim((string) $t), 0, RESOURCE_MAX_TAG_LENGTH),
+        array_slice(explode(',', $tagsInput), 0, RESOURCE_MAX_TAGS)
+    ), fn($t) => $t !== ''));
+
+    // Staff-seeded rows go live immediately with no suggester attached.
+    $pdo->prepare(
+        "INSERT INTO resources
+            (title, description, category, type, url, url_norm, tags,
+             submitted_by, status, created_at, updated_at)
+         VALUES (:title, :description, :category, :type, :url, :url_norm, :tags,
+             NULL, 'approved', datetime('now'), datetime('now'))"
+    )->execute([
+        ':title' => $title,
+        ':description' => $description,
+        ':category' => $category,
+        ':type' => $resType,
+        ':url' => $urlInput,
+        ':url_norm' => $urlNorm,
+        ':tags' => !empty($tags) ? json_encode(array_values($tags)) : null,
+    ]);
+    return ['success' => 'Resource "' . $title . '" added to the hub.'];
+}
+
 function handle_post_actions(PDO $pdo): array {
     $result = [];
     
@@ -719,6 +958,30 @@ function handle_post_actions(PDO $pdo): array {
         $creation_result = handle_creation_delete($pdo);
         if (isset($creation_result['success'])) $result['creation_success'] = $creation_result['success'];
         if (isset($creation_result['error'])) $result['creation_error'] = $creation_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'resource_review' && is_logged_in()) {
+        $resource_result = handle_resource_review($pdo);
+        if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
+        if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'resource_feature' && is_logged_in()) {
+        $resource_result = handle_resource_feature($pdo);
+        if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
+        if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'resource_delete' && is_logged_in()) {
+        $resource_result = handle_resource_delete($pdo);
+        if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
+        if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'resource_seed' && is_logged_in()) {
+        $resource_result = handle_resource_seed($pdo);
+        if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
+        if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
     }
 
     return $result;

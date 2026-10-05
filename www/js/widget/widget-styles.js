@@ -22,7 +22,8 @@ window.AghiWidgetUtil.injectStyles = function () {
       .aghi-aw-guest a.aghi-aw-signup { color: var(--cyan); border: 1px solid var(--glass-border-active); border-radius: 6px; padding: 6px 14px; background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
       .aghi-aw-guest a.aghi-aw-signup:hover { background: var(--glass-bg-hover); }
 
-      .aghi-aw-row { display: flex; align-items: center; gap: 8px; }
+      #aghi-account-widget { display: flex; flex-shrink: 0; min-width: 0; }
+      .aghi-aw-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; }
 
       .aghi-aw-inbox-btn { width: 38px; height: 38px; border-radius: 9px; position: relative; display: flex; align-items: center; justify-content: center; color: var(--silver); text-decoration: none; cursor: pointer; background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 0; margin: 0; font: inherit; -webkit-appearance: none; appearance: none; transition: all 0.18s ease; }
       .aghi-aw-inbox-btn:hover { color: var(--white); border-color: rgba(85, 241, 248, 0.55); background: var(--glass-bg-hover); }
@@ -542,6 +543,23 @@ window.AghiWidgetUtil.injectStyles = function () {
         .aghi-aw-dm-panel-full.aghi-aw-dm-has-thread .aghi-aw-dm-full-sidebar { display: none; }
         .aghi-aw-dm-panel-full:not(.aghi-aw-dm-has-thread) .aghi-aw-dm-chat-area { display: none; }
         .aghi-aw-dm-msg { max-width: 86%; }
+      }
+
+      /* Compact topbar row on small screens: shrink the icon buttons
+         uniformly so the row stays on one line instead of wrapping. */
+      @media (max-width: 480px) {
+        .aghi-aw-row { gap: 6px; }
+        .aghi-aw-inbox-btn, .aghi-aw-avatar-btn { width: 33px; height: 33px; border-radius: 8px; }
+        .aghi-aw-inbox-btn svg { width: 17px; height: 17px; }
+        .aghi-aw-monogram { font-size: 12px; }
+        .aghi-aw-guest { gap: 10px; }
+        .aghi-aw-guest a { font-size: 13px; }
+        .aghi-aw-guest a.aghi-aw-signup { padding: 5px 11px; }
+      }
+      @media (max-width: 360px) {
+        .aghi-aw-row { gap: 5px; }
+        .aghi-aw-inbox-btn, .aghi-aw-avatar-btn { width: 30px; height: 30px; border-radius: 7px; }
+        .aghi-aw-inbox-btn svg { width: 15px; height: 15px; }
       }
     `;
   document.head.appendChild(style);

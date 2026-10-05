@@ -81,6 +81,7 @@ $liveOk = $me ? db_backup_quick_check($livePath) : false;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>DB Backups — Aghimuan</title>
 <style>
 body { background: #0c0e14; color: #F1F2F5; font-family: system-ui, sans-serif; margin: 0; padding: 24px; }

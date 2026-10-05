@@ -165,6 +165,29 @@ function load_creations(PDO $pdo): array {
     return $grouped;
 }
 
+function load_resources(PDO $pdo): array {
+    $rows = $pdo->query(
+        'SELECT r.*, u.username
+         FROM resources r
+         LEFT JOIN users u ON u.id = r.submitted_by
+         ORDER BY r.created_at DESC'
+    )->fetchAll();
+
+    $grouped = ['pending' => [], 'approved' => [], 'rejected' => [], 'featured' => []];
+    foreach ($rows as $r) {
+        $status = $r['status'] ?? 'pending';
+        if (!isset($grouped[$status])) {
+            $grouped[$status] = [];
+        }
+        $grouped[$status][] = $r;
+        if ($status === 'approved' && !empty($r['featured'])) {
+            $grouped['featured'][] = $r;
+        }
+    }
+
+    return $grouped;
+}
+
 function load_admin_accounts(PDO $pdo): array {
     $admin_count = (int) $pdo->query('SELECT COUNT(*) FROM admin_accounts')->fetchColumn();
     
@@ -190,6 +213,7 @@ function load_dashboard_data(PDO $pdo): array {
     $banned_ips = load_banned_ips($pdo);
     $admin_accounts = load_admin_accounts($pdo);
     $creations = load_creations($pdo);
+    $resources = load_resources($pdo);
 
     $upcoming_events = array_values(array_filter($existing_events, fn($e) => ($e['date'] ?? '') >= date('Y-m-d')));
     $recent_posts = array_slice($existing_posts, 0, 5);
@@ -207,6 +231,7 @@ function load_dashboard_data(PDO $pdo): array {
         'comments_by_user' => $comments_by_user,
         'banned_ips' => $banned_ips,
         'admin_accounts' => $admin_accounts,
-        'creations' => $creations
+        'creations' => $creations,
+        'resources' => $resources
     ];
 }

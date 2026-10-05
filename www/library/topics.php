@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/reviewer-session.php';
 require_reviewer_access();
 ?>
@@ -8,6 +8,9 @@ require_reviewer_access();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aghimuan Library — Topics</title>
+<meta name="description" content="Browse ICT reviewer topics by subject, grade level, and quarter. PCU Gmail sign-in required.">
+<link rel="canonical" href="https://aghimuan.online/library/topics.php">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -112,14 +115,26 @@ require_reviewer_access();
   }
 </style>
 </head>
-<body class="bg-grid relative">
+<body class="bg-grid relative min-h-screen flex flex-col">
 
 <div class="scanline-effect"></div>
+<div style="position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 42%,rgba(2,4,10,.85) 100%);z-index:1"></div>
 
 <!-- Mobile Drawer Overlay Background -->
 <div id="drawer-overlay"></div>
 
-<div class="explorer min-h-screen flex flex-col p-2 sm:p-4 md:p-6">
+<header class="sticky top-0 z-30 px-4 md:px-8 py-3 flex items-center justify-between bg-black/70 backdrop-blur-md border-b border-[#3096C7]/30">
+  <div class="flex items-center gap-3 min-w-0">
+    <span class="text-lg md:text-2xl font-display font-black neon-pink truncate">AGHIMUAN</span>
+    <span class="text-lg md:text-2xl font-display font-black text-white/80 truncate">LIBRARY</span>
+  </div>
+  <div class="flex items-center gap-3 min-w-0">
+    <?php echo reviewer_account_inline(true); ?>
+    <div class="text-[9px] md:text-[10px] uppercase tracking-[0.25em] text-white/40 font-display hidden sm:inline">PCU-D &middot; ICT</div>
+  </div>
+</header>
+
+<div class="explorer flex-1 flex flex-col p-2 sm:p-4 md:p-6" style="position:relative;z-index:2">
   
   <!-- Outer Window Wrapper -->
   <div class="window-card rounded-xl overflow-hidden flex-1 flex flex-col">
@@ -139,7 +154,6 @@ require_reviewer_access();
       </div>
       <div class="flex items-center gap-3 min-w-0 flex-shrink-0">
         <div id="crumb" class="font-display text-[9px] md:text-[10px] tracking-[0.2em] text-white/50 uppercase truncate ml-2"></div>
-        <?php echo reviewer_account_inline(true); ?>
       </div>
     </header>
 
@@ -171,18 +185,25 @@ require_reviewer_access();
     <div class="explorer-body">
       
       <!-- Quarter Sidebar Pane / Mobile Drawer -->
-      <nav id="quarter-pane">
+      <nav id="quarter-pane" style="overflow-x:hidden">
         <div class="px-4 py-3 font-display text-[10px] tracking-[0.3em] text-white/40 border-b border-white/10 flex items-center justify-between bg-black/60">
           <span>DIRECTORIES (QUARTERS)</span>
           <button id="closeQuarterDrawer" class="mobile-only text-white/60 hover:text-white p-1 text-sm font-mono">&times;</button>
         </div>
-        <div id="quarterList" class="flex-1 overflow-y-auto"></div>
+        <div id="quarterList" class="flex-1 overflow-y-auto overflow-x-hidden" style="scrollbar-width:thin;scrollbar-color:rgba(85,241,248,.25) transparent"></div>
       </nav>
 
       <!-- Week Files Pane -->
       <main id="week-pane" class="bg-black/20">
-        <div class="px-4 pt-3 pb-2 font-display text-[10px] tracking-[0.3em] text-white/40 border-b border-white/5 flex items-center justify-between" id="weekPaneHeader">
-          <span id="weekPaneLabel">SELECT A QUARTER</span>
+        <div class="px-4 pt-3 pb-2 border-b border-white/5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <span id="weekPaneLabel" class="font-display text-[10px] tracking-[0.3em] text-white/40">SELECT A QUARTER</span>
+          <a id="quarterPdfBtn" href="#" class="btn-neon flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#55F1F8]/50 text-[#55F1F8] hover:bg-[#55F1F8]/10 hover:text-white transition-colors whitespace-nowrap font-mono text-[11px]" title="Download this quarter as a PDF for offline studying">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/>
+            </svg>
+            <span class="hidden sm:inline">Download this quarter's reviewer (.pdf)</span>
+            <span class="sm:hidden">Download reviewer (.pdf)</span>
+          </a>
         </div>
         <div id="weekList"></div>
       </main>
@@ -199,6 +220,7 @@ require_reviewer_access();
 </div>
 
 <script src="js/shared.js"></script>
+<script src="js/sfx.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
   const subject = (params.get('subject') || '').toUpperCase();
@@ -264,6 +286,8 @@ require_reviewer_access();
 
     function renderWeeks(q) {
       weekPaneLabel.textContent = 'QUARTER ' + q + ' \u00B7 MODULE FILES';
+      document.getElementById('quarterPdfBtn').href =
+        'pdf-gate.php?subject=' + subject.toLowerCase() + '&grade=' + grade + '&quarter=' + q;
       weekList.innerHTML = Array.from({ length: WEEKS_PER_QUARTER }, (_, i) => i + 1).map((w) => `
         <a href="reviewer.php?subject=${subject}&grade=${grade}&quarter=${q}&week=${w}"
            class="row-item btn-neon w-full border-b border-white/5 hover:bg-white/10 group">

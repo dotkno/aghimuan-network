@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/reviewer-session.php';
 require_reviewer_access();
 ?>
@@ -11,6 +11,9 @@ require_reviewer_access();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aghimuan Library — Reviewer</title>
+<meta name="description" content="Study flashcards, quizzes, and drills for your ICT subject. PCU Gmail sign-in required.">
+<link rel="canonical" href="https://aghimuan.online/library/reviewer.php">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -97,12 +100,25 @@ require_reviewer_access();
   }
 </style>
 </head>
-<body class="bg-grid relative min-h-screen flex flex-col p-2 sm:p-4 md:p-6">
+<body class="bg-grid relative min-h-screen flex flex-col">
 
 <div class="scanline-effect"></div>
+<div style="position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 42%,rgba(2,4,10,.85) 100%)"></div>
+
+<header class="sticky top-0 z-30 px-4 md:px-8 py-3 flex items-center justify-between bg-black/70 backdrop-blur-md border-b border-[#3096C7]/30">
+  <div class="flex items-center gap-3 min-w-0">
+    <span class="text-lg md:text-2xl font-display font-black neon-pink truncate">AGHIMUAN</span>
+    <span class="text-lg md:text-2xl font-display font-black text-white/80 truncate">LIBRARY</span>
+  </div>
+  <div class="flex items-center gap-3 min-w-0">
+    <?php echo reviewer_account_inline(true); ?>
+    <div class="text-[9px] md:text-[10px] uppercase tracking-[0.25em] text-white/40 font-display hidden sm:inline">PCU-D &middot; ICT</div>
+  </div>
+</header>
 
 <!-- Outer Window Wrapper -->
-<div class="window-card rounded-xl overflow-hidden flex-1 flex flex-col w-full max-w-6xl mx-auto my-auto">
+<div class="flex-1 flex flex-col p-2 sm:p-4 md:p-6">
+<div class="window-card rounded-xl overflow-hidden flex-1 flex flex-col w-full max-w-6xl mx-auto my-auto" style="position:relative;z-index:1">
   
   <!-- Title Bar -->
   <header class="bg-black/60 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-xs font-display z-20">
@@ -119,7 +135,6 @@ require_reviewer_access();
     </div>
     <div class="flex items-center gap-3 min-w-0 flex-shrink-0">
       <div id="crumb" class="font-display text-[9px] md:text-[10px] tracking-[0.2em] text-white/50 uppercase truncate ml-2"></div>
-      <?php echo reviewer_account_inline(true); ?>
     </div>
   </header>
 
@@ -167,8 +182,10 @@ require_reviewer_access();
   </div>
 
 </div>
+</div>
 
 <script src="js/shared.js"></script>
+<script src="js/sfx.js"></script>
 <script src="js/engine/flashcard-engine.js"></script>
 <script src="js/engine/quiz-engine.js"></script>
 <script src="js/engine/code-drill-engine.js"></script>

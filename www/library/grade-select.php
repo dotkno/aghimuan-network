@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/reviewer-session.php';
 require_reviewer_access();
 ?>
@@ -11,6 +11,9 @@ require_reviewer_access();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aghimuan Library — Select Grade</title>
+<meta name="description" content="Pick a grade level to open its ICT reviewers. PCU Gmail sign-in required.">
+<link rel="canonical" href="https://aghimuan.online/library/grade-select.php">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -72,8 +75,20 @@ require_reviewer_access();
 <body class="bg-grid relative min-h-screen flex flex-col justify-between overflow-x-hidden">
 
 <div class="scanline-effect"></div>
+<div style="position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 42%,rgba(2,4,10,.85) 100%);z-index:1"></div>
 
-<div class="w-full flex-1 flex flex-col">
+<header class="sticky top-0 z-30 px-4 md:px-8 py-3 flex items-center justify-between bg-black/70 backdrop-blur-md border-b border-[#3096C7]/30">
+  <div class="flex items-center gap-3 min-w-0">
+    <span class="text-lg md:text-2xl font-display font-black neon-pink truncate">AGHIMUAN</span>
+    <span class="text-lg md:text-2xl font-display font-black text-white/80 truncate">LIBRARY</span>
+  </div>
+  <div class="flex items-center gap-3 min-w-0">
+    <?php echo reviewer_account_inline(true); ?>
+    <div class="text-[9px] md:text-[10px] uppercase tracking-[0.25em] text-white/40 font-display hidden sm:inline">PCU-D &middot; ICT</div>
+  </div>
+</header>
+
+<div class="w-full flex-1 flex flex-col" style="position:relative;z-index:2">
   <!-- Content Area -->
   <main class="px-3 sm:px-6 md:px-8 pt-6 md:pt-12 pb-12 max-w-4xl mx-auto w-full my-auto">
     
@@ -111,13 +126,16 @@ require_reviewer_access();
       </div>
 
       <!-- Inner Content -->
-      <div id="content" class="p-6 sm:p-10 md:p-14 text-center flex flex-col items-center justify-center min-h-[300px]">
-        <div class="mb-8">
+      <div id="content" class="p-4 sm:p-6 flex flex-col items-stretch justify-center min-h-[300px]">
+        <div class="mb-6 text-center">
           <p id="subjectLabel" class="font-display text-sm md:text-base tracking-[0.3em] neon-subject mb-2 uppercase">&nbsp;</p>
-          <h1 class="font-display text-2xl md:text-4xl font-black neon-yellow tracking-wide">SELECT GRADE LEVEL</h1>
+          <h1 class="font-display text-xl md:text-2xl font-black neon-yellow tracking-wide">SELECT GRADE LEVEL</h1>
         </div>
 
-        <div id="gradeGrid" class="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-md justify-center"></div>
+        <div class="hidden md:grid grid-cols-[1fr,2rem] gap-4 px-4 pb-2 text-[10px] font-display tracking-widest text-white/40 uppercase w-full">
+          <span>Grade Level</span><span></span>
+        </div>
+        <div id="gradeGrid" class="divide-y divide-white/5 w-full"></div>
       </div>
 
       <!-- Status Bar -->
@@ -131,6 +149,7 @@ require_reviewer_access();
 </div>
 
 <script src="js/shared.js"></script>
+<script src="js/sfx.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
   const subject = (params.get('subject') || '').toUpperCase();
@@ -150,19 +169,23 @@ require_reviewer_access();
     grades.forEach((g) => {
       const btn = document.createElement('a');
       btn.href = AghiLib.gradeHref(subject, g);
-      btn.className = [
-        'btn-neon', 'neon-border-subject', 'neon-subject',
-        'font-display', 'text-xl', 'md:text-2xl', 'font-bold',
-        'px-8', 'py-6', 'rounded-xl', 'w-full',
-        'bg-black/50', 'backdrop-blur-sm', 'border',
-        'flex', 'items-center', 'justify-center', 'gap-3', 'group'
-      ].join(' ');
-      
+      btn.className = 'btn-neon group w-full flex md:grid md:grid-cols-[1fr,2rem] md:items-center gap-3 px-4 py-5 text-left';
       btn.innerHTML = `
-        <svg class="w-6 h-6 opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-        </svg>
-        <span>GRADE ${g}</span>
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="relative flex items-center justify-center w-10 h-9 flex-shrink-0">
+            <svg class="absolute inset-0 w-full h-full text-white/10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+            </svg>
+            <svg class="relative w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#55F1F8">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m0-8l-3 3m3-3l3 3"></path>
+            </svg>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block font-display font-black text-lg tracking-wider neon-subject">GRADE ${g}</span>
+            <span class="block text-[11px] font-mono text-white/40">${theme.name}</span>
+          </span>
+        </span>
+        <span class="text-white/30 text-right">&rarr;</span>
       `;
       grid.appendChild(btn);
     });

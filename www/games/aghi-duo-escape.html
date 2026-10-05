@@ -3,7 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Aghi Duo Escape</title>
+<title>Aghi Duo Escape — Aghimuan Games</title>
+<meta name="description" content="Two players, one keyboard. P1 uses WASD, P2 uses arrows. Escape together. Free in your browser, no account needed.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="Aghi Duo Escape — Aghimuan Games">
+<meta property="og:description" content="Two players, one keyboard. P1 uses WASD, P2 uses arrows. Escape together.">
+<meta property="og:url" content="https://aghimuan.online/games/aghi-duo-escape.html">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Aghi Duo Escape — Aghimuan Games">
+<meta name="twitter:description" content="Two players, one keyboard. P1 uses WASD, P2 uses arrows. Escape together.">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<link rel="canonical" href="https://aghimuan.online/games/aghi-duo-escape.html">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "VideoGame", "name": "Aghi Duo Escape", "url": "https://aghimuan.online/games/aghi-duo-escape.html", "applicationCategory": "BrowserApplication", "operatingSystem": "Any", "offers": {"@type": "Offer", "price": "0"}}
+</script>
 <!-- Offline-first: fonts vendored in vendor/ (was: Google Fonts CDN). -->
 <link href="vendor/fonts.css" rel="stylesheet">
 <style>
@@ -91,9 +107,9 @@
     max-height:calc(100dvh - 32px); overflow-y:auto;
   }
   @keyframes modal-in { from{opacity:0; transform:scale(.92) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);} }
-  .modal h1 { font-family:'Orbitron',sans-serif; font-weight:900; font-size:clamp(26px,6vw,40px); margin:0; letter-spacing:.06em; }
-  .modal h1 .c1 { color:var(--cyan); text-shadow:0 0 14px var(--cyan); }
-  .modal h1 .c2 { color:var(--orange); text-shadow:0 0 14px var(--orange); }
+  .modal h1, .modal .modal-title { font-family:'Orbitron',sans-serif; font-weight:900; font-size:clamp(26px,6vw,40px); margin:0; letter-spacing:.06em; }
+  .modal h1 .c1, .modal .modal-title .c1 { color:var(--cyan); text-shadow:0 0 14px var(--cyan); }
+  .modal h1 .c2, .modal .modal-title .c2 { color:var(--orange); text-shadow:0 0 14px var(--orange); }
   .modal .sub { margin:6px 0 0; color:rgba(255,255,255,.55); letter-spacing:.14em; font-size:12px; font-family:'Orbitron',sans-serif; }
   .rules-panel {
     text-align:left; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.1);
@@ -185,7 +201,7 @@
 <!-- ============ PAUSE ============ -->
 <div class="overlay hidden" id="pause-screen">
   <div class="modal">
-    <h1><span class="c1">PAUSED</span></h1>
+    <div class="modal-title"><span class="c1">PAUSED</span></div>
     <p class="sub">TAKE A BREATHER</p>
     <div style="height:16px"></div>
     <button class="big-btn" id="resume-btn">RESUME</button>
@@ -196,7 +212,7 @@
 <!-- ============ LEVEL CLEAR ============ -->
 <div class="overlay hidden" id="clear-screen">
   <div class="modal">
-    <h1><span class="c1">LEVEL </span><span class="c2" id="clear-lvl">1</span><span class="c1"> CLEAR</span></h1>
+    <div class="modal-title"><span class="c1">LEVEL </span><span class="c2" id="clear-lvl">1</span><span class="c1"> CLEAR</span></div>
     <p class="sub">NICE TEAMWORK</p>
     <div id="clear-stats"></div>
     <button class="big-btn" id="next-btn">NEXT MAZE (ENTER)</button>

@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Creators Hub — Aghimuan</title>
 <meta name="description" content="Student-built ICT work from PCU-Dasmariñas: websites, games, digital art, robotics and more.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="Creators Hub — Aghimuan">
+<meta property="og:description" content="Student-built ICT work from PCU-Dasmariñas: websites, games, digital art, robotics and more.">
+<meta property="og:url" content="https://aghimuan.online/creations/index.html">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Creators Hub — Aghimuan">
+<meta name="twitter:description" content="Student-built ICT work from PCU-Dasmariñas: websites, games, digital art, robotics and more.">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<link rel="canonical" href="https://aghimuan.online/creations/index.html">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Creators Hub — Aghimuan",
+  "url": "https://aghimuan.online/creations/index.html",
+  "description": "Student-built ICT work from PCU-Dasmariñas: websites, games, digital art, robotics and more."
+}
+</script>
 <meta name="theme-color" content="#15161C">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
@@ -149,6 +170,8 @@ main{position:relative;width:100%;max-width:min(1400px, 100%);margin:0 auto;padd
 .library-card .cover-art{aspect-ratio:16/10;width:100%}
 .library-card-body{display:flex;flex-direction:column;gap:10px;padding:18px;flex:1;min-width:0}
 .library-card-title{font-size:16.5px;font-weight:600;letter-spacing:-.01em;color:var(--white);line-height:1.3;overflow-wrap:break-word}
+.library-card-title a{color:inherit;text-decoration:none}
+.library-card-title a:hover{text-decoration:underline}
 .library-card-desc{font-size:13px;line-height:1.55;color:var(--silver);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .library-card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px}
 
@@ -185,7 +208,7 @@ main{position:relative;width:100%;max-width:min(1400px, 100%);margin:0 auto;padd
 .category-wrapper::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:99px}
 .category-wrapper::-webkit-scrollbar-thumb:hover{background:var(--steel)}
 .filter-row{display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:8px;width:max-content;min-width:100%;padding-right:16px;margin-bottom:0}
-.filter-btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.04em;color:var(--silver);background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-border);border-radius:999px;padding:8px 16px;cursor:pointer;transition:all .18s ease;white-space:nowrap;flex:0 0 auto}
+.filter-btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.04em;color:var(--silver);background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-border);border-radius:999px;padding:8px 16px;min-height:44px;cursor:pointer;transition:all .18s ease;white-space:nowrap;flex:0 0 auto}
 .filter-btn::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--steel);opacity:.55;transition:all .18s}
 .filter-btn:hover{color:var(--white);border-color:rgba(85,241,248,.45);background:var(--glass-bg-hover)}
 .filter-btn[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan);color:var(--navy);font-weight:600;box-shadow:0 0 14px rgba(85,241,248,.25)}
@@ -282,7 +305,7 @@ button.creator-chip--lg .creator-name,button.creator-chip .creator-name{cursor:p
 .pag-bar.is-visible{display:flex}
 .pag-info{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;color:var(--steel);text-transform:uppercase;white-space:nowrap}
 .pag-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.page-btn{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 9px;font-family:var(--font-mono);font-size:11.5px;color:var(--silver);background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;transition:all .18s ease}
+.page-btn{display:inline-grid;place-items:center;min-width:44px;min-height:44px;padding:0 9px;font-family:var(--font-mono);font-size:11.5px;color:var(--silver);background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;transition:all .18s ease}
 .page-btn .ic{width:13px;height:13px}
 .page-btn:hover:not(:disabled):not(.is-current){color:var(--white);border-color:rgba(85,241,248,.5);background:var(--glass-bg-hover)}
 .page-btn.is-current{background:var(--cyan);border-color:var(--cyan);color:var(--navy);font-weight:600}
@@ -478,6 +501,7 @@ footer .foot-social a .ic{width:15px;height:15px}
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></symbol>
   <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.6c-.7.3-.9.8-.9 1.7"/><path d="M12 16.8h.01"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 6 0l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10a4 4 0 0 0-6 0l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></symbol>
   <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><path d="M15.5 10.6h.01M18.2 13.2h.01"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
@@ -514,6 +538,7 @@ footer .foot-social a .ic{width:15px;height:15px}
     <a class="rail-link" href="../faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>FAQ</span></a>
     <span class="nav-section">Educational</span>
     <a class="rail-link" href="../reviewers.html"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Reviewers</span></a>
+    <a class="rail-link" href="../resources/index.html"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span>Resource Hub</span></a>
     <a class="rail-link is-active" href="../creations/index.html" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
     <span class="nav-section">Entertainment</span>
     <a class="rail-link" href="../games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
@@ -882,7 +907,7 @@ function cardHTML(it, i) {
       ${hasVideo ? `<span class="cover-play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Video</span>` : ''}
     </div>
     <div class="library-card-body">
-      <h3 class="library-card-title">${esc(it.title)}</h3>
+      <h3 class="library-card-title"><a href="creation.html?id=${esc(it.id)}" data-permalink>${esc(it.title)}</a></h3>
       ${creatorChipHTML(it)}
       <p class="library-card-desc">${esc(firstPara(it.desc))}</p>
       <div class="library-card-tags">
@@ -1347,16 +1372,20 @@ function syncSearchUI() {
 });
  $('#emptyReloadBtn').addEventListener('click', () => location.reload());
 
- $('#creationsGrid').addEventListener('click', e => {
-   // Creator chip opens the profile popup (global handler) — not the detail modal.
+  $('#creationsGrid').addEventListener('click', e => {
+    // Real links (card title permalinks, external buttons) navigate natively —
+    // the detail modal only opens for clicks elsewhere on the card.
+    if (e.target.closest('a')) return;
+    // Creator chip opens the profile popup (global handler) — not the detail modal.
    if (e.target.closest('[data-aghi-userid],[data-aghi-username]')) return;
    const ext = e.target.closest('[data-ext]');
   if (ext) { window.open(ext.dataset.ext, '_blank', 'noopener'); return; }
   const card = e.target.closest('.library-card');
   if (card) openDetail(card.dataset.id);
 });
- $('#creationsGrid').addEventListener('keydown', e => {
+  $('#creationsGrid').addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
+  if (e.target.closest('a')) return;
   const card = e.target.closest('.library-card');
   if (card) { e.preventDefault(); openDetail(card.dataset.id); }
 });

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /admin.php
+Disallow: /atlas/
+Disallow: /library/
+Disallow: /backup-refresh.php
+
+Sitemap: https://aghimuan.online/sitemap.xml

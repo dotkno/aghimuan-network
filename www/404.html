@@ -300,7 +300,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    min-width: 0;
   }
 
   @media (max-width: 920px) {
@@ -327,6 +328,30 @@
     .sidebar-close {
       display: inline-grid;
     }
+  }
+
+  /* Compact topbar + sidebar-head on small screens: shrink the chrome
+     uniformly so the icon row stays on one line and the sidebar close
+     button never overlaps the brand text. */
+  @media (max-width: 480px) {
+    .app-topbar { gap: 8px; padding: 10px 12px; }
+    .topbar-actions { gap: 6px; }
+    .menu-btn.icon-btn { width: 33px; height: 33px; border-radius: 8px; }
+    .menu-btn.icon-btn .ic { width: 15px; height: 15px; }
+    .sidebar-head { gap: 8px; }
+    .brand { gap: 9px; }
+    .brand-logo { width: 38px; height: 38px; border-radius: 9px; }
+    .brand-text { overflow: hidden; }
+    .brand-text strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+    .brand-text small { font-size: 9.5px; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-close.icon-btn { width: 32px; height: 32px; border-radius: 8px; }
+  }
+  @media (max-width: 360px) {
+    .app-topbar { gap: 6px; padding: 8px 10px; }
+    .topbar-actions { gap: 5px; }
+    .menu-btn.icon-btn { width: 30px; height: 30px; }
+    .brand-logo { width: 34px; height: 34px; }
+    .brand-text strong { font-size: 11px; }
   }
 
   /* 404 hero, matching the about/faq page-head styling */
@@ -465,6 +490,19 @@
   @keyframes caret-blink {
     50% { opacity: 0; }
   }
+
+  /* ---- footer ----
+     Verbatim copy of about.html:1019-1027. styles.css defines `footer` and
+     `.foot-brand`/`.foot-copy` but NOT `.foot-social` — without this the icon
+     (display:block) and the word "Facebook" stack on separate lines. */
+  footer{border-top:1px solid var(--glass-border);padding:32px clamp(16px,4vw,40px) 40px;margin-top:24px}
+  footer .wrap{max-width:1100px;margin:0 auto;text-align:center}
+  footer .foot-brand{font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--silver);text-transform:uppercase}
+  footer p{margin-top:8px;font-size:12.5px;color:var(--steel)}
+  footer .foot-social{margin-top:14px;display:flex;justify-content:center}
+  footer .foot-social a{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--silver);text-decoration:none;transition:color .18s ease}
+  footer .foot-social a:hover{color:var(--cyan)}
+  footer .foot-social a .ic{width:15px;height:15px}
 </style>
 </head>
 <body>
@@ -475,6 +513,7 @@
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></symbol>
   <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.6c-.7.3-.9.8-.9 1.7"/><path d="M12 16.8h.01"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 6 0l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10a4 4 0 0 0-6 0l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></symbol>
   <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><path d="M15.5 10.6h.01M18.2 13.2h.01"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
@@ -505,6 +544,7 @@
     <a class="rail-link" href="faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>FAQ</span></a>
     <span class="nav-section">Educational</span>
     <a class="rail-link" href="reviewers.html"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Reviewers</span></a>
+    <a class="rail-link" href="resources/index.html"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span>Resource Hub</span></a>
     <a class="rail-link" href="creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
     <span class="nav-section">Entertainment</span>
     <a class="rail-link" href="games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>

@@ -217,6 +217,48 @@ function get_db(): PDO {
          WHERE batch IS NULL OR batch = ''"
     );
 
+    // Resource Hub: curated third-party learning resources (links only —
+    // nothing is hosted) + per-user favorites. Unconditional, same as
+    // creations above, so fresh installs and older DBs both get it.
+    // submitted_by is NULL for admin-seeded staff picks (ON DELETE SET NULL
+    // so a deleted user's seeds survive, attributed to Aghimuan Staff).
+    // Uniqueness lives on url_norm (canonicalized by
+    // normalize_resource_url()) so http/https + trailing-slash variants
+    // can't create duplicate rows.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS resources (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            title            TEXT NOT NULL,
+            description      TEXT NOT NULL,
+            category         TEXT NOT NULL DEFAULT \'other\',
+            type             TEXT NOT NULL DEFAULT \'website\',
+            url              TEXT NOT NULL,
+            url_norm         TEXT NOT NULL,
+            tags             TEXT,
+            submitted_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            status           TEXT NOT NULL DEFAULT \'pending\',
+            featured         INTEGER NOT NULL DEFAULT 0,
+            featured_at      TEXT,
+            rejection_reason TEXT,
+            created_at       TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at       TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_resources_url_norm ON resources(url_norm)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_cat_type ON resources(category, type)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resources_featured ON resources(featured, featured_at)');
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS resource_favorites (
+            user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+            created_at  TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            PRIMARY KEY (user_id, resource_id)
+        )'
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resfav_resource ON resource_favorites(resource_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resfav_user ON resource_favorites(user_id)');
+
     if (!$isNew) {
         // Auto-migrate users table for role system and profile fields
         $userCols = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_COLUMN, 1);

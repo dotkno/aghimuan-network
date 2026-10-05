@@ -1037,6 +1037,12 @@ window.AghiUserProfile = (function () {
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('[data-aghi-username], [data-aghi-userid]');
     if (!trigger) return;
+    // Triggers that are real links (feed author names, creator names) keep
+    // their href for middle-click/SEO crawlers, but a plain left-click still
+    // opens the quick popup instead of navigating away.
+    if (trigger.tagName === 'A' && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      e.preventDefault();
+    }
     const username = trigger.getAttribute('data-aghi-username');
     const userId = trigger.getAttribute('data-aghi-userid');
     open(trigger, { userId, username });

@@ -163,9 +163,20 @@
 
       .aghi-ml-empty { text-align: center; color: #767CA1; padding: 24px 10px; font-size: 12.5px; line-height: 1.5; }
 
-      .aghi-ml-trigger { display: none; width: 38px; height: 38px; padding: 0; margin-right: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 9px; color: #AEB7C0; cursor: pointer; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s ease; }
+      .aghi-ml-trigger { display: none; width: 38px; height: 38px; padding: 0; margin: 0; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 9px; color: #AEB7C0; cursor: pointer; align-items: center; justify-content: center; flex: none; transition: all 0.15s ease; }
       .aghi-ml-trigger:hover { color: #F1F2F5; background: rgba(85, 241, 248, 0.1); border-color: rgba(85, 241, 248, 0.4); }
       .aghi-ml-trigger svg { width: 18px; height: 18px; }
+
+      /* Compact trigger on small screens: shrink with the widget buttons
+         (see widget-styles.js) so the topbar row stays on one line. */
+      @media (max-width: 480px) {
+        .aghi-ml-trigger { width: 33px; height: 33px; border-radius: 8px; }
+        .aghi-ml-trigger svg { width: 16px; height: 16px; }
+      }
+      @media (max-width: 360px) {
+        .aghi-ml-trigger { width: 30px; height: 30px; border-radius: 7px; }
+        .aghi-ml-trigger svg { width: 15px; height: 15px; }
+      }
 
       /* Pull-tab that reopens the collapsed desktop panel -- lives outside
          the panel itself so it never disappears along with it. */

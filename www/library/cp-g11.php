@@ -10,6 +10,8 @@
 <link rel="shortcut icon" href="favicon.ico">
 <meta charset="UTF-8">
 <title>Aghimuan Library — Redirecting…</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://aghimuan.online/library/topics.php?subject=CP&grade=11">
 </head>
 <body style="background:#03030f;">
   <script>

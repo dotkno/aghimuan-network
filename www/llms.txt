@@ -1,0 +1,33 @@
+# Aghimuan
+
+> Aghimuan is the ICT student organization of Philippine Christian University – Dasmariñas, focused on robotics, programming, and system servicing.
+
+## About the club
+
+- [About Aghimuan](https://aghimuan.online/about.html): Vision, mission, membership policy, and officer roster.
+- [FAQ](https://aghimuan.online/faq.html): Membership, activities, and resources, answered.
+
+## Study reviewers (PCU students only, sign-in required)
+
+- [Reviewers gate](https://aghimuan.online/reviewers.php): PCU Gmail sign-in for the library.
+- [Library topics](https://aghimuan.online/library/topics.php): Reviewer topics by subject, grade, and quarter.
+
+## Student work
+
+- [Creations Hub](https://aghimuan.online/creations/index.html): Websites, games, digital art, robotics, and more built by PCU-D ICT students.
+- [Submit a project](https://aghimuan.online/creations/submit.html): How members submit work to the hub (login required).
+- [Resource Hub](https://aghimuan.online/resources/index.html): Free third-party resources for ICT students — docs, courses, tools, software, open source.
+- [Suggest a resource](https://aghimuan.online/resources/suggest.html): How members suggest links for the hub (login required).
+
+## Games (free, no account needed)
+
+- [Games arcade](https://aghimuan.online/games/index.html): Free browser games built by students.
+- [AghiClaw 3D](https://aghimuan.online/games/game1.html): Neon arcade claw machine in 3D.
+- [Aghi-Sudoku](https://aghimuan.online/games/game2.html): Classic number-logic puzzles.
+- [AghiAim](https://aghimuan.online/games/game3.html): Arcade FPS aim trainer.
+- [Aghi Duo Escape](https://aghimuan.online/games/game4.html): Two-player co-op escape on one keyboard.
+
+## Accounts
+
+- [Sign up](https://aghimuan.online/signup.php): Create an Aghimuan Network account with Google.
+- [Log in](https://aghimuan.online/login.php): Member sign-in (Google or password).

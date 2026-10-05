@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resource Hub — Aghimuan</title>
+<meta name="description" content="Free, curated third-party resources for PCU-Dasmariñas ICT students: web development, programming, design, networking, servicing and more.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Aghimuan">
+<meta property="og:title" content="Resource Hub — Aghimuan">
+<meta property="og:description" content="Free, curated third-party resources for PCU-Dasmariñas ICT students: web development, programming, design, networking, servicing and more.">
+<meta property="og:url" content="https://aghimuan.online/resources/index.html">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Resource Hub — Aghimuan">
+<meta name="twitter:description" content="Free, curated third-party resources for PCU-Dasmariñas ICT students.">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<link rel="canonical" href="https://aghimuan.online/resources/index.html">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Resource Hub — Aghimuan",
+  "url": "https://aghimuan.online/resources/index.html",
+  "description": "Free, curated third-party resources for PCU-Dasmariñas ICT students."
+}
+</script>
+<meta name="theme-color" content="#15161C">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
+<link rel="shortcut icon" href="../favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Global Aghimuan Integrations (no comment/reaction UI on this page) -->
+<script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/emoji-picker-core.js" defer></script>
+<script src="/js/widget/widget-core.js" defer></script>
+<script src="/js/widget/widget-utils.js" defer></script>
+<script src="/js/widget/widget-styles.js" defer></script>
+<script src="/js/widget/widget-session.js" defer></script>
+<script src="/js/widget/widget-inbox.js" defer></script>
+<script src="/js/widget/widget-dm.js" defer></script>
+<script src="/js/widget/widget-dm-poll.js" defer></script>
+<script src="/js/widget/widget-dm-reactions.js" defer></script>
+<script src="/js/widget/widget-friends.js" defer></script>
+<script src="/js/widget/widget-profile.js" defer></script>
+<script src="/js/user-profile-popup.js" defer></script>
+<script src="/js/member-list.js" defer></script>
+
+<!-- ================= PRODUCTION STYLESHEET ================= -->
+<link rel="stylesheet" href="../styles.css?v=7">
+
+<style>
+/* ---- shared app chrome (sidebar / topbar / mobile drawer) ----
+   Verbatim copy of the block every other page carries (see about.html:96-380).
+   styles.css only ships the legacy 'homepage v2' shell, so without this the
+   Resource Hub renders a different sidebar + topbar than the rest of the site. */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+  }
+
+  .app-main {
+    min-width: 0;
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    z-index: 70;
+    background: linear-gradient(180deg, rgba(3, 3, 126, 0.25), rgba(21, 22, 28, 0.65) 40%, rgba(21, 22, 28, 0.5));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: 1px 0 20px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+  }
+
+  .sidebar-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--white);
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .brand-logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 11px;
+    flex: none;
+    filter: drop-shadow(0 2px 10px rgba(85, 241, 248, 0.25));
+  }
+
+  .brand-text {
+    min-width: 0;
+    text-align: left;
+    flex: 1;
+  }
+
+  .brand-text strong {
+    font-family: var(--font-display);
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: block;
+    white-space: nowrap;
+  }
+
+  .brand-text small {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--steel);
+    display: block;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .sidebar-close {
+    display: none;
+    margin-left: auto;
+    flex: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 32px;
+    flex: 1;
+  }
+  .nav-section {
+    margin: 14px 14px 0;
+    color: var(--steel);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .rail-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    color: var(--silver);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 500;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .rail-link .ic {
+    width: 19px;
+    height: 19px;
+    color: var(--steel);
+    transition: color 0.18s;
+    flex: none;
+  }
+
+  .rail-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--white);
+  }
+
+  .rail-link:hover .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active {
+    background: rgba(85, 241, 248, 0.1);
+    color: var(--white);
+    border: 1px solid rgba(85, 241, 248, 0.22);
+    font-weight: 600;
+  }
+
+  .rail-link.is-active .ic {
+    color: var(--cyan);
+  }
+
+  .rail-link.is-active::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 6px;
+    height: 16px;
+    transform: translateY(-50%);
+    border-radius: 0 4px 4px 0;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(85, 241, 248, 0.8);
+  }
+
+  .sidebar-foot {
+    margin-top: 20px;
+    border-top: 1px dashed var(--line-soft);
+    padding-top: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .side-fb {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--steel);
+    text-decoration: none;
+    padding: 9px 15px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+
+  .side-fb:hover {
+    color: var(--cyan);
+    border-color: rgba(85, 241, 248, 0.4);
+    background: rgba(85, 241, 248, 0.08);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 16, 22, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px clamp(16px, 3.5vw, 40px);
+    background: rgba(21, 22, 28, 0.65);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid var(--glass-border);
+    width: 100%;
+  }
+
+  .menu-btn {
+    display: none;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  @media (max-width: 920px) {
+    .app-shell {
+      grid-template-columns: 1fr;
+    }
+    .app-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: min(300px, 85vw);
+      overflow-y: auto;
+      transform: translateX(-103%);
+      transition: transform 0.28s ease;
+      box-shadow: 24px 0 60px rgba(0, 0, 0, 0.45);
+    }
+    .app-sidebar.open, .app-sidebar.is-open {
+      transform: none;
+    }
+    .menu-btn {
+      display: inline-grid;
+    }
+    .sidebar-close {
+      display: inline-grid;
+    }
+  }
+
+  /* Compact topbar + sidebar-head on small screens: shrink the chrome
+     uniformly so the icon row stays on one line and the sidebar close
+     button never overlaps the brand text. */
+  @media (max-width: 480px) {
+    .app-topbar { gap: 8px; padding: 10px 12px; }
+    .topbar-actions { gap: 6px; }
+    .menu-btn.icon-btn { width: 33px; height: 33px; border-radius: 8px; }
+    .menu-btn.icon-btn .ic { width: 15px; height: 15px; }
+    .sidebar-head { gap: 8px; }
+    .brand { gap: 9px; }
+    .brand-logo { width: 38px; height: 38px; border-radius: 9px; }
+    .brand-text { overflow: hidden; }
+    .brand-text strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+    .brand-text small { font-size: 9.5px; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-close.icon-btn { width: 32px; height: 32px; border-radius: 8px; }
+  }
+  @media (max-width: 360px) {
+    .app-topbar { gap: 6px; padding: 8px 10px; }
+    .topbar-actions { gap: 5px; }
+    .menu-btn.icon-btn { width: 30px; height: 30px; }
+    .brand-logo { width: 34px; height: 34px; }
+    .brand-text strong { font-size: 11px; }
+  }
+
+/* Resource-Hub-only bits. Card/shelf/toolbar/modal shells reuse the real
+   hub classes from styles.css (library-card-*, spotlight-*, stat-pill,
+   pag-bar, hub-empty, hub-cta, hub-modal) — the same ones creations/ uses. */
+/* Main content frame — same contained layout as creations/index.html so the
+   page never stretches full-bleed (styles.css has no `main` rule of its own). */
+main{position:relative;width:100%;max-width:min(1400px,100%);margin:0 auto;padding:40px clamp(16px,4vw,48px) 120px}
+.hub-intro{padding:0 0 24px;max-width:1100px}
+.hub-intro .eyebrow{font-family:var(--font-mono);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);display:inline-flex;align-items:center;gap:8px;margin-bottom:12px}
+.hub-intro h1{font-family:var(--font-display);font-size:clamp(2rem,4vw,3.2rem);font-weight:700;color:var(--white);line-height:1.15;margin:0 0 16px}
+.hub-intro h1 .accent{color:var(--cyan);text-shadow:0 0 20px rgba(85,241,248,.35)}
+.hub-lede{font-size:clamp(1rem,1.8vw,1.15rem);color:var(--silver);max-width:720px;line-height:1.6;margin:0}
+.hub-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.hub-spotlight{margin-top:48px;width:100%}
+.hub-browse{margin-top:52px;width:100%}
+.res-letter{flex:0 0 auto;width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:1.15rem;color:#fff}
+.res-domain{font-family:var(--font-mono);font-size:.72rem;color:var(--steel);letter-spacing:.04em}
+.res-desc{font-size:13px;line-height:1.55;color:var(--silver);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.res-actions{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.fav-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--glass-bg);color:var(--silver);border-radius:999px;padding:6px 12px;font-size:.8rem;cursor:pointer}
+.fav-btn:hover{border-color:var(--cyan);color:var(--white)}
+.fav-btn.is-faved{border-color:var(--cyan);color:var(--cyan)}
+.fav-btn .ic{width:15px;height:15px}
+.fav-btn:disabled{opacity:.55;cursor:wait}
+.res-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.spotlight-letter{display:flex;align-items:center;justify-content:center;min-height:120px;font-family:var(--font-display);font-weight:700;font-size:2.4rem;color:#fff}
+/* Loading shimmer comes from styles.css (.sk / .sk::after / .sk-bar + @keyframes
+   shimmer) — the same one creations/ uses. Do not re-declare it here. */
+/* Detail modal body (local). */
+.res-detail{padding:clamp(18px,3vw,30px)}
+.res-detail h2{font-family:var(--font-display);font-size:clamp(1.3rem,2.6vw,1.8rem);color:var(--white);margin:12px 0 4px;line-height:1.25}
+.res-detail-desc{margin-top:12px;font-size:.92rem;line-height:1.65;color:var(--silver);white-space:pre-line}
+.res-detail-meta{margin-top:12px;font-family:var(--font-mono);font-size:.72rem;color:var(--steel);letter-spacing:.04em}
+/* ---- footer ----
+   Verbatim copy of about.html:1019-1027. styles.css defines `footer` and
+   `.foot-brand`/`.foot-copy` but NOT `.foot-social` — without this the icon
+   (display:block) and the word "Facebook" stack on separate lines. */
+footer{border-top:1px solid var(--glass-border);padding:32px clamp(16px,4vw,40px) 40px;margin-top:24px}
+footer .wrap{max-width:1100px;margin:0 auto;text-align:center}
+footer .foot-brand{font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--silver);text-transform:uppercase}
+footer p{margin-top:8px;font-size:12.5px;color:var(--steel)}
+footer .foot-social{margin-top:14px;display:flex;justify-content:center}
+footer .foot-social a{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--silver);text-decoration:none;transition:color .18s ease}
+footer .foot-social a:hover{color:var(--cyan)}
+footer .foot-social a .ic{width:15px;height:15px}
+</style>
+</head>
+<body>
+
+<!-- ============ icon sprite ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.6c-.7.3-.9.8-.9 1.7"/><path d="M12 16.8h.01"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.6" y="10.6" width="2.8" height="2.8"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></symbol>
+  <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><path d="M15.5 10.6h.01M18.2 13.2h.01"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M19.5 13.5V18a1.8 1.8 0 0 1-1.8 1.8H6a1.8 1.8 0 0 1-1.8-1.8V6.3A1.8 1.8 0 0 1 6 4.5h4.6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.4-4.4"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.7 5.4 6 .9-4.3 4.2 1 5.9-5.4-2.8-5.4 2.8 1-5.9L3.3 9.8l6-.9L12 3.5z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 6 0l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 7"/><path d="M14 10a4 4 0 0 0-6 0l-2.5 2.5a4 4 0 0 0 5.7 5.7L12.5 17"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></symbol>
+</svg>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="app-shell">
+
+<!-- ============ sticky sidebar chrome ============ -->
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sidebar-head">
+    <a class="brand" href="../index.html">
+      <img class="brand-logo" src="../CLUB LOGO.png" alt="Aghimuan logo" width="46" height="46" fetchpriority="high" decoding="async">
+      <span class="brand-text">
+        <strong>AGHIMUAN.ONLINE</strong>
+        <small>Connect · Innovate · Explore</small>
+      </span>
+    </a>
+    <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Close menu"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" aria-label="Primary">
+    <a class="rail-link" href="../index.html"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a>
+    <span class="nav-section">General</span>
+    <a class="rail-link" href="../about.html"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>About</span></a>
+    <a class="rail-link" href="../faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>FAQ</span></a>
+    <span class="nav-section">Educational</span>
+    <a class="rail-link" href="../reviewers.html"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Reviewers</span></a>
+    <a class="rail-link is-active" href="index.html" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span>Resource Hub</span></a>
+    <a class="rail-link" href="../creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
+    <span class="nav-section">Entertainment</span>
+    <a class="rail-link" href="../games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
+  </nav>
+  <div class="sidebar-foot">
+    <a class="side-fb" href="https://www.facebook.com/AghimuanClub/" target="_blank" rel="noopener" aria-label="Aghimuan on Facebook">
+      <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+      <span>PCU - D · ICT ORG</span>
+    </a>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+<div class="app-main">
+  <!-- ============ topbar chrome ============ -->
+  <header class="app-topbar">
+    <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <div class="topbar-actions">
+      <a class="btn btn-primary btn-sm" href="suggest.html"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="btn-label">Suggest Resource</span></a>
+      <div id="aghi-account-widget"></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <noscript><p class="noscript">The Resource Hub needs JavaScript to load, search and browse entries.</p></noscript>
+
+    <!-- ============ intro ============ -->
+    <section class="hub-intro">
+      <span class="eyebrow">Resource Hub</span>
+      <h1>Learn anything, <span class="accent">start here</span>.</h1>
+      <p class="hub-lede">Free, hand-picked third-party resources for ICT students of PCU-Dasmariñas: docs, courses, tools, software and open-source projects. Curated by the club, suggested by students like you.</p>
+      <div class="hub-stats" id="hubStats" hidden></div>
+    </section>
+
+    <!-- ============ staff picks ============ -->
+    <section class="hub-spotlight" id="spotlight">
+      <div class="section-head">
+        <span class="section-kicker">// Staff picks</span>
+        <span class="section-trace" aria-hidden="true"></span>
+        <span class="section-node" aria-hidden="true"></span>
+      </div>
+      <div class="spotlight-frame" id="spotlightFrame"></div>
+    </section>
+
+    <!-- ============ browse grid ============ -->
+    <section class="hub-browse" id="browse">
+      <div class="section-head">
+        <span class="section-kicker">// Browse resources</span>
+        <span class="section-trace" aria-hidden="true"></span>
+        <span class="section-node" aria-hidden="true"></span>
+      </div>
+
+      <div class="hub-toolbar">
+        <div class="search-field" id="searchField">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="text" id="searchInput" placeholder="Search titles, descriptions, tags..." autocomplete="off" spellcheck="false" aria-label="Search resources">
+          <button type="button" class="search-clear" id="searchClear" aria-label="Clear search" hidden><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+          <kbd class="search-kbd" aria-hidden="true">/</kbd>
+        </div>
+        <div class="toolbar-end">
+          <label class="select-wrap"><span class="select-label">Type</span>
+            <select id="typeSelect">
+              <option value="all">All types</option>
+              <option value="website">Website</option>
+              <option value="software">Software</option>
+              <option value="course">Free Course</option>
+              <option value="docs">Documentation</option>
+              <option value="tool">Tool</option>
+              <option value="video">Video</option>
+              <option value="open-source">Open Source</option>
+            </select>
+          </label>
+          <label class="select-wrap"><span class="select-label">Sort</span>
+            <select id="sortSelect">
+              <option value="new">Newest first</option>
+              <option value="popular">Most saved</option>
+              <option value="az">A to Z</option>
+            </select>
+          </label>
+          <button type="button" class="filter-btn" id="favOnlyBtn" aria-pressed="false" hidden>★ Saved</button>
+        </div>
+      </div>
+
+      <!-- category navigation with horizontal scroll -->
+      <div class="category-wrapper" id="categoryWrapper">
+        <div class="filter-row" id="filterRow" role="group" aria-label="Filter resources by category">
+          <button type="button" class="filter-btn" data-cat="all" aria-pressed="true">All</button>
+          <button type="button" class="filter-btn" data-cat="web-dev" aria-pressed="false">Web Development</button>
+          <button type="button" class="filter-btn" data-cat="programming" aria-pressed="false">Programming</button>
+          <button type="button" class="filter-btn" data-cat="design" aria-pressed="false">Graphic Design</button>
+          <button type="button" class="filter-btn" data-cat="networking" aria-pressed="false">Networking</button>
+          <button type="button" class="filter-btn" data-cat="servicing" aria-pressed="false">Computer Servicing</button>
+          <button type="button" class="filter-btn" data-cat="other" aria-pressed="false">Other ICT</button>
+        </div>
+      </div>
+
+      <p class="result-line" id="resultCount" aria-live="polite"></p>
+
+      <div class="library-grid" id="resGrid"></div>
+
+      <!-- pagination -->
+      <nav class="pag-bar" id="pagBar" aria-label="Pagination">
+        <span class="pag-info" id="pagInfo"></span>
+        <div class="pag-controls" id="pagControls"></div>
+        <label class="select-wrap"><span class="select-label">Per page</span>
+          <select id="perPageSelect">
+            <option value="8">8</option>
+            <option value="12">12</option>
+            <option value="24">24</option>
+            <option value="48">48</option>
+          </select>
+        </label>
+      </nav>
+
+      <!-- empty state -->
+      <div class="hub-empty" id="gridEmpty">
+        <svg viewBox="0 0 240 150" fill="none" aria-hidden="true">
+          <rect x="18" y="14" width="204" height="122" rx="10" stroke="#767CA1" stroke-opacity=".45" stroke-width="1.5"/>
+          <path d="M18 52h48l12 12h36" stroke="#3096C7" stroke-opacity=".7" stroke-width="1.5"/>
+          <path d="M222 96h-56l-12-12h-28" stroke="#3096C7" stroke-opacity=".7" stroke-width="1.5"/>
+          <path d="M60 136V96l10-10" stroke="#2B438E" stroke-width="1.5"/>
+          <rect x="100" y="47" width="52" height="52" rx="6" stroke="#55F1F8" stroke-opacity=".8" stroke-width="1.5" stroke-dasharray="5 5"/>
+          <rect x="112" y="59" width="28" height="28" rx="3" fill="#03037E" fill-opacity=".9" stroke="#2B438E"/>
+          <rect x="60" y="48" width="7" height="7" rx="1.5" fill="#55F1F8" fill-opacity=".85"/>
+          <rect x="173" y="90" width="7" height="7" rx="1.5" fill="#55F1F8" fill-opacity=".85"/>
+          <rect x="128" y="14" width="7" height="7" rx="1.5" fill="#767CA1"/>
+          <circle cx="222" cy="52" r="2.5" fill="#3096C7"/>
+        </svg>
+        <h3>No resources here yet</h3>
+        <p id="gridEmptyMsg">This shelf is still empty.</p>
+        <div class="hub-empty-actions">
+          <a class="btn btn-primary" href="suggest.html">Suggest a Resource</a>
+          <button type="button" class="btn btn-ghost" id="emptyResetBtn" hidden>Clear filters</button>
+          <button type="button" class="btn btn-ghost" id="emptyReloadBtn" hidden>Reload</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ suggestion CTA ============ -->
+    <section class="hub-cta-section" id="suggest">
+      <div class="section-head">
+        <span class="section-kicker">// Suggest a resource</span>
+        <span class="section-trace" aria-hidden="true"></span>
+        <span class="section-node" aria-hidden="true"></span>
+      </div>
+      <div class="hub-cta">
+        <span class="hub-cta-kicker">Next entry: yours</span>
+        <h2>Know a free resource worth sharing?</h2>
+        <p>Docs, courses, tools, software, videos, open-source projects: if it helped you learn ICT, it can help someone else too. Send a suggestion and the moderation team will review it before it goes live.</p>
+        <a class="btn btn-primary" href="suggest.html"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Suggest a Resource</a>
+        <span class="hub-cta-note">Reviewed by moderators before publishing · open to all ICT students</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-brand">AGHIMUAN</div>
+      <p>ICT Student Organization &middot; Philippine Christian University - Dasmariñas</p>
+      <div class="foot-social">
+        <a href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener noreferrer" aria-label="Aghimuan on Facebook">
+          <svg class="ic" aria-hidden="true"><use href="#i-fb"/></svg>
+          Facebook
+        </a>
+      </div>
+      <p class="foot-copy">&copy; 2025&ndash;2026 <a href="https://renyuzaki.me" target="_blank" rel="noopener">renyuzaki</a> &middot; All rights reserved.</p>
+    </div>
+  </footer>
+</div>
+
+</div><!-- /.app-shell -->
+
+<!-- ============ detail modal ============ -->
+<div class="hub-modal" id="hubModal" hidden></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const motionOK = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const CAT_LABELS = { 'web-dev':'Web Development', programming:'Programming', design:'Graphic Design',
+                     networking:'Networking', servicing:'Computer Servicing', other:'Other ICT' };
+const TYPE_LABELS = { website:'Website', software:'Software', course:'Free Course', docs:'Documentation',
+                      tool:'Tool', video:'Video', 'open-source':'Open Source' };
+const PER_PAGE_KEY = 'aghimuan-res-perpage';
+const PER_PAGE_OPTIONS = [8, 12, 24, 48];
+// Letter-avatar fills, hashed from the domain so each site keeps one color.
+const LETTER_COLORS = ['#185FA5', '#0F6E56', '#04342C', '#993C1D', '#534AB7', '#3B6D11', '#993556', '#2B438E'];
+
+const state = { category:'all', type:'all', sort:'new', q:'', favOnly:false, page:1, perPage:12,
+                items:[], featured:[], loadFailed:false };
+const session = { loggedIn:false, csrfToken:null };
+let currentDetail = null, lastFocus = null, searchTimer = null;
+
+try {
+  const saved = localStorage.getItem(PER_PAGE_KEY);
+  if (PER_PAGE_OPTIONS.includes(+saved)) state.perPage = +saved;
+} catch {}
+
+const toArray = x => Array.isArray(x) ? x : (x ? [x] : []);
+const catLabel = c => CAT_LABELS[c] || 'Other ICT';
+const typeLabel = t => TYPE_LABELS[t] || 'Website';
+const letterColor = d => {
+  let h = 0;
+  for (const ch of String(d || '?')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return LETTER_COLORS[h % LETTER_COLORS.length];
+};
+
+function normItem(r) {
+  return {
+    id: r.id, title: r.title || 'Untitled resource',
+    description: r.description || '',
+    category: CAT_LABELS[r.category] ? r.category : 'other',
+    type: TYPE_LABELS[r.type] ? r.type : 'website',
+    url: r.url || '#', domain: r.domain || r.url || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    featured: !!r.featured,
+    favCount: +r.favCount || 0, isFavorited: !!r.isFavorited,
+    suggester: r.suggester || 'Aghimuan Staff',
+  };
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('is-visible');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('is-visible'), 2600);
+}
+
+async function fetchJSON(url, timeout = 6000) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeout);
+    const r = await fetch(url, { signal: ctrl.signal, credentials: 'same-origin' });
+    clearTimeout(t);
+    if (!r.ok) throw new Error(r.status);
+    return { ok: true, data: await r.json() };
+  } catch { return { ok: false, data: null }; }
+}
+
+function favBtnHTML(it) {
+  const cls = 'fav-btn' + (it.isFavorited ? ' is-faved' : '');
+  const label = it.isFavorited ? 'Saved' : 'Save';
+  return `<button type="${'button'}" class="${cls}" data-fav="${it.id}" aria-pressed="${it.isFavorited ? 'true' : 'false'}" aria-label="${it.isFavorited ? 'Remove from' : 'Save to'} favorites">`
+    + `<svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span data-fav-label>${esc(label)}</span> · <span data-fav-count>${it.favCount}</span></button>`;
+}
+
+function cardHTML(it, i) {
+  const letter = (it.domain || '?').trim().charAt(0).toUpperCase() || '?';
+  const tags = it.tags.slice(0, 4).map(t => `<span class="tag-chip">${esc(t)}</span>`).join('');
+  return `<article class="library-card" data-detail="${it.id}" tabindex="0" role="button" aria-label="View ${esc(it.title)}" style="animation-delay:${Math.min((i || 0) * 45, 420)}ms">`
+    + `<div class="cover-art" aria-hidden="true"><span class="res-letter" style="background:${letterColor(it.domain)};width:100%;height:100%;border-radius:0;font-size:2rem">${esc(letter)}</span><span class="cover-sheen" aria-hidden="true"></span></div>`
+    + `<div class="library-card-body">`
+    + `<h3 class="library-card-title">${esc(it.title)}</h3>`
+    + `<div class="res-domain">${esc(it.domain)} · Suggested by ${esc(it.suggester)}</div>`
+    + `<p class="library-card-desc">${esc(it.description)}</p>`
+    + `<div class="library-card-tags"><span class="tag-chip tag-chip--cat">${esc(catLabel(it.category))}</span>`
+    + `<span class="tag-chip tag-chip--cat">${esc(typeLabel(it.type))}</span>${tags}</div>`
+    + `<div class="res-actions"><a class="btn btn-primary btn-sm" href="${esc(it.url)}" target="_blank" rel="noopener" data-visit>Visit <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>`
+    + favBtnHTML(it) + `</div></div></article>`;
+}
+
+function filteredItems() {
+  const q = state.q.trim().toLowerCase();
+  let list = state.items.filter(it => {
+    if (state.category !== 'all' && it.category !== state.category) return false;
+    if (state.type !== 'all' && it.type !== state.type) return false;
+    if (state.favOnly && !it.isFavorited) return false;
+    if (q && ![it.title, it.description, it.domain, it.tags.join(' ')].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (state.sort === 'az') list = [...list].sort((a, b) => a.title.localeCompare(b.title));
+  else if (state.sort === 'popular') list = [...list].sort((a, b) => (b.favCount - a.favCount) || (b.id - a.id));
+  return list;
+}
+
+function renderSkeletons() {
+  $('#resGrid').innerHTML = Array.from({ length: 8 }, () =>
+    `<div class="library-card skeleton-card" aria-hidden="true">
+      <div class="cover-art sk"></div>
+      <div class="library-card-body">
+        <span class="sk sk-bar" style="width:70%"></span><span class="sk sk-bar" style="width:45%"></span>
+        <span class="sk sk-bar" style="width:90%"></span><span class="sk sk-bar" style="width:60%"></span>
+      </div></div>`).join('');
+  $('#resultCount').textContent = 'Loading…';
+}
+
+function renderStats() {
+  const box = $('#hubStats');
+  const total = state.items.length;
+  const saved = state.items.reduce((n, it) => n + it.favCount, 0);
+  if (!total && !state.loadFailed) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="stat-pill"><b>${total}</b> resources</span>`
+    + `<span class="stat-pill"><b>${state.featured.length}</b> staff picks</span>`
+    + `<span class="stat-pill"><b>${saved}</b> saves</span>`;
+}
+
+function renderSpotlight() {
+  const sec = $('#spotlight'), frame = $('#spotlightFrame');
+  const picks = state.featured.slice(0, 3);
+  // No picks yet: hide the whole shelf (same as the Creations spotlight).
+  if (!picks.length) { sec.hidden = true; return; }
+  sec.hidden = false;
+  frame.innerHTML = picks.map(it => {
+    const letter = (it.domain || '?').trim().charAt(0).toUpperCase() || '?';
+    const tags = it.tags.slice(0, 4).map(t => `<span class="tag-chip">${esc(t)}</span>`).join('');
+    return `<article class="spotlight-card" data-detail="${it.id}">`
+    + `<div class="spotlight-media cover-art" aria-hidden="true"><span class="spotlight-letter" style="background:${letterColor(it.domain)};width:100%">${esc(letter)}</span></div>`
+    + `<div class="spotlight-body">`
+    + `<div class="res-domain">${esc(it.domain)}</div>`
+    + `<h2 class="spotlight-title">${esc(it.title)}</h2>`
+    + `<div class="spotlight-desc">${esc(it.description.slice(0, 160))}${it.description.length > 160 ? '…' : ''}</div>`
+    + `<div class="spotlight-tags"><span class="tag-chip tag-chip--cat">${esc(catLabel(it.category))}</span>`
+    + `<span class="tag-chip tag-chip--cat">${esc(typeLabel(it.type))}</span>${tags}</div>`
+    + `<div class="spotlight-actions">`
+    + `<button type="button" class="btn btn-primary" data-detail="${it.id}">View details</button>`
+    + `<a class="btn btn-ghost" href="${esc(it.url)}" target="_blank" rel="noopener" data-visit>Visit resource <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>`
+    + `</div></div></article>`;
+  }).join('');
+}
+
+function renderResults() {
+  const list = filteredItems();
+  const pages = Math.max(1, Math.ceil(list.length / state.perPage));
+  if (state.page > pages) state.page = pages;
+  const start = (state.page - 1) * state.perPage;
+  const slice = list.slice(start, start + state.perPage);
+  $('#resGrid').innerHTML = slice.map((it, i) => cardHTML(it, i)).join('');
+  const hasFilter = state.category !== 'all' || state.type !== 'all' || state.q !== '' || state.favOnly;
+  const empty = $('#gridEmpty');
+  if (!slice.length) {
+    empty.classList.add('is-visible');
+    $('#gridEmptyMsg').textContent = state.loadFailed
+      ? 'The shelf could not be loaded right now. Once api/resources.php is responding, approved entries will appear here.'
+      : hasFilter ? 'Nothing matches these filters.' : 'This shelf is still empty.';
+    $('#emptyResetBtn').hidden = !hasFilter;
+    $('#emptyReloadBtn').hidden = !state.loadFailed;
+  } else {
+    empty.classList.remove('is-visible');
+  }
+  $('#resultCount').textContent = list.length === 0 ? '0 resources'
+    : `${list.length} resource${list.length === 1 ? '' : 's'}${state.category !== 'all' ? ' · ' + catLabel(state.category) : ''}`;
+  const bar = $('#pagBar');
+  if (list.length > 0 && pages > 1) {
+    bar.classList.add('is-visible');
+    $('#pagInfo').textContent = `Showing ${start + 1} to ${Math.min(start + state.perPage, list.length)} of ${list.length}`;
+    $('#pagControls').innerHTML = `<button type="button" class="btn btn-ghost btn-sm" data-pag="prev"${state.page <= 1 ? ' disabled' : ''}>Prev</button>`
+      + `<button type="button" class="btn btn-ghost btn-sm" data-pag="next"${state.page >= pages ? ' disabled' : ''}>Next</button>`;
+  } else {
+    bar.classList.remove('is-visible');
+  }
+  renderStats();
+}
+
+function syncSearchUI() {
+  $('#searchInput').value = state.q;
+  $('#searchClear').hidden = state.q === '';
+}
+
+function applyFavResult(id, favorited, favCount) {
+  for (const pool of [state.items, state.featured]) {
+    const it = pool.find(x => x.id === id);
+    if (it) { it.isFavorited = favorited; it.favCount = favCount; }
+  }
+  if (currentDetail && currentDetail.id === id) {
+    currentDetail.isFavorited = favorited;
+    currentDetail.favCount = favCount;
+  }
+  $$(`[data-fav="${id}"]`).forEach(btn => {
+    btn.classList.toggle('is-faved', favorited);
+    btn.setAttribute('aria-pressed', favorited ? 'true' : 'false');
+    const l = btn.querySelector('[data-fav-label]');
+    const c = btn.querySelector('[data-fav-count]');
+    if (l) l.textContent = favorited ? 'Saved' : 'Save';
+    if (c) c.textContent = favCount;
+  });
+}
+
+async function toggleFav(id, btn) {
+  if (!session.loggedIn) { toast('Log in to save favorites.'); return; }
+  if (!session.csrfToken) { toast('Session not ready yet — try again in a second.'); return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch('../api/resource-favorite.php', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resourceId: id, csrf_token: session.csrfToken }),
+    });
+    const data = await r.json().catch(() => null);
+    if (!r.ok || !data || !data.ok) throw new Error((data && data.error) || r.status);
+    applyFavResult(id, !!data.favorited, +data.favCount || 0);
+    if (state.favOnly) renderResults();
+    else renderStats();
+  } catch { toast('Could not save right now. Try again.'); }
+  finally { btn.disabled = false; }
+}
+
+function openDetail(id) {
+  const it = state.items.concat(state.featured).find(x => x.id === id);
+  if (!it) return;
+  currentDetail = it;
+  lastFocus = document.activeElement;
+  const letter = (it.domain || '?').trim().charAt(0).toUpperCase() || '?';
+  $('#hubModal').innerHTML = `
+    <div class="hub-modal-backdrop" data-close></div>
+    <div class="hub-modal-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <button type="button" class="icon-btn hub-modal-close" data-close aria-label="Close details"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <div class="res-detail">
+        <div class="res-domain">${esc(it.domain)}</div>
+        <h2 id="detailTitle">${esc(it.title)}</h2>
+        <div class="res-tags"><span class="tag-chip tag-chip--cat">${esc(catLabel(it.category))}</span><span class="tag-chip tag-chip--cat">${esc(typeLabel(it.type))}</span>${it.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>
+        <p class="res-detail-desc">${esc(it.description)}</p>
+        <p class="res-detail-meta">Suggested by ${esc(it.suggester)} · ${esc(String(it.favCount))} saves</p>
+        <div class="res-actions">
+          <a class="btn btn-primary" href="${esc(it.url)}" target="_blank" rel="noopener">Visit resource <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>
+          ${favBtnHTML(it)}
+        </div>
+      </div>
+    </div>`;
+  $('#hubModal').hidden = false;
+  document.body.classList.add('modal-open');
+  const c = $('#hubModal .hub-modal-close');
+  if (c) c.focus();
+}
+function closeModal() {
+  $('#hubModal').hidden = true;
+  $('#hubModal').innerHTML = '';
+  currentDetail = null;
+  document.body.classList.remove('modal-open');
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+
+function openSidebar() {
+  $('#appSidebar').classList.add('is-open');
+  $('#sidebarOverlay').hidden = false;
+  document.body.classList.add('nav-open');
+  $('#menuBtn').setAttribute('aria-expanded', 'true');
+}
+function closeSidebar() {
+  $('#appSidebar').classList.remove('is-open');
+  $('#sidebarOverlay').hidden = true;
+  document.body.classList.remove('nav-open');
+  $('#menuBtn').setAttribute('aria-expanded', 'false');
+}
+
+const minWait = (t0, ms) => new Promise(res => {
+  const left = ms - (performance.now() - t0);
+  setTimeout(res, Math.max(0, left));
+});
+
+async function boot() {
+  renderSkeletons();
+  const t0 = performance.now();
+  const [sRes, fRes, iRes] = await Promise.all([
+    fetchJSON('../api/session.php'),
+    fetchJSON('../api/resources.php?featured'),
+    fetchJSON('../api/resources.php')
+  ]);
+  if (sRes.ok && sRes.data) {
+    session.loggedIn = !!sRes.data.loggedIn;
+    session.csrfToken = (sRes.data.csrfToken) || null;
+  }
+  $('#favOnlyBtn').hidden = !session.loggedIn;
+  state.featured = (fRes.ok ? toArray(fRes.data) : []).map(normItem);
+  state.items    = (iRes.ok ? toArray(iRes.data) : []).map(normItem);
+  state.loadFailed = !fRes.ok && !iRes.ok;
+  await minWait(t0, 500);
+
+  $('#perPageSelect').value = String(state.perPage);
+  renderSpotlight();
+  renderResults();
+
+  // One-shot toast after a suggest.html redirect (flag set pre-redirect).
+  try {
+    if (sessionStorage.getItem('aghi-res-toast') === 'suggested') {
+      sessionStorage.removeItem('aghi-res-toast');
+      toast('Suggestion sent! It will appear here once approved.');
+    }
+  } catch {}
+}
+
+$('#filterRow').addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]');
+  if (!b) return;
+  state.category = b.dataset.cat;
+  state.page = 1;
+  $$('#filterRow .filter-btn').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  renderResults();
+});
+$('#typeSelect').addEventListener('change', e => { state.type = e.target.value; state.page = 1; renderResults(); });
+$('#sortSelect').addEventListener('change', e => { state.sort = e.target.value; state.page = 1; renderResults(); });
+$('#favOnlyBtn').addEventListener('click', () => {
+  state.favOnly = !state.favOnly;
+  state.page = 1;
+  $('#favOnlyBtn').setAttribute('aria-pressed', state.favOnly ? 'true' : 'false');
+  renderResults();
+});
+$('#perPageSelect').addEventListener('change', e => {
+  const v = +e.target.value;
+  if (PER_PAGE_OPTIONS.includes(v)) {
+    state.perPage = v;
+    try { localStorage.setItem(PER_PAGE_KEY, String(v)); } catch {}
+    state.page = 1;
+    renderResults();
+  }
+});
+$('#searchInput').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.q = e.target.value;
+    state.page = 1;
+    syncSearchUI();
+    renderResults();
+  }, 180);
+});
+$('#searchClear').addEventListener('click', () => {
+  state.q = ''; state.page = 1; syncSearchUI(); renderResults();
+  $('#searchInput').focus();
+});
+$('#pagControls').addEventListener('click', e => {
+  const b = e.target.closest('[data-pag]');
+  if (!b || b.disabled) return;
+  state.page += b.dataset.pag === 'next' ? 1 : -1;
+  renderResults();
+  $('#browse').scrollIntoView({ behavior: motionOK() ? 'smooth' : 'auto', block: 'start' });
+});
+$('#emptyResetBtn').addEventListener('click', () => {
+  state.category = 'all'; state.type = 'all'; state.q = ''; state.favOnly = false; state.page = 1;
+  $('#typeSelect').value = 'all'; $('#sortSelect').value = 'new';
+  $('#favOnlyBtn').setAttribute('aria-pressed', 'false');
+  $$('#filterRow .filter-btn').forEach(x => x.setAttribute('aria-pressed', x.dataset.cat === 'all' ? 'true' : 'false'));
+  syncSearchUI(); renderResults();
+});
+$('#emptyReloadBtn').addEventListener('click', () => boot());
+
+document.addEventListener('click', e => {
+  const fav = e.target.closest('[data-fav]');
+  if (fav) { e.stopPropagation(); toggleFav(+fav.dataset.fav, fav); return; }
+  if (e.target.closest('[data-visit]')) return; // let the outbound link work
+  const card = e.target.closest('[data-detail]');
+  if (card) openDetail(+card.dataset.detail);
+});
+$('#resGrid').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-detail]')) {
+    e.preventDefault();
+    openDetail(+e.target.dataset.detail);
+  }
+});
+$('#spotlightFrame').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-detail]')) {
+    e.preventDefault();
+    openDetail(+e.target.dataset.detail);
+  }
+});
+$('#hubModal').addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) closeModal();
+});
+
+window.addEventListener('keydown', e => {
+  // The profile popup manages its own Escape/outside-click — never let the
+  // hub modal or "/" shortcut fire underneath it.
+  if (document.querySelector('.aghi-up-popup, .aghi-up-mobile-sheet')) return;
+  if (!$('#hubModal').hidden) {
+    if (e.key === 'Escape') closeModal();
+  } else if (e.key === '/' && document.activeElement !== $('#searchInput')) {
+    e.preventDefault();
+    $('#searchInput').focus();
+  }
+});
+
+$('#menuBtn').addEventListener('click', openSidebar);
+$('#sidebarClose').addEventListener('click', closeSidebar);
+$('#sidebarOverlay').addEventListener('click', closeSidebar);
+
+boot();
+})();
+</script>
+</body>
+</html>

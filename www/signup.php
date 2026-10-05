@@ -16,6 +16,19 @@ start_secure_session();
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign up — Aghimuan Network</title>
+  <meta name="description" content="Create your Aghimuan Network account with Google and join the PCU-D ICT student community.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Aghimuan">
+  <meta property="og:title" content="Sign up — Aghimuan Network">
+  <meta property="og:description" content="Create your Aghimuan Network account with Google and join the PCU-D ICT student community.">
+  <meta property="og:url" content="https://aghimuan.online/signup.php">
+  <meta property="og:image" content="https://aghimuan.online/og-banner.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sign up — Aghimuan Network">
+  <meta name="twitter:description" content="Create your Aghimuan Network account with Google and join the PCU-D ICT student community.">
+  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+  <link rel="canonical" href="https://aghimuan.online/signup.php">
+  <link rel="describedby" href="https://aghimuan.online/llms.txt">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -235,7 +248,7 @@ start_secure_session();
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
     }
 
-    .auth-card h1 {
+    .auth-card h1, .auth-card .auth-title {
       font-family: var(--font-display);
       font-size: 28px;
       font-weight: 700;
@@ -467,7 +480,7 @@ start_secure_session();
           <span class="status-dot"></span>
           <span>ONBOARDING</span>
         </div>
-        <h1 class="hero-heading">Build with your <span class="accent">community</span>.</h1>
+        <div class="hero-heading">Build with your <span class="accent">community</span>.</div>
         <p class="hero-subtext">Join PCU-Dasmariñas' official ICT student organization. Connect with fellow robotics, programming, and system servicing enthusiasts.</p>
 
         <div class="tech-card-grid">
@@ -512,7 +525,7 @@ start_secure_session();
         </div>
 
         <div class="setup" id="setup">
-          <h1>Profile details</h1>
+          <div class="auth-title">Profile details</div>
           <p id="email" style="font-family:var(--font-mono); font-size:12px; color:var(--cyan); margin-bottom:20px; word-break:break-all;"></p>
 
           <form id="finish">

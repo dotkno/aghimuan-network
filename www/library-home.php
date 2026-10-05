@@ -11,7 +11,13 @@ require_reviewer_access();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aghimuan Library</title>
+<meta name="description" content="Browse ICT reviewer subjects for PCU-D: programming, systems servicing, media literacy, and more. PCU Gmail sign-in required.">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<link rel="canonical" href="https://aghimuan.online/library-home.php">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="library/js/sfx.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root { 
@@ -55,7 +61,7 @@ require_reviewer_access();
   }
   
   .folder-item:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateX(3px);
     background: rgba(15, 23, 42, 0.85);
   }
 
@@ -65,6 +71,10 @@ require_reviewer_access();
 
   .folder-icon {
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  a.folder-item {
+    text-decoration: none;
+    color: inherit;
   }
 
   @keyframes fade-up { 
@@ -94,8 +104,9 @@ require_reviewer_access();
 <body class="bg-grid relative min-h-screen flex flex-col justify-between">
 
 <div class="scanline-effect"></div>
+<div style="position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 42%,rgba(2,4,10,.85) 100%);z-index:1"></div>
 
-<div>
+<div class="relative z-[2]">
   <!-- Standard Header -->
   <header class="sticky top-0 z-30 px-4 md:px-8 py-3 flex items-center justify-between bg-black/70 backdrop-blur-md border-b border-[#3096C7]/30">
     <div class="flex items-center gap-3 min-w-0">
@@ -118,6 +129,7 @@ require_reviewer_access();
 
   <!-- Main Explorer Interface -->
   <main class="px-3 sm:px-6 md:px-8 pt-6 md:pt-10 pb-12 max-w-6xl mx-auto w-full">
+    <h1 class="sr-only">Aghimuan Library — reviewer subjects</h1>
     
     <!-- File Explorer Window Frame -->
     <div class="window-card rounded-xl overflow-hidden fade-up">
@@ -149,12 +161,15 @@ require_reviewer_access();
 
       <!-- Main Directory Content -->
       <div class="p-4 sm:p-6 md:p-8">
-        <div id="subject-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div class="hidden md:grid grid-cols-[1fr,11rem,2rem] gap-4 px-4 pb-2 text-[10px] font-display tracking-widest text-white/40 uppercase">
+          <span>Subject</span><span class="text-right">Grade Level</span><span></span>
+        </div>
+        <div id="subject-grid" class="divide-y divide-white/5"></div>
       </div>
 
       <!-- Window Status Bar -->
       <div class="bg-black/50 px-4 py-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-white/40">
-        <span>Click subject folder to launch module selection</span>
+        <span>Click subject folder to open</span>
         <span class="hidden sm:inline">AGHIMUAN OS</span>
       </div>
 
@@ -162,8 +177,8 @@ require_reviewer_access();
   </main>
 </div>
 
-<!-- Script -->
 <script>
+
 /* ---------------- SUBJECT DATA ---------------- */
 const SUBJECTS = [
   { code:'CP',  name:'Computer Programming',        grades:'Grade 11 &middot; Grade 12', icon:'&lt;/&gt;', color:'#55F1F8' },
@@ -179,73 +194,40 @@ function buildSubjectGrid() {
   grid.dataset.built = '1';
   
   grid.innerHTML = SUBJECTS.map((s, i) => `
-    <button data-subject="${s.code}" 
-            class="folder-item btn-neon text-left rounded-lg border bg-black/30 p-4 sm:p-5 flex flex-col justify-between h-full relative overflow-hidden group" 
-            style="animation-delay:${i * 60}ms; border-color:${s.color}33;"
+    <a data-subject="${s.code}" href="${subjectHref(s.code)}"
+            class="folder-item btn-neon group w-full flex md:grid md:grid-cols-[1fr,11rem,2rem] md:items-center gap-3 px-4 py-4 sm:py-5 text-left"
+            style="animation-delay:${i * 60}ms"
             aria-label="Open ${s.name}">
-      
-      <!-- Subtle top corner glow line -->
-      <div class="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity" style="background:${s.color};"></div>
-      
-      <div>
-        <div class="flex items-center justify-between mb-4">
-          <!-- Folder Visual Icon Container -->
-          <div class="relative flex items-center justify-center w-12 h-10">
-            <svg class="absolute inset-0 w-full h-full text-white/10 group-hover:text-white/20 transition-colors" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
-            </svg>
-            <span class="folder-icon relative text-xl font-bold" style="color:${s.color}; text-shadow:0 0 10px ${s.color}aa;">
-              ${s.icon}
-            </span>
-          </div>
-
-          <span class="text-[10px] font-display tracking-wider px-2 py-0.5 rounded border border-white/10 bg-black/40 text-white/50">
-            ${s.grades}
+      <span class="flex items-center gap-3 min-w-0">
+        <span class="relative flex items-center justify-center w-10 h-9 flex-shrink-0">
+          <svg class="absolute inset-0 w-full h-full text-white/10" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+          </svg>
+          <span class="folder-icon relative text-lg font-bold" style="color:${s.color}; text-shadow:0 0 10px ${s.color}aa;">
+            ${s.icon}
           </span>
-        </div>
-
-        <div class="font-display font-black text-xl tracking-wide flex items-center gap-2" style="color:${s.color};">
-          <span>${s.code}</span>
-          <span class="text-xs text-white/20 group-hover:text-white/60 transition-colors">/</span>
-        </div>
-        
-        <div class="text-sm font-medium text-white/70 group-hover:text-white mt-1 leading-snug">
-          ${s.name}
-        </div>
-      </div>
-
-      <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-white/40 group-hover:text-white/70">
-        <span>DIRECTORY</span>
-        <span class="text-xs group-hover:translate-x-1 transition-transform" style="color:${s.color};">&rarr;</span>
-      </div>
-    </button>
+        </span>
+        <span class="font-display font-black text-lg w-16 flex-shrink-0" style="color:${s.color};">${s.code}</span>
+        <span class="flex-1 min-w-0">
+          <span class="block font-medium text-white/80 group-hover:text-white truncate">${s.name}</span>
+          <span class="block md:hidden text-[11px] font-mono text-white/40">${s.grades}</span>
+        </span>
+      </span>
+      <span class="hidden md:block text-[11px] font-mono text-white/50 text-right">${s.grades}</span>
+      <span class="text-white/30 text-right">&rarr;</span>
+    </a>
   `).join('');
+}
 
-  grid.querySelectorAll('[data-subject]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.subject === 'CSS') {
-        window.location.href = 'library/grade-select.php?subject=CSS';
-        return;
-      }
-      if (btn.dataset.subject === 'CP') {
-        window.location.href = 'library/grade-select.php?subject=CP';
-        return;
-      }
-      if (btn.dataset.subject === 'MIL') {
-        window.location.href = 'library/mil-g12.php';
-        return;
-      }
-      if (btn.dataset.subject === 'ET') {
-        window.location.href = 'library/et-g12.php';
-        return;
-      }
-      if (btn.dataset.subject === 'VGD') {
-        window.location.href = 'library/vgd-g11.php';
-        return;
-      }
-      alert(`${btn.dataset.subject} modules are still being built — coming soon.`);
-    });
-  });
+/* Real links (not buttons) so crawlers and no-JS clients can follow them.
+   Logged-out visitors hit the session guard and land on the sign-in gate. */
+function subjectHref(code) {
+  if (code === 'CSS') return 'library/grade-select.php?subject=CSS';
+  if (code === 'CP') return 'library/grade-select.php?subject=CP';
+  if (code === 'MIL') return 'library/mil-g12.php';
+  if (code === 'ET') return 'library/et-g12.php';
+  if (code === 'VGD') return 'library/vgd-g11.php';
+  return 'library/grade-select.php?subject=' + encodeURIComponent(code);
 }
 
 buildSubjectGrid();

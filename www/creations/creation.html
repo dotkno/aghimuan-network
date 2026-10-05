@@ -64,6 +64,23 @@ $fmtDate = static function ($d) {
     $ts = strtotime((string) $d);
     return $ts !== false ? date('M j, Y', $ts) : $d;
 };
+
+// Related work: up to 3 approved creations in the same category.
+// Internal linking for crawlers + a real "more like this" for visitors.
+$related = [];
+if ($item && !empty($item['category']) && $id > 0) {
+    try {
+        $relStmt = $pdo->prepare(
+            "SELECT id, title FROM creations
+             WHERE status = 'approved' AND category = :cat AND id != :id
+             ORDER BY id DESC LIMIT 3"
+        );
+        $relStmt->execute([':cat' => $item['category'], ':id' => $id]);
+        $related = $relStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        $related = [];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,6 +97,24 @@ $fmtDate = static function ($d) {
 <?php if ($firstImg): ?>
 <meta property="og:image" content="<?php echo $esc($firstImg); ?>">
 <?php endif; ?>
+<meta property="og:url" content="https://aghimuan.online/creations/creation.html<?php echo $id > 0 ? '?id=' . $id : ''; ?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?php echo $esc($item ? $item['title'] : 'Creation not found'); ?>">
+<meta name="twitter:description" content="<?php echo $esc($item ? mb_substr(trim(strip_tags($item['description'])), 0, 200) : 'Student-built ICT work from PCU-Dasmariñas.'); ?>">
+<?php if ($firstImg): ?>
+<meta name="twitter:image" content="<?php echo $esc($firstImg); ?>">
+<?php endif; ?>
+<link rel="canonical" href="https://aghimuan.online/creations/creation.html<?php echo $id > 0 ? '?id=' . $id : ''; ?>">
+<link rel="describedby" href="https://aghimuan.online/llms.txt">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CreativeWork",
+  "name": <?php echo json_encode($item ? $item['title'] : 'Creation not found', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>,
+  "url": <?php echo json_encode('https://aghimuan.online/creations/creation.html' . ($id > 0 ? '?id=' . $id : ''), JSON_UNESCAPED_SLASHES); ?>,
+  "provider": {"@type": "Organization", "name": "Aghimuan", "url": "https://aghimuan.online/"}
+}
+</script>
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16.png">
 <link rel="shortcut icon" href="../favicon.ico">
@@ -126,7 +161,7 @@ p{margin:0}
 .creator{display:flex;align-items:center;gap:10px;margin-top:14px}
 .avatar{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:11px;overflow:hidden;border:1px solid rgba(85,241,248,.3);color:var(--cyan);font-family:var(--font-mono);font-size:13px;font-weight:600;cursor:pointer;padding:0}
 .avatar img{width:100%;height:100%;object-fit:cover}
-.creator-name{background:none;border:0;padding:0;font-size:15px;font-weight:500;color:var(--white);cursor:pointer;text-align:left}
+.creator-name{background:none;border:0;padding:0;font-size:15px;font-weight:500;color:var(--white);cursor:pointer;text-align:left;text-decoration:none}
 .creator-name:hover{color:var(--cyan)}
 .collabs{margin-top:14px}
 .collab-row{display:flex;flex-wrap:wrap;gap:8px}
@@ -205,7 +240,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
           <button type="button" class="avatar" style="background:<?php echo $esc($avColor); ?>" <?php echo $uidAttr; ?> aria-label="View <?php echo $esc($creatorName); ?>'s profile"><span aria-hidden="true"><?php echo $esc($creatorInitial); ?></span></button>
           <?php endif; ?>
           <div>
-            <button type="button" class="creator-name" <?php echo $uidAttr; ?>><?php echo $esc($creatorName); ?></button>
+            <a class="creator-name" <?php echo $uidAttr; ?> href="../profile.html?username=<?php echo urlencode($creatorName); ?>"><?php echo $esc($creatorName); ?></a>
             <?php if ($item['batch']): ?><div class="meta">A.Y. <?php echo $esc($item['batch']); ?></div><?php endif; ?>
           </div>
         </div>
@@ -223,7 +258,7 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
               <?php else: ?>
               <button type="button" class="avatar avatar--sm" style="background:<?php echo $esc($cb['avatarColor'] ?: '#5F5E5A'); ?>" <?php echo $cbAttr; ?> aria-label="View <?php echo $esc($cb['username']); ?>'s profile"><span aria-hidden="true"><?php echo $esc($cbInit); ?></span></button>
               <?php endif; ?>
-              <button type="button" class="creator-name" <?php echo $cbAttr; ?>><?php echo $esc($cb['username']); ?></button>
+              <a class="creator-name" <?php echo $cbAttr; ?> href="../profile.html?username=<?php echo urlencode((string) $cb['username']); ?>"><?php echo $esc($cb['username']); ?></a>
             </span>
             <?php endforeach; ?>
           </div>
@@ -268,6 +303,15 @@ if (isset($item['coverFocus']['x'], $item['coverFocus']['y'])) {
           <?php endif; ?>
           <a class="btn btn-ghost" href="index.html">Browse more</a>
         </div>
+
+        <?php if (!empty($related)): ?>
+        <span class="label">// More like this</span>
+        <div class="link-list">
+          <?php foreach ($related as $rel): ?>
+          <a class="btn btn-ghost" href="creation.html?id=<?php echo (int) $rel['id']; ?>"><?php echo $esc($rel['title']); ?></a>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
       </div>
     </article>
   <?php endif; ?>

@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/admin-handlers.php';
 require_once __DIR__ . '/includes/admin-data.php';
 require_once __DIR__ . '/includes/admin-ui.php';
 require_once __DIR__ . '/includes/creations-lib.php';
+require_once __DIR__ . '/includes/resources-lib.php';
 
 $pdo = get_db();
 ensure_admin_accounts_table($pdo);
@@ -45,6 +46,8 @@ if (isset($post_results['account_success'])) $account_success = $post_results['a
 if (isset($post_results['account_error'])) $account_error = $post_results['account_error'];
 if (isset($post_results['creation_success'])) $creation_success = $post_results['creation_success'];
 if (isset($post_results['creation_error'])) $creation_error = $post_results['creation_error'];
+if (isset($post_results['resource_success'])) $resource_success = $post_results['resource_success'];
+if (isset($post_results['resource_error'])) $resource_error = $post_results['resource_error'];
 
 // Handler functions moved to admin-handlers.php
 
@@ -69,6 +72,9 @@ $all_admins = $data['admin_accounts']['all'];
 $creations_pending = $data['creations']['pending'];
 $creations_approved = $data['creations']['approved'];
 $creations_rejected = $data['creations']['rejected'];
+$resources_pending = $data['resources']['pending'];
+$resources_approved = $data['resources']['approved'];
+$resources_rejected = $data['resources']['rejected'];
 
 $default_tab = get_default_tab();
 ?>
@@ -80,6 +86,7 @@ $default_tab = get_default_tab();
 <link rel="shortcut icon" href="favicon.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
     <title>Aghimuan Control Panel</title>
     <style>
         :root {
@@ -401,6 +408,9 @@ $default_tab = get_default_tab();
                 </button>
                 <button type="button" class="nav-item" data-tab="creations" onclick="switchTab('creations')">
                     <?php echo admin_icon('creations'); ?> Creations Hub <span class="count"><?php echo count($creations_pending); ?></span>
+                </button>
+                <button type="button" class="nav-item" data-tab="resources" onclick="switchTab('resources')">
+                    <?php echo admin_icon('resources'); ?> Resource Hub <span class="count"><?php echo count($resources_pending); ?></span>
                 </button>
                 <a class="nav-item" href="backup-refresh.php" style="text-decoration: none;">
                     <?php echo admin_icon('accounts'); ?> DB Backups
@@ -1045,6 +1055,78 @@ $default_tab = get_default_tab();
 
             </div><!-- /#tab-creations -->
 
+            <!-- ===================== RESOURCE HUB ===================== -->
+            <div id="tab-resources" class="tab-panel">
+
+            <?php if (!empty($resource_error)) echo "<div class='msg error'>" . htmlspecialchars($resource_error) . "</div>"; ?>
+            <?php if (!empty($resource_success)) echo "<div class='msg success'>" . htmlspecialchars($resource_success) . "</div>"; ?>
+
+            <div class="card">
+                <h3><?php echo admin_icon('resources'); ?> Add Resource (staff pick)</h3>
+                <p class="empty-hint">Seed the library directly — staff entries go live immediately as Aghimuan Staff.</p>
+                <form method="POST" style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                    <input type="hidden" name="action" value="resource_seed">
+                    <input class="field-input" type="text" name="title" maxlength="120" placeholder="Title (e.g. MDN Web Docs)" required>
+                    <input class="field-input" type="url" name="url" placeholder="https://…" required>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <select class="field-input" name="category" style="flex: 1; min-width: 160px;">
+                            <option value="web-dev">Web Development</option>
+                            <option value="programming">Programming</option>
+                            <option value="design">Graphic Design</option>
+                            <option value="networking">Networking</option>
+                            <option value="servicing">Computer Servicing</option>
+                            <option value="other">Other ICT</option>
+                        </select>
+                        <select class="field-input" name="type" style="flex: 1; min-width: 160px;">
+                            <option value="website">Website</option>
+                            <option value="software">Software</option>
+                            <option value="course">Free Course</option>
+                            <option value="docs">Documentation</option>
+                            <option value="tool">Tool</option>
+                            <option value="video">Video</option>
+                            <option value="open-source">Open Source</option>
+                        </select>
+                    </div>
+                    <input class="field-input" type="text" name="tags" placeholder="Tags, comma-separated (optional)">
+                    <textarea class="field-input" name="description" maxlength="1000" placeholder="Why is it useful? (max 1000 characters)" required></textarea>
+                    <button type="submit" class="btn-submit" style="align-self: flex-start;">Add Resource</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('resources'); ?> Pending Suggestions <span class="count"><?php echo count($resources_pending); ?></span></h3>
+                <?php if (empty($resources_pending)): ?>
+                    <p class="empty-hint">No suggestions waiting for review.</p>
+                <?php else: ?>
+                    <?php foreach ($resources_pending as $r): ?>
+                        <?php echo resource_admin_card($r, $admin_csrf_token); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('resources'); ?> Live <span class="count"><?php echo count($resources_approved); ?></span></h3>
+                <?php if (empty($resources_approved)): ?>
+                    <p class="empty-hint">Nothing published yet — seed the first entry above or approve a suggestion.</p>
+                <?php else: ?>
+                    <?php foreach ($resources_approved as $r): ?>
+                        <?php echo resource_admin_card($r, $admin_csrf_token); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <?php if (!empty($resources_rejected)): ?>
+            <div class="card">
+                <h3>Rejected <span class="count"><?php echo count($resources_rejected); ?></span></h3>
+                <?php foreach ($resources_rejected as $r): ?>
+                    <?php echo resource_admin_card($r, $admin_csrf_token); ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            </div><!-- /#tab-resources -->
+
             <!-- ===================== ADMIN ACCOUNTS (main account only) ===================== -->
             <?php if ($me['is_main']): ?>
             <div id="tab-accounts" class="tab-panel">
@@ -1157,6 +1239,7 @@ $default_tab = get_default_tab();
         users:         { title: 'Users & Roles',   sub: 'Manage members and role assignments.' },
         moderation:    { title: 'User Management', sub: 'Delete accounts, review comments, and manage IP bans.' },
         creations:     { title: 'Creations Hub',   sub: 'Review submissions, manage the spotlight, and curate the archive.' },
+        resources:     { title: 'Resource Hub',    sub: 'Review suggestions, seed staff picks, and curate the library.' },
         accounts:      { title: 'Admin Accounts',  sub: 'Create and remove admin logins.' },
         account:       { title: 'My Account',      sub: 'Manage your own login.' },
     };
@@ -1177,7 +1260,7 @@ $default_tab = get_default_tab();
 
     (function initTab() {
         const serverDefault = <?php echo json_encode($default_tab); ?>;
-        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete'])); ?>;
+        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed'])); ?>;
         const isMain = <?php echo json_encode((bool) $me['is_main']); ?>;
         const remembered = localStorage.getItem('aghimuanAdminTab');
         let initial = forced ? serverDefault : (remembered || serverDefault);
