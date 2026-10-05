@@ -107,6 +107,9 @@ data/atlas-subjects.json
 # The www/library/ app code (engines, gates) IS versioned; only the
 # material served through data-gate.php is excluded.
 data/library-content/
+# Offline PDF reviewers (PCU-only, live-server only — see README).
+# Listed separately so a future refactor can't silently re-include them.
+data/library-pdfs/
 
 # ---------- Internal docs (local only) ----------
 .claude/PRPs/
