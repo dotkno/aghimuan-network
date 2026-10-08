@@ -51,6 +51,9 @@ data/atlas-whitelist.json
 db backups/*
 !db backups/.gitkeep
 
+# Local backup mirror (DB pulls + GFS full-infra) — never commit
+AghiBackups/
+
 # Compressed archives inside data/
 data/*.tar.gz
 data/*.tgz

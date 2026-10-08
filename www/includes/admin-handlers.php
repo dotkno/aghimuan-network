@@ -793,7 +793,7 @@ function handle_resource_delete(PDO $pdo): array {
         return ['error' => 'No resource selected.'];
     }
 
-    $stmt = $pdo->prepare('SELECT id, title FROM resources WHERE id = :id');
+    $stmt = $pdo->prepare('SELECT id, title, image_url FROM resources WHERE id = :id');
     $stmt->execute([':id' => $resourceId]);
     $row = $stmt->fetch();
     if (!$row) {
@@ -801,8 +801,57 @@ function handle_resource_delete(PDO $pdo): array {
     }
 
     // Favorites cascade via the resource_favorites foreign key — no orphans.
+    // Cover images are files, not rows — remove the file too.
+    require_once __DIR__ . '/resources-lib.php';
     $pdo->prepare('DELETE FROM resources WHERE id = :id')->execute([':id' => $resourceId]);
+    delete_resource_image($row['image_url'] ?? null);
     return ['success' => 'Resource "' . $row['title'] . '" deleted.'];
+}
+
+function handle_resource_image(PDO $pdo): array {
+    require_once __DIR__ . '/resources-lib.php';
+
+    $resourceId = (int) ($_POST['resource_id'] ?? 0);
+    $imageAction = $_POST['image_action'] ?? '';
+    if ($resourceId <= 0) {
+        return ['error' => 'No resource selected.'];
+    }
+    if (!in_array($imageAction, ['replace', 'remove'], true)) {
+        return ['error' => 'Invalid cover image action.'];
+    }
+
+    $stmt = $pdo->prepare('SELECT id, title, image_url FROM resources WHERE id = :id');
+    $stmt->execute([':id' => $resourceId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['error' => 'That resource no longer exists.'];
+    }
+    $oldUrl = $row['image_url'] ?? null;
+
+    if ($imageAction === 'remove') {
+        $pdo->prepare(
+            "UPDATE resources SET image_url = NULL, updated_at = datetime('now') WHERE id = :id"
+        )->execute([':id' => $resourceId]);
+        delete_resource_image($oldUrl);
+        return ['success' => 'Cover image removed from "' . $row['title'] . '".'];
+    }
+
+    if (!isset($_FILES['image']) || !is_array($_FILES['image'])) {
+        return ['error' => 'No image uploaded.'];
+    }
+    try {
+        $newUrl = save_resource_image($_FILES['image']);
+    } catch (RuntimeException $e) {
+        return ['error' => $e->getMessage()];
+    }
+    if ($newUrl === null) {
+        return ['error' => 'No image uploaded.'];
+    }
+    $pdo->prepare(
+        "UPDATE resources SET image_url = :image_url, updated_at = datetime('now') WHERE id = :id"
+    )->execute([':image_url' => $newUrl, ':id' => $resourceId]);
+    delete_resource_image($oldUrl);
+    return ['success' => 'Cover image updated for "' . $row['title'] . '".'];
 }
 
 function handle_resource_seed(PDO $pdo): array {
@@ -843,12 +892,23 @@ function handle_resource_seed(PDO $pdo): array {
         array_slice(explode(',', $tagsInput), 0, RESOURCE_MAX_TAGS)
     ), fn($t) => $t !== ''));
 
+    // Optional cover image, uploaded inline with the seed form. Validated
+    // last so a bad file never orphans itself on disk.
+    $imageUrl = null;
+    if (isset($_FILES['image']) && is_array($_FILES['image'])) {
+        try {
+            $imageUrl = save_resource_image($_FILES['image']);
+        } catch (RuntimeException $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
     // Staff-seeded rows go live immediately with no suggester attached.
     $pdo->prepare(
         "INSERT INTO resources
-            (title, description, category, type, url, url_norm, tags,
+            (title, description, category, type, url, url_norm, tags, image_url,
              submitted_by, status, created_at, updated_at)
-         VALUES (:title, :description, :category, :type, :url, :url_norm, :tags,
+         VALUES (:title, :description, :category, :type, :url, :url_norm, :tags, :image_url,
              NULL, 'approved', datetime('now'), datetime('now'))"
     )->execute([
         ':title' => $title,
@@ -858,6 +918,7 @@ function handle_resource_seed(PDO $pdo): array {
         ':url' => $urlInput,
         ':url_norm' => $urlNorm,
         ':tags' => !empty($tags) ? json_encode(array_values($tags)) : null,
+        ':image_url' => $imageUrl,
     ]);
     return ['success' => 'Resource "' . $title . '" added to the hub.'];
 }
@@ -974,6 +1035,12 @@ function handle_post_actions(PDO $pdo): array {
 
     if (isset($_POST['action']) && $_POST['action'] === 'resource_delete' && is_logged_in()) {
         $resource_result = handle_resource_delete($pdo);
+        if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
+        if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'resource_image' && is_logged_in()) {
+        $resource_result = handle_resource_image($pdo);
         if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
         if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
     }

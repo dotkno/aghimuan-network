@@ -197,6 +197,10 @@ function resource_admin_card(array $r, string $csrf): string {
     $html = '<div class="post-card" style="margin-bottom: 12px;">';
     $html .= '<div class="post-date">' . $e(implode(' · ', $meta)) . ' · <strong>' . $e($status) . '</strong></div>';
     $html .= '<div class="post-body" style="font-weight: 600; font-size: 1.02rem;">' . $e($r['title']) . '</div>';
+    $hasImage = function_exists('is_valid_resource_image_url') && is_valid_resource_image_url($r['image_url'] ?? null);
+    if ($hasImage) {
+        $html .= '<div class="post-body"><img src="' . $e($r['image_url']) . '" alt="" loading="lazy" style="max-width: 100%; max-height: 160px; border-radius: 8px; border: 1px solid var(--glass-border);"></div>';
+    }
     $html .= '<div class="post-body">' . $e($r['description']) . '</div>';
 
     if (!empty($r['url'])) {
@@ -213,6 +217,22 @@ function resource_admin_card(array $r, string $csrf): string {
     }
 
     $html .= '<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">';
+
+    $html .= '<form method="POST" enctype="multipart/form-data" style="display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap;">'
+        . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
+        . '<input type="hidden" name="action" value="resource_image">'
+        . '<input type="hidden" name="resource_id" value="' . $id . '">'
+        . '<input type="hidden" name="image_action" value="replace">'
+        . '<input class="field-input" type="file" name="image" accept="image/jpeg,image/png,image/webp" style="max-width: 230px;">'
+        . '<button type="submit" class="edit-btn">' . ($hasImage ? 'Replace cover' : 'Add cover') . '</button></form>';
+    if ($hasImage) {
+        $html .= '<form method="POST" style="display: inline;" onsubmit="return confirm(\'Remove the cover image? The card falls back to its letter tile.\');">'
+            . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
+            . '<input type="hidden" name="action" value="resource_image">'
+            . '<input type="hidden" name="resource_id" value="' . $id . '">'
+            . '<input type="hidden" name="image_action" value="remove">'
+            . '<button type="submit" class="delete-btn">Remove cover</button></form>';
+    }
 
     if ($status !== 'approved') {
         $html .= '<form method="POST" style="display: inline;">'

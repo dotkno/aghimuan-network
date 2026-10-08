@@ -12,8 +12,8 @@ require_reviewer_access();
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aghimuan Library</title>
 <meta name="description" content="Browse ICT reviewer subjects for PCU-D: programming, systems servicing, media literacy, and more. PCU Gmail sign-in required.">
-<meta property="og:image" content="https://aghimuan.online/og-banner.png">
-<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png?v=q3">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png?v=q3">
 <link rel="canonical" href="https://aghimuan.online/library-home.php">
 <link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script src="https://cdn.tailwindcss.com"></script>

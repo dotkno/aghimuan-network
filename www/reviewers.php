@@ -32,11 +32,11 @@ if (has_reviewer_access()) {
 <meta property="og:title" content="Aghimuan Library — ICT Reviewers for PCU-D Students">
 <meta property="og:description" content="Study reviewers for PCU-D ICT tracks: programming, systems servicing, media literacy, and more.">
 <meta property="og:url" content="https://aghimuan.online/reviewers.php">
-<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png?v=4">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Aghimuan Library — ICT Reviewers for PCU-D Students">
 <meta name="twitter:description" content="Study reviewers for PCU-D ICT tracks: programming, systems servicing, media literacy, and more.">
-<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png?v=4">
 <link rel="canonical" href="https://aghimuan.online/reviewers.php">
 <link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script type="application/ld+json">
@@ -103,18 +103,20 @@ if (has_reviewer_access()) {
 
   /* ---------- SEAL BAR (sign-in) ---------- */
   #seal-bar{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:20;
-    display:inline-flex;align-items:center;cursor:pointer;
-    padding:9px 26px;border-radius:999px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+    width:max-content;max-width:calc(100vw - 32px);
+    padding:9px 26px 9px calc(26px + .4em);border-radius:999px;
     background:rgba(2,5,14,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     border:1px solid rgba(85,241,248,.3);
     opacity:0;translate:0 120%;transition:opacity 1s ease .2s,translate 1s cubic-bezier(.16,1,.3,1) .2s,border-color .2s,box-shadow .2s}
   #seal-bar:hover{border-color:rgba(85,241,248,.6);box-shadow:0 0 18px rgba(85,241,248,.25)}
   #title-screen.ready #seal-bar{opacity:1;translate:0 0}
   #title-screen.entered #seal-bar{opacity:0;pointer-events:none}
-  #seal-btn{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.4em;color:var(--ice);text-transform:uppercase}
-  #seal-btn .wax{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bffaff,#1e7d8c 70%);
+  #seal-btn{display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:.4em;color:var(--ice);text-transform:uppercase;white-space:nowrap}
+  #seal-btn span:last-child{white-space:nowrap}
+  #seal-btn .wax{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bffaff,#1e7d8c 70%);
     display:flex;align-items:center;justify-content:center;color:#03252b;font-size:11px;box-shadow:0 0 12px rgba(85,241,248,.6)}
-  #status{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;letter-spacing:.14em;color:rgba(234,252,255,.7);text-align:center}
+  #status{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:92vw;white-space:nowrap;font-size:11px;letter-spacing:.14em;color:rgba(234,252,255,.7);text-align:center}
 
   .corner{position:absolute;top:16px;right:16px;z-index:20;display:flex;gap:10px;transition:opacity .8s ease}
   .icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);border:1px solid rgba(85,241,248,.4);
@@ -132,6 +134,9 @@ if (has_reviewer_access()) {
     #title-block{top:50%}
     #main-title{font-size:clamp(1.5rem,8.5vw,2.1rem);letter-spacing:.06em;text-indent:.06em}
     .overline{letter-spacing:.32em;text-indent:.32em}
+    #seal-bar{padding:10px 18px 10px calc(18px + .22em)}
+    #seal-btn{font-size:10px;letter-spacing:.22em;gap:8px}
+    #status{white-space:normal;width:max-content;max-width:86vw;line-height:1.5}
   }
 </style>
 </head>

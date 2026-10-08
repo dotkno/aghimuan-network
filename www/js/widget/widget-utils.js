@@ -325,6 +325,15 @@ Object.assign(window.AghiWidgetUtil, {
       const reason = payload && payload.reason ? ` Reason: “${U.escapeHtml(payload.reason)}”` : '';
       return `<strong>Aghimuan Club</strong> did not approve <strong>${title}</strong>.${reason}`;
     }
+    if (item.kind === 'resource_approved') {
+      const title = payload && payload.title ? `“${U.escapeHtml(payload.title)}”` : 'your suggestion';
+      return `<strong>Aghimuan Club</strong> approved <strong>${title}</strong> — now live in the Resource Hub.`;
+    }
+    if (item.kind === 'resource_rejected') {
+      const title = payload && payload.title ? `“${U.escapeHtml(payload.title)}”` : 'your suggestion';
+      const reason = payload && payload.reason ? ` Reason: “${U.escapeHtml(payload.reason)}”` : '';
+      return `<strong>Aghimuan Club</strong> did not approve <strong>${title}</strong>.${reason}`;
+    }
     if (payload && typeof payload.text === 'string' && payload.text) {
       return U.escapeHtml(payload.text);
     }

@@ -42,6 +42,117 @@ const RESOURCE_MAX_TAGS = 8;
 const RESOURCE_MAX_TAG_LENGTH = 30;
 const RESOURCE_MAX_SEARCH_LENGTH = 100;
 
+// Cover images live under /uploads/resources/ as GD re-encoded WebP files
+// named res_<12hex>.webp (see save_resource_image()). Stored URLs must match
+// RESOURCE_IMAGE_URL_PATTERN exactly — anything else is rejected on write
+// and never rendered, so a client can't point the hub at an outside URL.
+const RESOURCE_IMAGE_URL_PREFIX = '/uploads/resources/';
+const RESOURCE_IMAGE_URL_PATTERN = '#^/uploads/resources/res_[0-9a-f]{12}\.webp$#';
+const RESOURCE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const RESOURCE_IMAGE_MAX_DIMENSION = 4096;
+const RESOURCE_IMAGE_MAX_OUTPUT = 1920;
+const RESOURCE_IMAGE_WEBP_QUALITY = 85;
+
+/** True when $url is a resource cover image this server itself produced. */
+function is_valid_resource_image_url(?string $url): bool {
+    if (!is_string($url) || $url === '') {
+        return false;
+    }
+    if (str_contains($url, '..')) {
+        return false;
+    }
+    return (bool) preg_match(RESOURCE_IMAGE_URL_PATTERN, $url);
+}
+
+/**
+ * Validate + re-encode one uploaded image ($_FILES entry) into
+ * /uploads/resources/ as WebP, stripping EXIF/payloads through GD — the
+ * same security model as api/creation-upload.php and api/upload-avatar.php.
+ * Returns the public URL on success, null when the file is missing/empty
+ * (cover images are optional), and throws RuntimeException on invalid data
+ * so callers can surface a proper error instead of silently dropping it.
+ */
+function save_resource_image(array $file): ?string {
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Image upload failed. Try again.');
+    }
+    if (($file['size'] ?? 0) > RESOURCE_IMAGE_MAX_BYTES) {
+        throw new RuntimeException('Image is too large (max 5MB).');
+    }
+    if (!extension_loaded('gd')) {
+        throw new RuntimeException('Image processing is not available on this server.');
+    }
+    $tmpName = $file['tmp_name'] ?? '';
+    if (!is_string($tmpName) || $tmpName === '') {
+        throw new RuntimeException('Image upload failed. Try again.');
+    }
+    $info = @getimagesize($tmpName);
+    if ($info === false) {
+        throw new RuntimeException('That file is not a valid image (JPEG, PNG or WebP).');
+    }
+    $loaders = [
+        IMAGETYPE_JPEG => 'imagecreatefromjpeg',
+        IMAGETYPE_PNG  => 'imagecreatefrompng',
+        IMAGETYPE_WEBP => 'imagecreatefromwebp',
+    ];
+    $type = $info[2];
+    if (!isset($loaders[$type])) {
+        throw new RuntimeException('That file is not a valid image (JPEG, PNG or WebP).');
+    }
+    if ($info[0] > RESOURCE_IMAGE_MAX_DIMENSION || $info[1] > RESOURCE_IMAGE_MAX_DIMENSION) {
+        throw new RuntimeException('Image dimensions are too large (max 4096px).');
+    }
+    $loaderFn = $loaders[$type];
+    $srcImage = @$loaderFn($tmpName);
+    if (!$srcImage) {
+        throw new RuntimeException('That file is not a valid image (JPEG, PNG or WebP).');
+    }
+    $srcW = imagesx($srcImage);
+    $srcH = imagesy($srcImage);
+    if ($srcW > RESOURCE_IMAGE_MAX_OUTPUT || $srcH > RESOURCE_IMAGE_MAX_OUTPUT) {
+        $ratio = min(RESOURCE_IMAGE_MAX_OUTPUT / $srcW, RESOURCE_IMAGE_MAX_OUTPUT / $srcH);
+        $newW = max(1, (int) ($srcW * $ratio));
+        $newH = max(1, (int) ($srcH * $ratio));
+        $dest = imagecreatetruecolor($newW, $newH);
+        imagealphablending($dest, false);
+        imagesavealpha($dest, true);
+        $transparent = imagecolorallocatealpha($dest, 0, 0, 0, 127);
+        imagefilledrectangle($dest, 0, 0, $newW, $newH, $transparent);
+        imagecopyresampled($dest, $srcImage, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
+        imagedestroy($srcImage);
+        $srcImage = $dest;
+    }
+
+    $uploadDir = __DIR__ . '/../uploads/resources';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        imagedestroy($srcImage);
+        throw new RuntimeException('Could not save the image. Try again.');
+    }
+    $filename = 'res_' . bin2hex(random_bytes(6)) . '.webp';
+    $fullPath = $uploadDir . '/' . $filename;
+    if (!imagewebp($srcImage, $fullPath, RESOURCE_IMAGE_WEBP_QUALITY)) {
+        imagedestroy($srcImage);
+        throw new RuntimeException('Could not save the image. Try again.');
+    }
+    imagedestroy($srcImage);
+
+    return RESOURCE_IMAGE_URL_PREFIX . $filename;
+}
+
+/** Delete a resource cover image from disk. Best-effort — never fatal. */
+function delete_resource_image(?string $url): void {
+    if (!is_valid_resource_image_url($url)) {
+        return;
+    }
+    $path = __DIR__ . '/../uploads/resources/' . basename((string) $url);
+    if (is_file($path)) {
+        @unlink($path);
+    }
+}
+
 /**
  * Normalize a raw URL into a canonical dedupe key.
  * Lowercases the host, strips default ports and trailing slashes so
@@ -123,6 +234,9 @@ function normalize_resource(array $row): array {
         'url'          => $url,
         'domain'       => (string) $domain,
         'tags'         => $tags,
+        'image_url'    => is_valid_resource_image_url($row['image_url'] ?? null)
+            ? (string) $row['image_url']
+            : null,
         'featured'     => !empty($row['featured']),
         'favCount'     => $favCount,
         'isFavorited'  => $isFavorited,

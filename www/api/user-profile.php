@@ -33,10 +33,10 @@ if ($username === '' && !$id) {
 }
 
 if ($id) {
-    $stmt = $pdo->prepare('SELECT id, username, bio, status, pfp_id, banner_id, main_role, sub_role, grade, strand, club, presence, last_seen, is_banned, is_verified FROM users WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT id, username, bio, status, pfp_id, banner_id, main_role, sub_role, grade, strand, club, presence, last_seen, is_banned, is_verified, created_at FROM users WHERE id = ?');
     $stmt->execute([$id]);
 } else {
-    $stmt = $pdo->prepare('SELECT id, username, bio, status, pfp_id, banner_id, main_role, sub_role, grade, strand, club, presence, last_seen, is_banned, is_verified FROM users WHERE username_lower = ?');
+    $stmt = $pdo->prepare('SELECT id, username, bio, status, pfp_id, banner_id, main_role, sub_role, grade, strand, club, presence, last_seen, is_banned, is_verified, created_at FROM users WHERE username_lower = ?');
     $stmt->execute([mb_strtolower($username)]);
 }
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -129,6 +129,7 @@ echo json_encode([
     'presence' => $row['presence'] ?? 'online',
     'online' => $online,
     'isSelf' => $isSelf,
+    'memberSince' => $row['created_at'] ?? null,
     'friendStatus' => $friendStatus,
     'blockedByYou' => $blockedByYou,
 ]);

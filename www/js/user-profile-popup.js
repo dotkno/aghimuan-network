@@ -130,6 +130,23 @@ window.AghiUserProfile = (function () {
     return div.innerHTML;
   }
 
+  // users.created_at is SQLite UTC ('YYYY-MM-DD HH:MM:SS') — render it as
+  // Discord does ('Jun 3, 2025'). Falls back to '' when missing/unparsable
+  // so the Member Since row simply hides instead of showing garbage.
+  function formatMemberSince(val) {
+    if (val == null || val === '') return '';
+    let d;
+    if (typeof val === 'number') {
+      d = new Date(val > 1e12 ? val : val * 1000);
+    } else {
+      const s = String(val).trim();
+      const iso = /[Tt]/.test(s) ? s : s.replace(' ', 'T') + 'Z';
+      d = new Date(iso);
+    }
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   // Pulls a single representative hex color out of a "background: #abc..."
   // (or gradient) style string, for the small dot next to each role chip
   // in the mobile sheet's Roles section -- the desktop badges use the
@@ -270,6 +287,35 @@ window.AghiUserProfile = (function () {
       }
       .aghi-up-about-text { font-size: 13px; line-height: 1.5; color: #AEB7C0; white-space: pre-wrap; }
       .aghi-up-about-text.aghi-up-empty { color: #767CA1; font-style: italic; }
+      /* Member Since plaque — its own look (icon + stacked label/date on a
+         cyan-tinted card), deliberately different from the About Me box
+         while staying in the same cyan/glass theme. Shared by desktop
+         popup and mobile sheet. */
+      .aghi-up-member-since {
+        display: flex; align-items: center; gap: 8px;
+        margin: 8px 0; padding: 7px 10px; border-radius: 8px;
+        background: linear-gradient(135deg, rgba(85,241,248,0.08), rgba(48,150,199,0.02));
+        border: 1px solid rgba(85,241,248,0.22);
+        box-shadow: 0 0 8px rgba(85,241,248,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+      }
+      .aghi-up-ms-icon {
+        width: 26px; height: 26px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 7px; color: #55F1F8;
+        background: rgba(85,241,248,0.10);
+        border: 1px solid rgba(85,241,248,0.30);
+        box-shadow: 0 0 6px rgba(85,241,248,0.18);
+      }
+      .aghi-up-ms-icon svg { width: 13px; height: 13px; }
+      .aghi-up-ms-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+      .aghi-up-ms-label {
+        font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; color: #55F1F8;
+      }
+      .aghi-up-ms-date {
+        font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600;
+        letter-spacing: 0.02em; color: #F1F2F5;
+      }
       .aghi-up-subroles-row {
         display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; margin-bottom: 10px;
       }
@@ -432,7 +478,7 @@ window.AghiUserProfile = (function () {
       .aghi-up-mobile-back { left: 10px; }
       .aghi-up-mobile-more { right: 10px; }
 
-      .aghi-up-mobile-body { padding: 0 16px 20px; margin-top: -40px; position: relative; }
+      .aghi-up-mobile-body { padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px)); margin-top: -40px; position: relative; }
       .aghi-up-mobile-avatar-wrap {
         width: 76px; height: 76px; border-radius: 50%; position: relative;
         border: 4px solid #14171e; margin-bottom: 8px; box-sizing: border-box;
@@ -531,6 +577,7 @@ window.AghiUserProfile = (function () {
   const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const CLOCK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
   const DOTS_ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>`;
+  const CAL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
 
   function friendButtonHtml(status) {
     switch (status) {
@@ -764,10 +811,10 @@ window.AghiUserProfile = (function () {
     const popupHeight = popupRect.height || 260;
     const margin = 8;
 
-    let left = rect.left + scrollX;
-    let top = rect.bottom + scrollY + margin;
-
     const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+    let left = rect.left + scrollX;
     if (left + popupWidth > scrollX + viewportWidth - margin) {
       left = scrollX + viewportWidth - popupWidth - margin;
     }
@@ -775,10 +822,30 @@ window.AghiUserProfile = (function () {
       left = scrollX + margin;
     }
 
-    const viewportHeight = document.documentElement.clientHeight;
+    // Prefer below the anchor, but flip above when there is more room
+    // there. The old check required the FULL popup height to fit above
+    // before flipping at all — with a ~500px popup that almost never
+    // happened, so anchors in the bottom half kept rendering below and
+    // getting clipped (see screenshot). Now we flip to whichever side
+    // has more space, then clamp.
+    let top = rect.bottom + scrollY + margin;
     const spaceBelow = (scrollY + viewportHeight) - top;
-    if (spaceBelow < popupHeight && rect.top + scrollY - popupHeight - margin > scrollY) {
+    const spaceAbove = rect.top;
+    if (spaceBelow < popupHeight && spaceAbove > spaceBelow) {
       top = rect.top + scrollY - popupHeight - margin;
+    }
+
+    // Clamp into the viewport so the popup is never cut off, even when
+    // it fits on neither side. If the popup is taller than the viewport
+    // itself, pin it to the top and let it scroll internally.
+    const minTop = scrollY + margin;
+    const maxTop = scrollY + viewportHeight - popupHeight - margin;
+    if (maxTop < minTop) {
+      top = minTop;
+      popup.style.maxHeight = `${viewportHeight - margin * 2}px`;
+      popup.style.overflowY = 'auto';
+    } else {
+      top = Math.min(Math.max(top, minTop), maxTop);
     }
 
     popup.style.top = `${top}px`;
@@ -824,6 +891,7 @@ window.AghiUserProfile = (function () {
   }
 
   function openDesktopPopup(anchorEl, data, mainRole, mainRoleStyle, presence, canMessage) {
+    const memberSince = formatMemberSince(data.memberSince || data.createdAt || data.created_at);
     let subrolesHtml = '';
     if (data.subRole) {
       subrolesHtml += `<span class="aghi-subrole-badge" style="background:#1e88e5;color:#fff;">${escapeHtml(data.subRole)}</span>`;
@@ -871,6 +939,8 @@ window.AghiUserProfile = (function () {
           <div class="aghi-up-about-text ${data.bio ? '' : 'aghi-up-empty'}" data-el="bio"></div>
         </div>
 
+        ${memberSince ? `<div class="aghi-up-member-since"><span class="aghi-up-ms-icon">${CAL_ICON}</span><span class="aghi-up-ms-text"><span class="aghi-up-ms-label">Member Since</span><span class="aghi-up-ms-date">${escapeHtml(memberSince)}</span></span></div>` : ''}
+
         ${subrolesHtml ? `<div class="aghi-up-subroles-row">${subrolesHtml}</div>` : ''}
 
         <a href="/profile.html?username=${escapeHtml(data.username)}" class="aghi-up-message-btn aghi-up-viewprofile">View Full Profile</a>
@@ -914,6 +984,7 @@ window.AghiUserProfile = (function () {
   // scaled right below the panel breakpoint).
   function openMobileSheet(data, mainRole, mainRoleStyle, presence, canMessage) {
     const roleChips = buildRoleChipsHtml(data);
+    const memberSince = formatMemberSince(data.memberSince || data.createdAt || data.created_at);
 
     backdropEl = document.createElement('div');
     backdropEl.className = 'aghi-up-mobile-backdrop';
@@ -958,6 +1029,9 @@ window.AghiUserProfile = (function () {
             <div class="aghi-up-mobile-section-label">About Me</div>
             <div class="aghi-up-mobile-about-text ${data.bio ? '' : 'aghi-up-empty'}" data-el="bio"></div>
           </div>
+
+          ${memberSince ? `
+          <div class="aghi-up-member-since"><span class="aghi-up-ms-icon">${CAL_ICON}</span><span class="aghi-up-ms-text"><span class="aghi-up-ms-label">Member Since</span><span class="aghi-up-ms-date">${escapeHtml(memberSince)}</span></span></div>` : ''}
 
           ${roleChips ? `
           <div class="aghi-up-mobile-section">

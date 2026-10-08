@@ -203,6 +203,7 @@ if ($method === 'POST') {
     $resType = trim((string) ($body['type'] ?? 'website'));
     $urlInput = trim((string) ($body['url'] ?? ''));
     $tagsInput = $body['tags'] ?? [];
+    $imageUrlInput = trim((string) ($body['image_url'] ?? ''));
 
     if ($title === '') {
         json_error(422, 'Title is required.');
@@ -250,11 +251,22 @@ if ($method === 'POST') {
         json_error(409, 'That resource has already been suggested and is awaiting review.');
     }
 
+    // Optional cover image: only URLs this server produced via
+    // api/resource-upload.php are accepted, so a client can't point the
+    // hub at an outside file.
+    $imageUrl = null;
+    if ($imageUrlInput !== '') {
+        if (!is_valid_resource_image_url($imageUrlInput)) {
+            json_error(422, 'Invalid cover image. Upload it with the image picker first.');
+        }
+        $imageUrl = $imageUrlInput;
+    }
+
     $stmt = $pdo->prepare(
         "INSERT INTO resources
-            (title, description, category, type, url, url_norm, tags,
+            (title, description, category, type, url, url_norm, tags, image_url,
              submitted_by, status, created_at, updated_at)
-         VALUES (:title, :description, :category, :type, :url, :url_norm, :tags,
+         VALUES (:title, :description, :category, :type, :url, :url_norm, :tags, :image_url,
              :submitted_by, 'pending', datetime('now'), datetime('now'))"
     );
     $stmt->execute([
@@ -265,6 +277,7 @@ if ($method === 'POST') {
         ':url' => $url,
         ':url_norm' => $urlNorm,
         ':tags' => !empty($tags) ? json_encode(array_values($tags)) : null,
+        ':image_url' => $imageUrl,
         ':submitted_by' => $myId,
     ]);
 

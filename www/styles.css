@@ -94,6 +94,7 @@ p { margin: 0; }
 }
 
 body.modal-open, body.nav-open { overflow: hidden; }
+html:has(> body.modal-open), html:has(> body.nav-open) { overflow-y: hidden; }
 
 .eyebrow {
   font-family: var(--font-mono);
@@ -3183,11 +3184,10 @@ footer .foot-copy a:hover {
 .hub-modal {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 9990;
   display: grid;
   place-items: center;
   padding: clamp(10px, 2vw, 24px);
-  width: 100vw;
   height: 100vh;
   height: 100dvh;
 }
@@ -3200,8 +3200,9 @@ footer .foot-copy a:hover {
 }
 .hub-modal-panel {
   position: relative;
-  width: min(960px, calc(100vw - 20px));
+  width: min(960px, 100%);
   max-height: min(92vh, 880px);
+  max-height: min(92dvh, 880px);
   overflow: auto;
   border: 1px solid var(--glass-border);
   border-radius: 18px;
@@ -3337,7 +3338,7 @@ footer .foot-copy a:hover {
   left: 50%;
   bottom: 26px;
   transform: translate(-50%, 16px);
-  z-index: 140;
+  z-index: 12000;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3433,7 +3434,7 @@ footer .foot-copy a:hover {
 @media (max-width: 640px) {
   .hub-modal { padding: 0; }
   .hub-modal-panel {
-    width: 100vw;
+    width: 100%;
     max-height: 100dvh;
     height: 100dvh;
     border-radius: 0;

@@ -22,11 +22,11 @@ start_secure_session();
   <meta property="og:title" content="Sign up — Aghimuan Network">
   <meta property="og:description" content="Create your Aghimuan Network account with Google and join the PCU-D ICT student community.">
   <meta property="og:url" content="https://aghimuan.online/signup.php">
-  <meta property="og:image" content="https://aghimuan.online/og-banner.png">
+  <meta property="og:image" content="https://aghimuan.online/og-banner.png?v=q3">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Sign up — Aghimuan Network">
   <meta name="twitter:description" content="Create your Aghimuan Network account with Google and join the PCU-D ICT student community.">
-  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png?v=q3">
   <link rel="canonical" href="https://aghimuan.online/signup.php">
   <link rel="describedby" href="https://aghimuan.online/llms.txt">
   <link rel="preconnect" href="https://fonts.googleapis.com">

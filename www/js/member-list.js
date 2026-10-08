@@ -93,7 +93,7 @@
         backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%);
         border-left: 1px solid rgba(255, 255, 255, 0.11);
         font-family: 'Inter', sans-serif; color: #F1F2F5;
-        position: fixed; top: 0; right: 0; height: 100vh;
+        position: fixed; top: 0; right: 0; height: 100vh; height: 100dvh;
         width: var(--aghi-ml-width); z-index: 500;
         transform: translateX(0);
         transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -132,7 +132,7 @@
       .aghi-ml-search::placeholder { color: #767CA1; }
       .aghi-ml-search:focus { border-color: rgba(85, 241, 248, 0.4); box-shadow: 0 0 0 3px rgba(85, 241, 248, 0.12); }
 
-      .aghi-ml-body { flex: 1; overflow-y: auto; padding: 4px 8px 16px; scrollbar-width: thin; scrollbar-color: rgba(85, 241, 248, 0.35) transparent; }
+      .aghi-ml-body { flex: 1; overflow-y: auto; padding: 4px 8px calc(16px + env(safe-area-inset-bottom, 0px)); scrollbar-width: thin; scrollbar-color: rgba(85, 241, 248, 0.35) transparent; }
       .aghi-ml-body::-webkit-scrollbar { width: 6px; }
       .aghi-ml-body::-webkit-scrollbar-track { background: transparent; }
       .aghi-ml-body::-webkit-scrollbar-thumb { background: rgba(85, 241, 248, 0.35); border-radius: 999px; }
@@ -202,6 +202,10 @@
         .aghi-ml-panel.aghi-ml-static { display: none; }
         .aghi-ml-reopen-tab { display: none; }
         body.aghi-ml-desktop-active { padding-right: 0; }
+        /* Last row must clear the Android system nav (back/home/recents),
+           which reports env(safe-area-inset-bottom) as 0 in some Chrome
+           modes — so add a fixed cushion on top of the safe-area value. */
+        .aghi-ml-body { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
       }
 
       @media (prefers-reduced-motion: reduce) {

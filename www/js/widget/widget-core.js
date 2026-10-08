@@ -108,6 +108,8 @@
     friend_accept: () => CHECK_ICON,
     creation_approved: () => CHECK_ICON,
     creation_rejected: () => X_ICON,
+    resource_approved: () => CHECK_ICON,
+    resource_rejected: () => X_ICON,
     comment: () => CHAT_ICON,
     mention: () => AT_ICON,
     reaction: () => HEART_ICON,

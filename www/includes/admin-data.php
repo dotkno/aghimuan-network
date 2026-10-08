@@ -49,7 +49,7 @@ function load_custom_roles(PDO $pdo): array {
 function load_users(PDO $pdo): array {
     $all_users = $pdo->query(
         "SELECT u.id, u.username, u.main_role, u.sub_role, u.grade, u.strand, u.club,
-                u.ip_address, u.created_at,
+                u.email, u.ip_address, u.created_at,
                 GROUP_CONCAT(ucr.role_id) AS custom_role_ids
          FROM users u
          LEFT JOIN user_custom_roles ucr ON ucr.user_id = u.id

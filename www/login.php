@@ -55,11 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta property="og:title" content="Log in — Aghimuan Network">
   <meta property="og:description" content="Log in to Aghimuan Network with Google or your password to reach projects, reviewers, and the PCU-D ICT community.">
   <meta property="og:url" content="https://aghimuan.online/login.php">
-  <meta property="og:image" content="https://aghimuan.online/og-banner.png">
+  <meta property="og:image" content="https://aghimuan.online/og-banner.png?v=q3">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Log in — Aghimuan Network">
   <meta name="twitter:description" content="Log in to Aghimuan Network with Google or your password to reach projects, reviewers, and the PCU-D ICT community.">
-  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+  <meta name="twitter:image" content="https://aghimuan.online/og-banner.png?v=q3">
   <link rel="canonical" href="https://aghimuan.online/login.php">
   <link rel="describedby" href="https://aghimuan.online/llms.txt">
   <link rel="preconnect" href="https://fonts.googleapis.com">

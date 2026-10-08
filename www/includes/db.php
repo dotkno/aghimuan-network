@@ -235,6 +235,7 @@ function get_db(): PDO {
             url              TEXT NOT NULL,
             url_norm         TEXT NOT NULL,
             tags             TEXT,
+            image_url        TEXT,
             submitted_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
             status           TEXT NOT NULL DEFAULT \'pending\',
             featured         INTEGER NOT NULL DEFAULT 0,
@@ -286,6 +287,12 @@ function get_db(): PDO {
             if (!in_array('reply_to_user', $cols, true)) {
                 $pdo->exec('ALTER TABLE comments ADD COLUMN reply_to_user TEXT NULL DEFAULT NULL');
             }
+        }
+
+        // auto-migrate existing resources table for per-resource cover images
+        $resCols = $pdo->query("PRAGMA table_info(resources)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!empty($resCols) && !in_array('image_url', $resCols, true)) {
+            $pdo->exec('ALTER TABLE resources ADD COLUMN image_url TEXT NULL DEFAULT NULL');
         }
 
         $pdo->exec(

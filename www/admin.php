@@ -355,6 +355,7 @@ $default_tab = get_default_tab();
         }
     </style>
 <script src="/js/aghi-img-fallback.js"></script>
+<script src="/js/cover-cropper.js"></script>
 </head>
 <body>
 
@@ -926,13 +927,14 @@ $default_tab = get_default_tab();
 
             <div class="card">
                 <h3><?php echo admin_icon('moderation'); ?> All Members</h3>
-                <input type="text" class="search-input" id="modSearchInput" placeholder="Search by username…" oninput="filterModTable()">
+                <input type="text" class="search-input" id="modSearchInput" placeholder="Search by username or gmail…" oninput="filterModTable()">
 
                 <div class="user-table-wrap">
                     <table class="user-table">
                         <thead>
                             <tr>
                                 <th>Username</th>
+                                <th>Gmail</th>
                                 <th>Signed Up</th>
                                 <th>IP Address</th>
                                 <th>Comments</th>
@@ -942,8 +944,9 @@ $default_tab = get_default_tab();
                         <tbody id="modTableBody">
                             <?php foreach ($all_users as $u): ?>
                                 <?php $uComments = $comments_by_user[(int) $u['id']] ?? []; ?>
-                                <tr data-username="<?php echo htmlspecialchars($u['username']); ?>">
+                                <tr data-username="<?php echo htmlspecialchars($u['username']); ?>" data-email="<?php echo htmlspecialchars($u['email'] ?? ''); ?>">
                                     <td><?php echo htmlspecialchars($u['username']); ?></td>
+                                    <td class="mono-cell" style="word-break:break-all;white-space:normal;"><?php echo !empty($u['email']) ? htmlspecialchars($u['email']) : '—'; ?></td>
                                     <td class="mono-cell"><?php echo htmlspecialchars($u['created_at'] ?? '—'); ?></td>
                                     <td class="mono-cell"><?php echo htmlspecialchars($u['ip_address'] ?: 'Unknown'); ?></td>
                                     <td><?php echo count($uComments); ?></td>
@@ -968,6 +971,9 @@ $default_tab = get_default_tab();
                 <div class="card mod-user-detail" id="modUser-<?php echo (int) $u['id']; ?>" style="display:none;">
                     <h3>Comments by <?php echo htmlspecialchars($u['username']); ?></h3>
                     <p class="empty-hint" style="margin-bottom: 14px;">
+                        <?php if (!empty($u['email'])): ?>
+                            Gmail: <strong style="word-break:break-all;"><?php echo htmlspecialchars($u['email']); ?></strong><br>
+                        <?php endif; ?>
                         Signed up <?php echo htmlspecialchars($u['created_at'] ?? 'unknown'); ?> from
                         <strong><?php echo htmlspecialchars($u['ip_address'] ?: 'Unknown'); ?></strong>.
                     </p>
@@ -1064,7 +1070,7 @@ $default_tab = get_default_tab();
             <div class="card">
                 <h3><?php echo admin_icon('resources'); ?> Add Resource (staff pick)</h3>
                 <p class="empty-hint">Seed the library directly — staff entries go live immediately as Aghimuan Staff.</p>
-                <form method="POST" style="display: flex; flex-direction: column; gap: 8px;">
+                <form method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 8px;">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                     <input type="hidden" name="action" value="resource_seed">
                     <input class="field-input" type="text" name="title" maxlength="120" placeholder="Title (e.g. MDN Web Docs)" required>
@@ -1090,6 +1096,9 @@ $default_tab = get_default_tab();
                     </div>
                     <input class="field-input" type="text" name="tags" placeholder="Tags, comma-separated (optional)">
                     <textarea class="field-input" name="description" maxlength="1000" placeholder="Why is it useful? (max 1000 characters)" required></textarea>
+                    <label style="font-size: .85rem; color: var(--muted);">Cover image <span style="opacity: .7;">(optional, JPEG/PNG/WebP, max 5MB)</span>
+                        <input class="field-input" type="file" name="image" accept="image/jpeg,image/png,image/webp" style="margin-top: 4px;">
+                    </label>
                     <button type="submit" class="btn-submit" style="align-self: flex-start;">Add Resource</button>
                 </form>
             </div>
@@ -1341,7 +1350,8 @@ $default_tab = get_default_tab();
     function filterModTable() {
         const q = document.getElementById('modSearchInput').value.trim().toLowerCase();
         document.querySelectorAll('#modTableBody tr').forEach(tr => {
-            tr.style.display = tr.dataset.username.toLowerCase().includes(q) ? '' : 'none';
+            const hay = ((tr.dataset.username || '') + ' ' + (tr.dataset.email || '')).toLowerCase();
+            tr.style.display = hay.includes(q) ? '' : 'none';
         });
     }
 
@@ -1486,6 +1496,39 @@ $default_tab = get_default_tab();
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeSidebar();
     });
+
+    // Cover cropper for the Resources tab: the seed form and every card's
+    // replace-cover input. Cropping swaps the chosen file for the cropped
+    // one; cancelling clears the pick so nothing stale gets uploaded.
+    document.addEventListener('change', async (e) => {
+        const input = e.target && e.target.closest ? e.target.closest('#tab-resources input[type="file"][name="image"]') : null;
+        if (!input || !input.files || !input.files[0] || !window.AghiCoverCropper) return;
+        const original = input.files[0];
+        if (original.size > 5 * 1024 * 1024 || !/^image\/(jpeg|png|webp)$/.test(original.type)) return;
+        let cropped = null;
+        try { cropped = await window.AghiCoverCropper.open(original); } catch (_) { cropped = null; }
+        if (!cropped) { input.value = ''; clearCropThumb(input); return; }
+        const dt = new DataTransfer();
+        dt.items.add(cropped);
+        input.files = dt.files;
+        showCropThumb(input, cropped);
+    });
+    function clearCropThumb(input) {
+        const old = input.parentNode ? input.parentNode.querySelector('img[data-crop-thumb]') : null;
+        if (old) {
+            if (old.src && old.src.indexOf('blob:') === 0) { try { URL.revokeObjectURL(old.src); } catch (_) {} }
+            old.remove();
+        }
+    }
+    function showCropThumb(input, file) {
+        clearCropThumb(input);
+        const thumb = document.createElement('img');
+        thumb.setAttribute('data-crop-thumb', '1');
+        thumb.src = URL.createObjectURL(file);
+        thumb.alt = '';
+        thumb.style.cssText = 'width:64px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--glass-border);flex:none;';
+        input.parentNode.insertBefore(thumb, input);
+    }
 </script>
 <?php endif; ?>
 </body>

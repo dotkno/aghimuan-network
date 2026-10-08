@@ -142,9 +142,10 @@ AccountWidget.prototype.renderInboxList = function (listEl) {
     const id = rowEl.getAttribute('data-item-id');
     const item = this.inboxItems.find((it) => String(it.id) === id);
     if (!item) return;
-    // Creations decisions come from the club itself (no user actor), so
+    // Club decisions come from Aghimuan itself (no user actor), so
     // they render the Aghimuan logo + name instead of a "?" monogram.
-    if (item.kind === 'creation_approved' || item.kind === 'creation_rejected') {
+    if (item.kind === 'creation_approved' || item.kind === 'creation_rejected'
+      || item.kind === 'resource_approved' || item.kind === 'resource_rejected') {
       const av = rowEl.querySelector('[data-el="avatar"]');
       av.style.backgroundImage = `url('/favicon-32.png')`;
       av.style.backgroundColor = '#0a1520';

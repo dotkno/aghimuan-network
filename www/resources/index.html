@@ -10,11 +10,11 @@
 <meta property="og:title" content="Resource Hub — Aghimuan">
 <meta property="og:description" content="Free, curated third-party resources for PCU-Dasmariñas ICT students: web development, programming, design, networking, servicing and more.">
 <meta property="og:url" content="https://aghimuan.online/resources/index.html">
-<meta property="og:image" content="https://aghimuan.online/og-banner.png">
+<meta property="og:image" content="https://aghimuan.online/og-banner.png?v=q3">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Resource Hub — Aghimuan">
 <meta name="twitter:description" content="Free, curated third-party resources for PCU-Dasmariñas ICT students.">
-<meta name="twitter:image" content="https://aghimuan.online/og-banner.png">
+<meta name="twitter:image" content="https://aghimuan.online/og-banner.png?v=q3">
 <link rel="canonical" href="https://aghimuan.online/resources/index.html">
 <link rel="describedby" href="https://aghimuan.online/llms.txt">
 <script type="application/ld+json">
@@ -53,7 +53,7 @@
 <script src="/js/member-list.js" defer></script>
 
 <!-- ================= PRODUCTION STYLESHEET ================= -->
-<link rel="stylesheet" href="../styles.css?v=7">
+<link rel="stylesheet" href="../styles.css?v=8">
 
 <style>
 /* ---- shared app chrome (sidebar / topbar / mobile drawer) ----
@@ -374,10 +374,29 @@ main{position:relative;width:100%;max-width:min(1400px,100%);margin:0 auto;paddi
 /* Loading shimmer comes from styles.css (.sk / .sk::after / .sk-bar + @keyframes
    shimmer) — the same one creations/ uses. Do not re-declare it here. */
 /* Detail modal body (local). */
-.res-detail{padding:clamp(18px,3vw,30px)}
+.res-detail{padding:clamp(20px,3.4vw,32px)}
 .res-detail h2{font-family:var(--font-display);font-size:clamp(1.3rem,2.6vw,1.8rem);color:var(--white);margin:12px 0 4px;line-height:1.25}
-.res-detail-desc{margin-top:12px;font-size:.92rem;line-height:1.65;color:var(--silver);white-space:pre-line}
+.res-detail-desc{margin-top:12px;font-size:.92rem;line-height:1.65;color:var(--silver);white-space:pre-line;max-width:64ch;overflow-wrap:anywhere}
 .res-detail-meta{margin-top:12px;font-family:var(--font-mono);font-size:.72rem;color:var(--steel);letter-spacing:.04em}
+.res-detail .res-domain,.res-detail h2{padding-right:56px;overflow-wrap:anywhere}
+.res-detail-cover{width:100%;height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--glass-border);margin:0 0 4px;background:var(--glass-bg)}
+#hubModal .hub-modal-panel{display:flex;flex-direction:column;overflow:hidden;width:min(640px,100%)}
+#hubModal .hub-modal-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+@media (max-width:640px){
+  #hubModal.hub-modal{padding:14px}
+  #hubModal .hub-modal-panel{
+    width:100%;
+    height:auto;
+    max-height:88dvh;
+    border:1px solid var(--glass-border);
+    border-radius:16px;
+    background:linear-gradient(180deg,rgba(3,3,126,.25),rgba(21,22,28,.94) 32%);
+  }
+  #hubModal .res-detail{padding:24px 18px calc(22px + env(safe-area-inset-bottom,0px))}
+  #hubModal .res-actions{gap:8px}
+  #hubModal .res-actions>*{flex:1 1 auto;justify-content:center}
+  #hubModal .res-detail-cover{height:170px}
+}
 /* ---- footer ----
    Verbatim copy of about.html:1019-1027. styles.css defines `footer` and
    `.foot-brand`/`.foot-copy` but NOT `.foot-social` — without this the icon
@@ -657,18 +676,26 @@ function normItem(r) {
     type: TYPE_LABELS[r.type] ? r.type : 'website',
     url: r.url || '#', domain: r.domain || r.url || '',
     tags: Array.isArray(r.tags) ? r.tags : [],
+    image: isHubImage(r.image_url) ? r.image_url : null,
     featured: !!r.featured,
     favCount: +r.favCount || 0, isFavorited: !!r.isFavorited,
     suggester: r.suggester || 'Aghimuan Staff',
   };
 }
 
+// Server only stores /uploads/resources/res_<12hex>.webp URLs it produced
+// itself (see RESOURCE_IMAGE_URL_PATTERN); this client-side twin of that
+// check keeps a tampered payload from ever becoming an <img src>.
+function isHubImage(u) {
+  return typeof u === 'string' && /^\/uploads\/resources\/res_[0-9a-f]{12}\.webp$/.test(u);
+}
+
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
-  t.classList.add('is-visible');
+  t.classList.add('is-shown');
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.classList.remove('is-visible'), 2600);
+  t._h = setTimeout(() => t.classList.remove('is-shown'), 2600);
 }
 
 async function fetchJSON(url, timeout = 6000) {
@@ -692,8 +719,11 @@ function favBtnHTML(it) {
 function cardHTML(it, i) {
   const letter = (it.domain || '?').trim().charAt(0).toUpperCase() || '?';
   const tags = it.tags.slice(0, 4).map(t => `<span class="tag-chip">${esc(t)}</span>`).join('');
+  const cover = it.image
+    ? `<img class="cover-art-img" src="${esc(it.image)}" alt="" loading="lazy" data-fallback="hide" style="position:absolute;inset:0">`
+    : '';
   return `<article class="library-card" data-detail="${it.id}" tabindex="0" role="button" aria-label="View ${esc(it.title)}" style="animation-delay:${Math.min((i || 0) * 45, 420)}ms">`
-    + `<div class="cover-art" aria-hidden="true"><span class="res-letter" style="background:${letterColor(it.domain)};width:100%;height:100%;border-radius:0;font-size:2rem">${esc(letter)}</span><span class="cover-sheen" aria-hidden="true"></span></div>`
+    + `<div class="cover-art" aria-hidden="true"><span class="res-letter" style="background:${letterColor(it.domain)};width:100%;height:100%;border-radius:0;font-size:2rem">${esc(letter)}</span>${cover}<span class="cover-sheen" aria-hidden="true"></span></div>`
     + `<div class="library-card-body">`
     + `<h3 class="library-card-title">${esc(it.title)}</h3>`
     + `<div class="res-domain">${esc(it.domain)} · Suggested by ${esc(it.suggester)}</div>`
@@ -750,7 +780,7 @@ function renderSpotlight() {
     const letter = (it.domain || '?').trim().charAt(0).toUpperCase() || '?';
     const tags = it.tags.slice(0, 4).map(t => `<span class="tag-chip">${esc(t)}</span>`).join('');
     return `<article class="spotlight-card" data-detail="${it.id}">`
-    + `<div class="spotlight-media cover-art" aria-hidden="true"><span class="spotlight-letter" style="background:${letterColor(it.domain)};width:100%">${esc(letter)}</span></div>`
+    + `<div class="spotlight-media cover-art" aria-hidden="true"><span class="spotlight-letter" style="background:${letterColor(it.domain)};width:100%">${esc(letter)}</span>${it.image ? `<img class="cover-art-img" src="${esc(it.image)}" alt="" loading="lazy" data-fallback="hide" style="position:absolute;inset:0">` : ''}</div>`
     + `<div class="spotlight-body">`
     + `<div class="res-domain">${esc(it.domain)}</div>`
     + `<h2 class="spotlight-title">${esc(it.title)}</h2>`
@@ -850,7 +880,9 @@ function openDetail(id) {
     <div class="hub-modal-backdrop" data-close></div>
     <div class="hub-modal-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <button type="button" class="icon-btn hub-modal-close" data-close aria-label="Close details"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <div class="hub-modal-scroll">
       <div class="res-detail">
+        ${it.image ? `<img class="res-detail-cover" src="${esc(it.image)}" alt="" loading="lazy" data-fallback="hide">` : ''}
         <div class="res-domain">${esc(it.domain)}</div>
         <h2 id="detailTitle">${esc(it.title)}</h2>
         <div class="res-tags"><span class="tag-chip tag-chip--cat">${esc(catLabel(it.category))}</span><span class="tag-chip tag-chip--cat">${esc(typeLabel(it.type))}</span>${it.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>
@@ -860,6 +892,7 @@ function openDetail(id) {
           <a class="btn btn-primary" href="${esc(it.url)}" target="_blank" rel="noopener">Visit resource <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg></a>
           ${favBtnHTML(it)}
         </div>
+      </div>
       </div>
     </div>`;
   $('#hubModal').hidden = false;
