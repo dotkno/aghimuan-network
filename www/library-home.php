@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/library/includes/reviewer-session.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/intervention-lib.php';
 require_reviewer_access();
+// The Intervention Program is temporary: its entry card renders only while
+// admins have it enabled. The page itself re-checks on every load.
+$interventionEnabled = intervention_status(get_db())['enabled'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -174,6 +179,24 @@ require_reviewer_access();
       </div>
 
     </div>
+
+    <?php if ($interventionEnabled): ?>
+    <!-- Intervention Program (temporary — rendered only while enabled) -->
+    <a href="library/intervention.php" class="folder-item btn-neon group w-full flex items-center gap-3 px-4 py-4 sm:py-5 text-left window-card rounded-xl overflow-hidden fade-up mt-6" aria-label="Open Intervention Program assessments">
+      <span class="relative flex items-center justify-center w-10 h-9 flex-shrink-0">
+        <svg class="absolute inset-0 w-full h-full text-white/10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+        </svg>
+        <span class="folder-icon relative text-lg font-bold" style="color:#55F1F8; text-shadow:0 0 10px #55F1F8aa;">&#10003;</span>
+      </span>
+      <span class="font-display font-black text-lg w-16 flex-shrink-0" style="color:#55F1F8;">INT</span>
+      <span class="flex-1 min-w-0">
+        <span class="block font-medium text-white/80 group-hover:text-white truncate">Intervention Program</span>
+        <span class="block text-[11px] font-mono text-white/40">Timed assessments · scores recorded automatically</span>
+      </span>
+      <span class="text-white/30 text-right">&rarr;</span>
+    </a>
+    <?php endif; ?>
   </main>
 </div>
 

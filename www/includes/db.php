@@ -260,6 +260,90 @@ function get_db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resfav_resource ON resource_favorites(resource_id)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_resfav_user ON resource_favorites(user_id)');
 
+    // Intervention Program: temporary, toggleable assessments living inside
+    // the library (reviewer-session gated). Unconditional, same as resources
+    // above, so fresh installs and older DBs both get it.
+    // - intervention_settings: page_enabled ('0'/'1') + page_notice text.
+    // - intervention_tests: one row per assessment (title, key metadata,
+    //   passing_score, max_attempts where 0 = unlimited).
+    // - intervention_questions: ordered MCQs per test; `correct` is a single
+    //   uppercase letter; choices stored as JSON for future flexibility.
+    // - intervention_results: append-only submissions. test_id/user_id are
+    //   SET NULL on delete so disabling or deleting a test never erases
+    //   collected records; test_title snapshots the title at submit time.
+    //   user_id stays NULL in v1 (reviewer session has no users-table row).
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS intervention_settings (
+            key         TEXT PRIMARY KEY,
+            value       TEXT NOT NULL,
+            updated_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec(
+        "INSERT OR IGNORE INTO intervention_settings (key, value) VALUES ('page_enabled', '0')"
+    );
+    $pdo->exec(
+        "INSERT OR IGNORE INTO intervention_settings (key, value) VALUES ('page_notice', '')"
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS intervention_tests (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            slug            TEXT NOT NULL UNIQUE,
+            title           TEXT NOT NULL,
+            subject         TEXT NOT NULL,
+            grade_label     TEXT NOT NULL,
+            part            INTEGER NOT NULL DEFAULT 1,
+            passing_score   INTEGER NOT NULL,
+            max_attempts    INTEGER NOT NULL DEFAULT 0,
+            total_questions INTEGER NOT NULL DEFAULT 0,
+            is_active       INTEGER NOT NULL DEFAULT 1,
+            created_at      TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at      TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_itest_slug ON intervention_tests(slug)');
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS intervention_questions (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id   INTEGER NOT NULL REFERENCES intervention_tests(id) ON DELETE CASCADE,
+            position  INTEGER NOT NULL,
+            prompt    TEXT NOT NULL,
+            choices   TEXT NOT NULL,
+            correct   TEXT NOT NULL,
+            UNIQUE (test_id, position)
+        )'
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_iq_test_pos ON intervention_questions(test_id, position)');
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS intervention_results (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id      INTEGER REFERENCES intervention_tests(id) ON DELETE SET NULL,
+            user_id      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            email        TEXT NOT NULL,
+            full_name    TEXT NOT NULL,
+            grade_level  TEXT NOT NULL,
+            section      TEXT NOT NULL,
+            test_title   TEXT NOT NULL,
+            correct      INTEGER NOT NULL,
+            total        INTEGER NOT NULL,
+            score_pct    REAL NOT NULL,
+            passed       INTEGER NOT NULL DEFAULT 0,
+            answers_json TEXT,
+            submitted_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ires_test ON intervention_results(test_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ires_email ON intervention_results(email)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ires_submitted ON intervention_results(submitted_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_ires_test_email ON intervention_results(test_id, email)');
+
+    // Attempt timing + tab-switch accounting (v2): violations per submitted
+    // row. Unconditional check so deployed DBs pick it up; old rows read 0.
+    $iresCols = $pdo->query('PRAGMA table_info(intervention_results)')->fetchAll(PDO::FETCH_COLUMN, 1);
+    if (!in_array('violations', $iresCols, true)) {
+        $pdo->exec('ALTER TABLE intervention_results ADD COLUMN violations INTEGER NOT NULL DEFAULT 0');
+    }
+
     if (!$isNew) {
         // Auto-migrate users table for role system and profile fields
         $userCols = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_COLUMN, 1);

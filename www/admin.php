@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/admin-data.php';
 require_once __DIR__ . '/includes/admin-ui.php';
 require_once __DIR__ . '/includes/creations-lib.php';
 require_once __DIR__ . '/includes/resources-lib.php';
+require_once __DIR__ . '/includes/intervention-lib.php';
 
 $pdo = get_db();
 ensure_admin_accounts_table($pdo);
@@ -48,6 +49,8 @@ if (isset($post_results['creation_success'])) $creation_success = $post_results[
 if (isset($post_results['creation_error'])) $creation_error = $post_results['creation_error'];
 if (isset($post_results['resource_success'])) $resource_success = $post_results['resource_success'];
 if (isset($post_results['resource_error'])) $resource_error = $post_results['resource_error'];
+if (isset($post_results['intervention_success'])) $intervention_success = $post_results['intervention_success'];
+if (isset($post_results['intervention_error'])) $intervention_error = $post_results['intervention_error'];
 
 // Handler functions moved to admin-handlers.php
 
@@ -75,6 +78,9 @@ $creations_rejected = $data['creations']['rejected'];
 $resources_pending = $data['resources']['pending'];
 $resources_approved = $data['resources']['approved'];
 $resources_rejected = $data['resources']['rejected'];
+$intervention_settings = $data['intervention']['settings'];
+$intervention_tests = $data['intervention']['tests'];
+$intervention_results = $data['intervention']['results'];
 
 $default_tab = get_default_tab();
 ?>
@@ -412,6 +418,9 @@ $default_tab = get_default_tab();
                 </button>
                 <button type="button" class="nav-item" data-tab="resources" onclick="switchTab('resources')">
                     <?php echo admin_icon('resources'); ?> Resource Hub <span class="count"><?php echo count($resources_pending); ?></span>
+                </button>
+                <button type="button" class="nav-item" data-tab="intervention" onclick="switchTab('intervention')">
+                    <?php echo admin_icon('intervention'); ?> Intervention <span class="count"><?php echo count($intervention_tests); ?></span>
                 </button>
                 <a class="nav-item" href="backup-refresh.php" style="text-decoration: none;">
                     <?php echo admin_icon('accounts'); ?> DB Backups
@@ -1136,6 +1145,132 @@ $default_tab = get_default_tab();
 
             </div><!-- /#tab-resources -->
 
+            <!-- ===================== INTERVENTION ===================== -->
+            <div id="tab-intervention" class="tab-panel">
+
+            <?php if (!empty($intervention_error)) echo "<div class='msg error'>" . htmlspecialchars($intervention_error) . "</div>"; ?>
+            <?php if (!empty($intervention_success)) echo "<div class='msg success'>" . htmlspecialchars($intervention_success) . "</div>"; ?>
+
+            <div class="card">
+                <h3><?php echo admin_icon('intervention'); ?> Program Status</h3>
+                <p class="empty-hint">Pausing hides the library page and entry card. Tests, questions, and all submitted results are kept and come back when re-enabled.</p>
+                <form method="POST" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                    <input type="hidden" name="action" value="intervention_toggle">
+                    <label class="field-label" style="min-width: 160px;">Availability
+                        <select class="field-input" name="page_enabled">
+                            <option value="1"<?php echo !empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Live: students can take tests</option>
+                            <option value="0"<?php echo empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Paused: hidden from students</option>
+                        </select>
+                    </label>
+                    <label class="field-label" style="flex: 1; min-width: 220px;">Student notice (shown while paused, and as a heads-up while live)
+                        <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($intervention_settings['notice'] ?? ''); ?>" placeholder="e.g. Only answer if your teacher told you to">
+                    </label>
+                    <button type="submit" class="btn-submit">Save Status</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('intervention'); ?> New Test</h3>
+                <p class="empty-hint">One line per item: <code>question || A || B || C || [D] || LETTER</code>. Or <code>question || written</code> for a teacher-graded free response. Max attempts 0 = unlimited.</p>
+                <form method="POST" style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                    <input type="hidden" name="action" value="intervention_test_save">
+                    <input type="hidden" name="test_id" value="0">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <input class="field-input" type="text" name="title" maxlength="120" placeholder="Title (e.g. CP 11 Part 1 — Java Programming)" required style="flex: 2; min-width: 200px;">
+                        <input class="field-input" type="text" name="slug" maxlength="40" placeholder="slug (e.g. cp11-part1)" required style="flex: 1; min-width: 140px;">
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <select class="field-input" name="subject" style="flex: 1; min-width: 100px;">
+                            <option value="CP">CP</option>
+                            <option value="CSS">CSS</option>
+                            <option value="ET">ET</option>
+                        </select>
+                        <select class="field-input" name="grade_label" style="flex: 1; min-width: 100px;">
+                            <option value="G11">G11</option>
+                            <option value="G12">G12</option>
+                            <option value="JHS">JHS</option>
+                        </select>
+                        <input class="field-input" type="number" name="part" min="1" max="9" value="1" title="Part" style="flex: 1; min-width: 80px;">
+                        <input class="field-input" type="number" name="passing_score" min="0" max="200" value="23" title="Passing score" style="flex: 1; min-width: 100px;">
+                        <input class="field-input" type="number" name="max_attempts" min="0" max="99" value="0" title="Max attempts (0 = unlimited)" style="flex: 1; min-width: 120px;">
+                    </div>
+                    <label style="font-size: .85rem; color: var(--muted);"><input type="checkbox" name="is_active" value="1" checked> Visible to students (when program is live)</label>
+                    <textarea class="field-input" name="questions_text" rows="8" style="font-family: monospace; font-size: .8rem;" placeholder="One per line: question || A || B || C || [D] || LETTER. Or: question || written" required></textarea>
+                    <button type="submit" class="btn-submit" style="align-self: flex-start;">Add Test</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('intervention'); ?> Tests <span class="count"><?php echo count($intervention_tests); ?></span></h3>
+                <?php if (empty($intervention_tests)): ?>
+                    <p class="empty-hint">No tests yet. Add the first one above.</p>
+                <?php else: ?>
+                    <?php foreach ($intervention_tests as $t): ?>
+                        <?php echo intervention_test_card($t, $admin_csrf_token, intervention_questions_to_text($pdo, (int) $t['id'])); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('intervention'); ?> Results <span class="count"><?php echo count($intervention_results); ?></span></h3>
+                <?php
+                $iresult_filter = (string) ($_GET['iresult_test'] ?? 'all');
+                $iresult_shown = array_values(array_filter($intervention_results, function ($r) use ($iresult_filter) {
+                    return $iresult_filter === 'all' || (string) ($r['test_id'] ?? 0) === $iresult_filter;
+                }));
+                ?>
+                <p class="empty-hint">Filter:
+                    <a href="admin.php?iresult_test=all" onclick="switchTab('intervention')">All</a>
+                    <?php foreach ($intervention_tests as $t): ?>
+                        · <a href="admin.php?iresult_test=<?php echo (int) $t['id']; ?>" onclick="switchTab('intervention')"><?php echo htmlspecialchars($t['title']); ?></a>
+                    <?php endforeach; ?>
+                    · Orphaned results (deleted tests) appear under All with an empty filter value.
+                </p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="intervention_export">
+                        <input type="hidden" name="test_id" value="<?php echo $iresult_filter === 'all' ? '0' : (int) $iresult_filter; ?>">
+                        <input type="hidden" name="format" value="xlsx">
+                        <button type="submit" class="btn-submit">Download .xlsx</button>
+                    </form>
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="intervention_export">
+                        <input type="hidden" name="test_id" value="<?php echo $iresult_filter === 'all' ? '0' : (int) $iresult_filter; ?>">
+                        <input type="hidden" name="format" value="csv">
+                        <button type="submit" class="edit-btn">Download .csv</button>
+                    </form>
+                </div>
+                <?php if (empty($iresult_shown)): ?>
+                    <p class="empty-hint">No submissions yet.</p>
+                <?php else: ?>
+                    <form method="POST" onsubmit="return confirm('Delete the selected results? This also resets those students\u2019 attempt counts.');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="intervention_result_delete">
+                        <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: .85rem;">
+                            <thead>
+                                <tr style="text-align: left; color: var(--muted);">
+                                    <th></th><th>Submitted</th><th>Student</th><th>Grade · Section</th><th>Score</th><th>Written</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($iresult_shown as $r): ?>
+                                    <?php echo intervention_result_row($r); ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        </div>
+                        <button type="submit" class="delete-btn" style="margin-top: 8px;">Delete Selected (resets attempts)</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+
+            </div><!-- /#tab-intervention -->
+
             <!-- ===================== ADMIN ACCOUNTS (main account only) ===================== -->
             <?php if ($me['is_main']): ?>
             <div id="tab-accounts" class="tab-panel">
@@ -1249,6 +1384,7 @@ $default_tab = get_default_tab();
         moderation:    { title: 'User Management', sub: 'Delete accounts, review comments, and manage IP bans.' },
         creations:     { title: 'Creations Hub',   sub: 'Review submissions, manage the spotlight, and curate the archive.' },
         resources:     { title: 'Resource Hub',    sub: 'Review suggestions, seed staff picks, and curate the library.' },
+        intervention:  { title: 'Intervention',    sub: 'Toggle the program, manage assessments, review scores, and export results.' },
         accounts:      { title: 'Admin Accounts',  sub: 'Create and remove admin logins.' },
         account:       { title: 'My Account',      sub: 'Manage your own login.' },
     };
@@ -1269,7 +1405,7 @@ $default_tab = get_default_tab();
 
     (function initTab() {
         const serverDefault = <?php echo json_encode($default_tab); ?>;
-        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed'])); ?>;
+        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed', 'intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export'])); ?>;
         const isMain = <?php echo json_encode((bool) $me['is_main']); ?>;
         const remembered = localStorage.getItem('aghimuanAdminTab');
         let initial = forced ? serverDefault : (remembered || serverDefault);

@@ -15,6 +15,7 @@ function admin_icon(string $name): string {
         'moderation'=> '<g fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M5.8 5.8l12.4 12.4"/></g>',
         'creations' => '<g fill="none" stroke-width="1.7"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></g>',
         'resources' => '<g fill="none" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></g>',
+        'intervention' => '<g fill="none" stroke-width="1.7"><path d="M9 11l2.2 2.2L15.5 9"/><path d="M6 3h9l4 4v14H6V3z"/><path d="M15 3v4h4"/></g>',
         'account'   => '<g fill="none" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.3-7 7.5-7s7.5 2.9 7.5 7"/></g>',
         'logout'    => '<g fill="none" stroke-width="1.7"><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="M13 8l4.5 4-4.5 4M9.3 12h8"/></g>',
         'menu'      => '<path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" stroke-width="1.8" fill="none"/>',
@@ -50,6 +51,9 @@ function get_default_tab(): string {
         }
         if (in_array($_POST['action'], ['resource_review', 'resource_feature', 'resource_delete', 'resource_seed'])) {
             $default_tab = 'resources';
+        }
+        if (in_array($_POST['action'], ['intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export'])) {
+            $default_tab = 'intervention';
         }
     }
     return $default_tab;
@@ -273,5 +277,99 @@ function resource_admin_card(array $r, string $csrf): string {
         . '<button type="submit" class="delete-btn">Delete</button></form>';
 
     $html .= '</div></div>';
+    return $html;
+}
+
+/**
+ * Renders one intervention test as an edit card. $t is a raw
+ * intervention_tests row with `qcount` joined in; $questionsText is the
+ * textarea serialization from intervention_questions_to_text().
+ */
+function intervention_test_card(array $t, string $csrf, string $questionsText): string {
+    $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+    $id = (int) $t['id'];
+    $active = !empty($t['is_active']);
+    $maxa = (int) ($t['max_attempts'] ?? 0);
+
+    $subjectOpts = '';
+    foreach (['CP', 'CSS', 'ET'] as $s) {
+        $sel = ($t['subject'] ?? '') === $s ? ' selected' : '';
+        $subjectOpts .= '<option value="' . $s . '"' . $sel . '>' . $s . '</option>';
+    }
+    $gradeOpts = '';
+    foreach (['G11', 'G12', 'JHS'] as $g) {
+        $sel = ($t['grade_label'] ?? '') === $g ? ' selected' : '';
+        $gradeOpts .= '<option value="' . $g . '"' . $sel . '>' . $g . '</option>';
+    }
+
+    $html = '<div class="post-card" style="margin-bottom: 12px;">';
+    $html .= '<div class="post-date">' . $e($t['subject'] ?? '') . ' · ' . $e($t['grade_label'] ?? '')
+        . ' · Part ' . (int) ($t['part'] ?? 1) . ' · <strong>' . ($active ? 'active' : 'hidden') . '</strong></div>';
+    $html .= '<div class="post-body" style="font-weight: 600; font-size: 1.02rem;">' . $e($t['title']) . '</div>';
+    $html .= '<div class="post-body" style="color: var(--muted); font-size: .85rem;">slug: ' . $e($t['slug'] ?? '')
+        . ' · ' . (int) ($t['qcount'] ?? 0) . ' item(s) · passing ' . (int) ($t['passing_score'] ?? 0)
+        . ' · attempts: ' . ($maxa > 0 ? $maxa . ' per student' : 'unlimited') . '</div>';
+
+    $html .= '<form method="POST" style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">'
+        . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
+        . '<input type="hidden" name="action" value="intervention_test_save">'
+        . '<input type="hidden" name="test_id" value="' . $id . '">'
+        . '<div style="display: flex; gap: 8px; flex-wrap: wrap;">'
+        . '<input class="field-input" type="text" name="title" maxlength="120" value="' . $e($t['title'] ?? '') . '" placeholder="Title" required style="flex: 2; min-width: 200px;">'
+        . '<input class="field-input" type="text" name="slug" maxlength="40" value="' . $e($t['slug'] ?? '') . '" placeholder="slug" required style="flex: 1; min-width: 140px;">'
+        . '</div>'
+        . '<div style="display: flex; gap: 8px; flex-wrap: wrap;">'
+        . '<select class="field-input" name="subject" style="flex: 1; min-width: 100px;">' . $subjectOpts . '</select>'
+        . '<select class="field-input" name="grade_label" style="flex: 1; min-width: 100px;">' . $gradeOpts . '</select>'
+        . '<input class="field-input" type="number" name="part" min="1" max="9" value="' . (int) ($t['part'] ?? 1) . '" title="Part" style="flex: 1; min-width: 80px;">'
+        . '<input class="field-input" type="number" name="passing_score" min="0" max="200" value="' . (int) ($t['passing_score'] ?? 0) . '" title="Passing score" style="flex: 1; min-width: 100px;">'
+        . '<input class="field-input" type="number" name="max_attempts" min="0" max="99" value="' . $maxa . '" title="Max attempts (0 = unlimited)" style="flex: 1; min-width: 120px;">'
+        . '</div>'
+        . '<label style="font-size: .85rem; color: var(--muted);"><input type="checkbox" name="is_active" value="1"' . ($active ? ' checked' : '') . '> Visible to students (when program is live)</label>'
+        . '<textarea class="field-input" name="questions_text" rows="8" style="font-family: monospace; font-size: .8rem;" placeholder="One per line: question || A || B || C || [D] || LETTER. Or: question || written">' . $e($questionsText) . '</textarea>'
+        . '<div style="display: flex; gap: 8px; flex-wrap: wrap;">'
+        . '<button type="submit" class="btn-submit">Save Test</button>'
+        . '</form>'
+        . '<form method="POST" style="display: inline;" onsubmit="return confirm(\'Delete this test? Past results are kept, but the test itself is gone.\');">'
+        . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
+        . '<input type="hidden" name="action" value="intervention_test_delete">'
+        . '<input type="hidden" name="test_id" value="' . $id . '">'
+        . '<button type="submit" class="delete-btn">Delete</button></form>'
+        . '</div></div>';
+    return $html;
+}
+
+/**
+ * One submitted result as a table row. Written free-text answers render
+ * beneath the score so teachers can grade them without opening the export.
+ */
+function intervention_result_row(array $r): string {
+    $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+    $html = '<tr data-test="' . (int) ($r['test_id'] ?? 0) . '">';
+    $html .= '<td><input type="checkbox" name="result_ids[]" value="' . (int) $r['id'] . '"></td>';
+    $html .= '<td style="white-space: nowrap;">' . $e($r['submitted_at'] ?? '') . '</td>';
+    $html .= '<td>' . $e($r['email'] ?? '') . '<br><span style="color: var(--muted);">' . $e($r['full_name'] ?? '') . '</span></td>';
+    $html .= '<td>' . $e($r['grade_level'] ?? '') . ' · ' . $e($r['section'] ?? '') . '</td>';
+    $html .= '<td><strong>' . (int) ($r['correct'] ?? 0) . '/' . (int) ($r['total'] ?? 0) . '</strong>'
+        . ' (' . $e((string) ($r['score_pct'] ?? '')) . '%) '
+        . (!empty($r['passed']) ? '<span style="color: var(--success);">PASSED</span>' : '<span style="color: var(--danger);">FAILED</span>');
+    $viol = (int) ($r['violations'] ?? 0);
+    if ($viol > 0) {
+        $html .= '<br><span style="color: var(--warning);">tab-switch ×' . $viol . ' (−' . $viol . ')</span>';
+    }
+    $html .= '</td>';
+    $written = [];
+    $decoded = json_decode($r['answers_json'] ?? '', true);
+    if (is_array($decoded)) {
+        foreach ($decoded as $pos => $val) {
+            $text = trim((string) $val);
+            if ($text === '') continue;
+            if (!(strlen($text) === 1 && in_array(strtoupper($text), ['A', 'B', 'C', 'D'], true))) {
+                $written[] = 'Q' . ((int) $pos) . ': ' . mb_substr($text, 0, 300);
+            }
+        }
+    }
+    $html .= '<td style="max-width: 320px;">' . ($written ? $e(implode(' | ', $written)) : '<span style="color: var(--muted);">none</span>') . '</td>';
+    $html .= '</tr>';
     return $html;
 }

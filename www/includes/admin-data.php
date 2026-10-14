@@ -203,6 +203,24 @@ function load_admin_accounts(PDO $pdo): array {
     ];
 }
 
+function load_intervention(PDO $pdo): array {
+    require_once __DIR__ . '/intervention-lib.php';
+    $settings = intervention_status($pdo);
+    $tests = $pdo->query(
+        'SELECT t.*, (SELECT COUNT(*) FROM intervention_questions q WHERE q.test_id = t.id) AS qcount
+         FROM intervention_tests t
+         ORDER BY t.subject, t.grade_label, t.part'
+    )->fetchAll();
+    $results = $pdo->query(
+        'SELECT r.* FROM intervention_results r ORDER BY r.submitted_at DESC, r.id DESC LIMIT 200'
+    )->fetchAll();
+    return [
+        'settings' => $settings,
+        'tests' => $tests,
+        'results' => $results,
+    ];
+}
+
 function load_dashboard_data(PDO $pdo): array {
     $existing_posts = load_announcements();
     $existing_events = load_events();
@@ -214,6 +232,7 @@ function load_dashboard_data(PDO $pdo): array {
     $admin_accounts = load_admin_accounts($pdo);
     $creations = load_creations($pdo);
     $resources = load_resources($pdo);
+    $intervention = load_intervention($pdo);
 
     $upcoming_events = array_values(array_filter($existing_events, fn($e) => ($e['date'] ?? '') >= date('Y-m-d')));
     $recent_posts = array_slice($existing_posts, 0, 5);
@@ -232,6 +251,7 @@ function load_dashboard_data(PDO $pdo): array {
         'banned_ips' => $banned_ips,
         'admin_accounts' => $admin_accounts,
         'creations' => $creations,
-        'resources' => $resources
+        'resources' => $resources,
+        'intervention' => $intervention
     ];
 }

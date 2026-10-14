@@ -923,6 +923,175 @@ function handle_resource_seed(PDO $pdo): array {
     return ['success' => 'Resource "' . $title . '" added to the hub.'];
 }
 
+function handle_intervention_toggle(PDO $pdo): array {
+    require_once __DIR__ . '/intervention-lib.php';
+    $enabled = ($_POST['page_enabled'] ?? '0') === '1';
+    $notice = mb_substr(trim($_POST['page_notice'] ?? ''), 0, 500);
+    intervention_save_status($pdo, $enabled, $notice);
+    return ['success' => $enabled
+        ? 'Intervention Program is now LIVE in the library.'
+        : 'Intervention Program paused — public access hidden, all data kept.'];
+}
+
+function handle_intervention_test_save(PDO $pdo): array {
+    require_once __DIR__ . '/intervention-lib.php';
+
+    $testId = (int) ($_POST['test_id'] ?? 0);
+    $slug = mb_strtolower(trim($_POST['slug'] ?? ''));
+    $title = trim($_POST['title'] ?? '');
+    $subject = strtoupper(trim($_POST['subject'] ?? ''));
+    $gradeLabel = strtoupper(trim($_POST['grade_label'] ?? ''));
+    $part = (int) ($_POST['part'] ?? 1);
+    $passingScore = (int) ($_POST['passing_score'] ?? 0);
+    $maxAttempts = (int) ($_POST['max_attempts'] ?? 0);
+    $isActive = isset($_POST['is_active']) ? 1 : 0;
+
+    if (!preg_match('/^[a-z0-9][a-z0-9\-]{0,39}$/', $slug)) {
+        return ['error' => 'Slug must be 1–40 chars: lowercase letters, numbers, dashes.'];
+    }
+    if ($title === '' || mb_strlen($title) > 120) {
+        return ['error' => 'Title is required (max 120 characters).'];
+    }
+    if (!in_array($subject, INTERVENTION_SUBJECTS, true)) {
+        return ['error' => 'Invalid subject.'];
+    }
+    if (!in_array($gradeLabel, INTERVENTION_GRADES, true)) {
+        return ['error' => 'Invalid grade label.'];
+    }
+    if ($part < 1 || $part > 9) {
+        return ['error' => 'Part must be 1–9.'];
+    }
+    if ($passingScore < 0 || $passingScore > 200) {
+        return ['error' => 'Passing score must be 0–200.'];
+    }
+    if ($maxAttempts < 0 || $maxAttempts > 99) {
+        return ['error' => 'Max attempts must be 0–99 (0 = unlimited).'];
+    }
+
+    $parsed = intervention_parse_questions_text((string) ($_POST['questions_text'] ?? ''));
+    if (isset($parsed['error'])) {
+        return ['error' => $parsed['error']];
+    }
+    $questions = $parsed['questions'];
+
+    $dup = $pdo->prepare('SELECT id FROM intervention_tests WHERE slug = :s AND id != :id');
+    $dup->execute([':s' => $slug, ':id' => $testId]);
+    if ($dup->fetch()) {
+        return ['error' => 'That slug is already used by another test.'];
+    }
+
+    if ($testId > 0) {
+        $stmt = $pdo->prepare('SELECT id FROM intervention_tests WHERE id = :id');
+        $stmt->execute([':id' => $testId]);
+        if (!$stmt->fetch()) {
+            return ['error' => 'That test no longer exists.'];
+        }
+        $pdo->prepare(
+            "UPDATE intervention_tests SET slug = :slug, title = :title, subject = :subject,
+                grade_label = :grade, part = :part, passing_score = :passing, max_attempts = :maxa,
+                total_questions = :total, is_active = :active, updated_at = datetime('now')
+             WHERE id = :id"
+        )->execute([
+            ':slug' => $slug, ':title' => $title, ':subject' => $subject, ':grade' => $gradeLabel,
+            ':part' => $part, ':passing' => $passingScore, ':maxa' => $maxAttempts,
+            ':total' => count($questions), ':active' => $isActive, ':id' => $testId,
+        ]);
+    } else {
+        $pdo->prepare(
+            "INSERT INTO intervention_tests
+                (slug, title, subject, grade_label, part, passing_score, max_attempts, total_questions, is_active)
+             VALUES (:slug, :title, :subject, :grade, :part, :passing, :maxa, :total, :active)"
+        )->execute([
+            ':slug' => $slug, ':title' => $title, ':subject' => $subject, ':grade' => $gradeLabel,
+            ':part' => $part, ':passing' => $passingScore, ':maxa' => $maxAttempts,
+            ':total' => count($questions), ':active' => $isActive,
+        ]);
+        $testId = (int) $pdo->lastInsertId();
+    }
+
+    // Questions are replaced wholesale — collected results keep working off
+    // their snapshots + stored answers, never off live question rows.
+    $pdo->prepare('DELETE FROM intervention_questions WHERE test_id = :id')->execute([':id' => $testId]);
+    $ins = $pdo->prepare(
+        'INSERT INTO intervention_questions (test_id, position, prompt, choices, correct)
+         VALUES (:t, :p, :prompt, :choices, :correct)'
+    );
+    $pos = 0;
+    foreach ($questions as $q) {
+        $pos++;
+        $written = empty($q['choices']);
+        $ins->execute([
+            ':t' => $testId,
+            ':p' => $pos,
+            ':prompt' => $q['prompt'],
+            ':choices' => $written ? '[]' : json_encode(array_values($q['choices'])),
+            ':correct' => $written ? '' : $q['correct'],
+        ]);
+    }
+    return ['success' => 'Test "' . $title . '" saved with ' . count($questions) . ' item(s).'];
+}
+
+function handle_intervention_test_delete(PDO $pdo): array {
+    $testId = (int) ($_POST['test_id'] ?? 0);
+    if ($testId <= 0) {
+        return ['error' => 'No test selected.'];
+    }
+    $stmt = $pdo->prepare('SELECT id, title FROM intervention_tests WHERE id = :id');
+    $stmt->execute([':id' => $testId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['error' => 'That test no longer exists.'];
+    }
+    // Questions cascade; results survive with test_id NULL (title snapshot kept).
+    $pdo->prepare('DELETE FROM intervention_tests WHERE id = :id')->execute([':id' => $testId]);
+    return ['success' => 'Test "' . $row['title'] . '" deleted — past results are preserved.'];
+}
+
+function handle_intervention_result_delete(PDO $pdo): array {
+    $ids = $_POST['result_ids'] ?? [];
+    if (!is_array($ids)) $ids = [$ids];
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($i) => $i > 0)));
+    if (empty($ids)) {
+        return ['error' => 'No results selected.'];
+    }
+    // Only delete path for results — doubles as the attempt-reset when a
+    // student exhausts a test's max_attempts.
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare("DELETE FROM intervention_results WHERE id IN ($placeholders)");
+    $stmt->execute($ids);
+    $n = $stmt->rowCount();
+    return ['success' => $n === 1 ? '1 result deleted.' : $n . ' results deleted.'];
+}
+
+function handle_intervention_export(PDO $pdo): void {
+    require_once __DIR__ . '/intervention-lib.php';
+    $testId = (int) ($_POST['test_id'] ?? 0);
+    $format = ($_POST['format'] ?? 'xlsx') === 'csv' ? 'csv' : 'xlsx';
+    // Runs before any admin HTML output (dispatcher sits at the top of
+    // admin.php), so headers + exit here are safe.
+    try {
+        if ($format === 'csv') {
+            throw new RuntimeException('csv requested');
+        }
+        $bin = intervention_build_xlsx($pdo, $testId > 0 ? $testId : null);
+        $filename = intervention_export_filename('xlsx');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($bin));
+        header('Cache-Control: no-store');
+        echo $bin;
+    } catch (RuntimeException $e) {
+        $csv = intervention_build_csv($pdo, $testId > 0 ? $testId : null);
+        $filename = intervention_export_filename('csv');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($csv));
+        header('Cache-Control: no-store');
+        echo $csv;
+    }
+    exit;
+}
+
 function handle_post_actions(PDO $pdo): array {
     $result = [];
     
@@ -1049,6 +1218,34 @@ function handle_post_actions(PDO $pdo): array {
         $resource_result = handle_resource_seed($pdo);
         if (isset($resource_result['success'])) $result['resource_success'] = $resource_result['success'];
         if (isset($resource_result['error'])) $result['resource_error'] = $resource_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'intervention_toggle' && is_logged_in()) {
+        $intervention_result = handle_intervention_toggle($pdo);
+        if (isset($intervention_result['success'])) $result['intervention_success'] = $intervention_result['success'];
+        if (isset($intervention_result['error'])) $result['intervention_error'] = $intervention_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'intervention_test_save' && is_logged_in()) {
+        $intervention_result = handle_intervention_test_save($pdo);
+        if (isset($intervention_result['success'])) $result['intervention_success'] = $intervention_result['success'];
+        if (isset($intervention_result['error'])) $result['intervention_error'] = $intervention_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'intervention_test_delete' && is_logged_in()) {
+        $intervention_result = handle_intervention_test_delete($pdo);
+        if (isset($intervention_result['success'])) $result['intervention_success'] = $intervention_result['success'];
+        if (isset($intervention_result['error'])) $result['intervention_error'] = $intervention_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'intervention_result_delete' && is_logged_in()) {
+        $intervention_result = handle_intervention_result_delete($pdo);
+        if (isset($intervention_result['success'])) $result['intervention_success'] = $intervention_result['success'];
+        if (isset($intervention_result['error'])) $result['intervention_error'] = $intervention_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'intervention_export' && is_logged_in()) {
+        handle_intervention_export($pdo);
     }
 
     return $result;

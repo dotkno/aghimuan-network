@@ -114,6 +114,19 @@ data/library-content/
 # Listed separately so a future refactor can't silently re-include them.
 data/library-pdfs/
 
+# ---------- Intervention runtime (local only) ----------
+# Result workbooks staged/downloaded by admins — student PII, never commit.
+data/intervention-exports/*
+!data/intervention-exports/.gitkeep
+data/*.xlsx
+
+# ---------- Intervention source material (NEVER commit) ----------
+# Question docx + answer keys + the generated seeder would publish the
+# answer keys to the public repo. Questions reach the server exclusively
+# through the admin panel's test editor AFTER deploy.
+data/library-intervention/
+data/intervention-seed.php
+
 # ---------- Internal docs (local only) ----------
 .claude/PRPs/
 AGENTS.md
