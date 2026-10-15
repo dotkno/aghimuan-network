@@ -11,6 +11,7 @@ require_once __DIR__ . '/includes/admin-ui.php';
 require_once __DIR__ . '/includes/creations-lib.php';
 require_once __DIR__ . '/includes/resources-lib.php';
 require_once __DIR__ . '/includes/intervention-lib.php';
+require_once __DIR__ . '/includes/feedback-lib.php';
 
 $pdo = get_db();
 ensure_admin_accounts_table($pdo);
@@ -51,6 +52,8 @@ if (isset($post_results['resource_success'])) $resource_success = $post_results[
 if (isset($post_results['resource_error'])) $resource_error = $post_results['resource_error'];
 if (isset($post_results['intervention_success'])) $intervention_success = $post_results['intervention_success'];
 if (isset($post_results['intervention_error'])) $intervention_error = $post_results['intervention_error'];
+if (isset($post_results['feedback_success'])) $feedback_success = $post_results['feedback_success'];
+if (isset($post_results['feedback_error'])) $feedback_error = $post_results['feedback_error'];
 
 // Handler functions moved to admin-handlers.php
 
@@ -81,6 +84,9 @@ $resources_rejected = $data['resources']['rejected'];
 $intervention_settings = $data['intervention']['settings'];
 $intervention_tests = $data['intervention']['tests'];
 $intervention_results = $data['intervention']['results'];
+$feedback_settings = $data['feedback']['settings'];
+$feedback_responses = $data['feedback']['responses'];
+$feedback_count = $data['feedback']['count'];
 
 $default_tab = get_default_tab();
 ?>
@@ -421,6 +427,9 @@ $default_tab = get_default_tab();
                 </button>
                 <button type="button" class="nav-item" data-tab="intervention" onclick="switchTab('intervention')">
                     <?php echo admin_icon('intervention'); ?> Intervention <span class="count"><?php echo count($intervention_tests); ?></span>
+                </button>
+                <button type="button" class="nav-item" data-tab="feedback" onclick="switchTab('feedback')">
+                    <?php echo admin_icon('feedback'); ?> Feedback <span class="count"><?php echo (int) $feedback_count; ?></span>
                 </button>
                 <a class="nav-item" href="backup-refresh.php" style="text-decoration: none;">
                     <?php echo admin_icon('accounts'); ?> DB Backups
@@ -1193,7 +1202,6 @@ $default_tab = get_default_tab();
                             <option value="JHS">JHS</option>
                         </select>
                         <input class="field-input" type="number" name="part" min="1" max="9" value="1" title="Part" style="flex: 1; min-width: 80px;">
-                        <input class="field-input" type="number" name="passing_score" min="0" max="200" value="23" title="Passing score" style="flex: 1; min-width: 100px;">
                         <input class="field-input" type="number" name="max_attempts" min="0" max="99" value="0" title="Max attempts (0 = unlimited)" style="flex: 1; min-width: 120px;">
                     </div>
                     <label style="font-size: .85rem; color: var(--muted);"><input type="checkbox" name="is_active" value="1" checked> Visible to students (when program is live)</label>
@@ -1270,6 +1278,67 @@ $default_tab = get_default_tab();
             </div>
 
             </div><!-- /#tab-intervention -->
+
+            <!-- ===================== FEEDBACK (temporary form) ===================== -->
+            <div id="tab-feedback" class="tab-panel">
+
+            <?php if (!empty($feedback_error)) echo "<div class='msg error'>" . htmlspecialchars($feedback_error) . "</div>"; ?>
+            <?php if (!empty($feedback_success)) echo "<div class='msg success'>" . htmlspecialchars($feedback_success) . "</div>"; ?>
+
+            <div class="card">
+                <h3><?php echo admin_icon('feedback'); ?> Form Status</h3>
+                <p class="empty-hint">Pausing hides the form at <code>feedback.php</code> (visitors see “not looking for feedbacks yet”) and flips the side-panel link to “Feedback paused”. All responses are kept and come back when re-enabled.</p>
+                <form method="POST" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                    <input type="hidden" name="action" value="feedback_toggle">
+                    <label class="field-label" style="min-width: 160px;">Availability
+                        <select class="field-input" name="page_enabled">
+                            <option value="1"<?php echo !empty($feedback_settings['enabled']) ? ' selected' : ''; ?>>Live: members can answer</option>
+                            <option value="0"<?php echo empty($feedback_settings['enabled']) ? ' selected' : ''; ?>>Paused: form hidden</option>
+                        </select>
+                    </label>
+                    <label class="field-label" style="flex: 1; min-width: 220px;">Notice (shown on the form while live)
+                        <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($feedback_settings['notice'] ?? ''); ?>" placeholder="e.g. Closes Friday — tell us everything">
+                    </label>
+                    <label class="field-label" style="flex: 1; min-width: 220px;">Paused message (shown when hidden)
+                        <input class="field-input" type="text" name="closed_message" maxlength="200" value="<?php echo htmlspecialchars($feedback_settings['closed_message'] ?? ''); ?>" placeholder="We're not looking for feedbacks yet. Check back soon!">
+                    </label>
+                    <button type="submit" class="btn-submit">Save Status</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3><?php echo admin_icon('feedback'); ?> Responses <span class="count"><?php echo (int) $feedback_count; ?></span></h3>
+                <p class="empty-hint">Admins only — these answers (with gmails) never appear anywhere public. One row per member; re-submits update in place. Export the CSV as your archive, then delete rows here after the review window.</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="feedback_export">
+                        <button type="submit" class="btn-submit">Download .csv</button>
+                    </form>
+                    <a class="btn-ghost" style="text-decoration: none; width: auto; padding: 11px 16px;" href="feedback.php" target="_blank" rel="noopener">Preview form</a>
+                </div>
+                <?php if (empty($feedback_responses)): ?>
+                    <p class="empty-hint">No responses yet.</p>
+                <?php else: ?>
+                    <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: .85rem;">
+                        <thead>
+                            <tr style="text-align: left; color: var(--muted);">
+                                <th>Updated</th><th>Member</th><th>Grade · Strand</th><th>Ratings</th><th>Answers</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($feedback_responses as $fr): ?>
+                                <?php echo feedback_response_row($fr, $admin_csrf_token); ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            </div><!-- /#tab-feedback -->
 
             <!-- ===================== ADMIN ACCOUNTS (main account only) ===================== -->
             <?php if ($me['is_main']): ?>
@@ -1385,6 +1454,7 @@ $default_tab = get_default_tab();
         creations:     { title: 'Creations Hub',   sub: 'Review submissions, manage the spotlight, and curate the archive.' },
         resources:     { title: 'Resource Hub',    sub: 'Review suggestions, seed staff picks, and curate the library.' },
         intervention:  { title: 'Intervention',    sub: 'Toggle the program, manage assessments, review scores, and export results.' },
+        feedback:      { title: 'Feedback',        sub: 'Toggle the temporary form, read member responses, and export CSV.' },
         accounts:      { title: 'Admin Accounts',  sub: 'Create and remove admin logins.' },
         account:       { title: 'My Account',      sub: 'Manage your own login.' },
     };
@@ -1405,7 +1475,7 @@ $default_tab = get_default_tab();
 
     (function initTab() {
         const serverDefault = <?php echo json_encode($default_tab); ?>;
-        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed', 'intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export'])); ?>;
+        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed', 'intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export', 'feedback_toggle', 'feedback_delete', 'feedback_export'])); ?>;
         const isMain = <?php echo json_encode((bool) $me['is_main']); ?>;
         const remembered = localStorage.getItem('aghimuanAdminTab');
         let initial = forced ? serverDefault : (remembered || serverDefault);

@@ -207,7 +207,8 @@ function load_intervention(PDO $pdo): array {
     require_once __DIR__ . '/intervention-lib.php';
     $settings = intervention_status($pdo);
     $tests = $pdo->query(
-        'SELECT t.*, (SELECT COUNT(*) FROM intervention_questions q WHERE q.test_id = t.id) AS qcount
+        'SELECT t.*, (SELECT COUNT(*) FROM intervention_questions q WHERE q.test_id = t.id) AS qcount,
+         (SELECT COUNT(*) FROM intervention_questions q WHERE q.test_id = t.id AND q.choices != \'[]\') AS mcqcount
          FROM intervention_tests t
          ORDER BY t.subject, t.grade_label, t.part'
     )->fetchAll();
@@ -221,8 +222,16 @@ function load_intervention(PDO $pdo): array {
     ];
 }
 
-function load_dashboard_data(PDO $pdo): array {
-    $existing_posts = load_announcements();
+function load_feedback(PDO $pdo): array {
+    require_once __DIR__ . '/feedback-lib.php';
+    return [
+        'settings' => feedback_status($pdo),
+        'responses' => feedback_list($pdo, 200),
+        'count' => feedback_count($pdo),
+    ];
+}
+
+function load_dashboard_data(PDO $pdo): array {    $existing_posts = load_announcements();
     $existing_events = load_events();
     $custom_roles = load_custom_roles($pdo);
     $users = load_users($pdo);
@@ -233,6 +242,7 @@ function load_dashboard_data(PDO $pdo): array {
     $creations = load_creations($pdo);
     $resources = load_resources($pdo);
     $intervention = load_intervention($pdo);
+    $feedback = load_feedback($pdo);
 
     $upcoming_events = array_values(array_filter($existing_events, fn($e) => ($e['date'] ?? '') >= date('Y-m-d')));
     $recent_posts = array_slice($existing_posts, 0, 5);
@@ -252,6 +262,7 @@ function load_dashboard_data(PDO $pdo): array {
         'admin_accounts' => $admin_accounts,
         'creations' => $creations,
         'resources' => $resources,
-        'intervention' => $intervention
+        'intervention' => $intervention,
+        'feedback' => $feedback
     ];
 }

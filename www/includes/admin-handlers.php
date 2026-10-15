@@ -1092,6 +1092,46 @@ function handle_intervention_export(PDO $pdo): void {
     exit;
 }
 
+function handle_feedback_toggle(PDO $pdo): array {
+    require_once __DIR__ . '/feedback-lib.php';
+    $enabled = ($_POST['page_enabled'] ?? '0') === '1';
+    $notice = mb_substr(trim($_POST['page_notice'] ?? ''), 0, FEEDBACK_MAX_NOTICE_LENGTH);
+    $closed = mb_substr(trim($_POST['closed_message'] ?? ''), 0, FEEDBACK_MAX_CLOSED_LENGTH);
+    if ($closed === '') {
+        $closed = "We're not looking for feedbacks yet. Check back soon!";
+    }
+    feedback_save_status($pdo, $enabled, $notice, $closed);
+    return ['success' => $enabled
+        ? 'Feedback form is now LIVE — the side-panel link is active.'
+        : 'Feedback paused — the form is hidden and the side-panel link shows "Feedback paused". All responses kept.'];
+}
+
+function handle_feedback_delete(PDO $pdo): array {
+    require_once __DIR__ . '/feedback-lib.php';
+    $id = (int) ($_POST['result_id'] ?? 0);
+    if ($id <= 0) {
+        return ['error' => 'No response selected.'];
+    }
+    if (!feedback_delete($pdo, $id)) {
+        return ['error' => 'That response no longer exists.'];
+    }
+    return ['success' => 'Response deleted. (Tip: purge all rows after the review window — exported CSVs are the archive.)'];
+}
+
+function handle_feedback_export(PDO $pdo): void {
+    require_once __DIR__ . '/feedback-lib.php';
+    // Runs before any admin HTML output (dispatcher sits at the top of
+    // admin.php), so headers + exit here are safe.
+    $csv = feedback_build_csv($pdo);
+    $filename = feedback_export_filename();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($csv));
+    header('Cache-Control: no-store');
+    echo $csv;
+    exit;
+}
+
 function handle_post_actions(PDO $pdo): array {
     $result = [];
     
@@ -1246,6 +1286,22 @@ function handle_post_actions(PDO $pdo): array {
 
     if (isset($_POST['action']) && $_POST['action'] === 'intervention_export' && is_logged_in()) {
         handle_intervention_export($pdo);
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'feedback_toggle' && is_logged_in()) {
+        $feedback_result = handle_feedback_toggle($pdo);
+        if (isset($feedback_result['success'])) $result['feedback_success'] = $feedback_result['success'];
+        if (isset($feedback_result['error'])) $result['feedback_error'] = $feedback_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'feedback_delete' && is_logged_in()) {
+        $feedback_result = handle_feedback_delete($pdo);
+        if (isset($feedback_result['success'])) $result['feedback_success'] = $feedback_result['success'];
+        if (isset($feedback_result['error'])) $result['feedback_error'] = $feedback_result['error'];
+    }
+
+    if (isset($_POST['action']) && $_POST['action'] === 'feedback_export' && is_logged_in()) {
+        handle_feedback_export($pdo);
     }
 
     return $result;

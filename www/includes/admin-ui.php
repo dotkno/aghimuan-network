@@ -16,6 +16,7 @@ function admin_icon(string $name): string {
         'creations' => '<g fill="none" stroke-width="1.7"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></g>',
         'resources' => '<g fill="none" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></g>',
         'intervention' => '<g fill="none" stroke-width="1.7"><path d="M9 11l2.2 2.2L15.5 9"/><path d="M6 3h9l4 4v14H6V3z"/><path d="M15 3v4h4"/></g>',
+        'feedback' => '<g fill="none" stroke-width="1.7"><path d="M4 5h16v10H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/></g>',
         'account'   => '<g fill="none" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.3-7 7.5-7s7.5 2.9 7.5 7"/></g>',
         'logout'    => '<g fill="none" stroke-width="1.7"><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="M13 8l4.5 4-4.5 4M9.3 12h8"/></g>',
         'menu'      => '<path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" stroke-width="1.8" fill="none"/>',
@@ -54,6 +55,9 @@ function get_default_tab(): string {
         }
         if (in_array($_POST['action'], ['intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export'])) {
             $default_tab = 'intervention';
+        }
+        if (in_array($_POST['action'], ['feedback_toggle', 'feedback_delete', 'feedback_export'])) {
+            $default_tab = 'feedback';
         }
     }
     return $default_tab;
@@ -307,7 +311,7 @@ function intervention_test_card(array $t, string $csrf, string $questionsText): 
         . ' · Part ' . (int) ($t['part'] ?? 1) . ' · <strong>' . ($active ? 'active' : 'hidden') . '</strong></div>';
     $html .= '<div class="post-body" style="font-weight: 600; font-size: 1.02rem;">' . $e($t['title']) . '</div>';
     $html .= '<div class="post-body" style="color: var(--muted); font-size: .85rem;">slug: ' . $e($t['slug'] ?? '')
-        . ' · ' . (int) ($t['qcount'] ?? 0) . ' item(s) · passing ' . (int) ($t['passing_score'] ?? 0)
+        . ' · ' . (int) ($t['qcount'] ?? 0) . ' item(s) · ' . $e(intervention_band_scale((int) ($t['mcqcount'] ?? $t['qcount'] ?? 0)))
         . ' · attempts: ' . ($maxa > 0 ? $maxa . ' per student' : 'unlimited') . '</div>';
 
     $html .= '<form method="POST" style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">'
@@ -322,7 +326,6 @@ function intervention_test_card(array $t, string $csrf, string $questionsText): 
         . '<select class="field-input" name="subject" style="flex: 1; min-width: 100px;">' . $subjectOpts . '</select>'
         . '<select class="field-input" name="grade_label" style="flex: 1; min-width: 100px;">' . $gradeOpts . '</select>'
         . '<input class="field-input" type="number" name="part" min="1" max="9" value="' . (int) ($t['part'] ?? 1) . '" title="Part" style="flex: 1; min-width: 80px;">'
-        . '<input class="field-input" type="number" name="passing_score" min="0" max="200" value="' . (int) ($t['passing_score'] ?? 0) . '" title="Passing score" style="flex: 1; min-width: 100px;">'
         . '<input class="field-input" type="number" name="max_attempts" min="0" max="99" value="' . $maxa . '" title="Max attempts (0 = unlimited)" style="flex: 1; min-width: 120px;">'
         . '</div>'
         . '<label style="font-size: .85rem; color: var(--muted);"><input type="checkbox" name="is_active" value="1"' . ($active ? ' checked' : '') . '> Visible to students (when program is live)</label>'
@@ -351,8 +354,11 @@ function intervention_result_row(array $r): string {
     $html .= '<td>' . $e($r['email'] ?? '') . '<br><span style="color: var(--muted);">' . $e($r['full_name'] ?? '') . '</span></td>';
     $html .= '<td>' . $e($r['grade_level'] ?? '') . ' · ' . $e($r['section'] ?? '') . '</td>';
     $html .= '<td><strong>' . (int) ($r['correct'] ?? 0) . '/' . (int) ($r['total'] ?? 0) . '</strong>'
-        . ' (' . $e((string) ($r['score_pct'] ?? '')) . '%) '
-        . (!empty($r['passed']) ? '<span style="color: var(--success);">PASSED</span>' : '<span style="color: var(--danger);">FAILED</span>');
+        . ' (' . $e((string) ($r['score_pct'] ?? '')) . '%)<br>';
+    $level = intervention_level((int) ($r['correct'] ?? 0), max(1, (int) ($r['total'] ?? 0)))[0];
+    $levelColor = $level === 'Mastered' ? 'var(--success)' : ($level === 'Struggling' ? 'var(--danger)' : 'var(--warning)');
+    $html .= '<span style="color: ' . $levelColor . '; font-weight: 700;">' . $e($level) . '</span>'
+        . ' <span style="color: var(--muted);">(' . (!empty($r['passed']) ? 'passed' : 'failed') . ')</span>';
     $viol = (int) ($r['violations'] ?? 0);
     if ($viol > 0) {
         $html .= '<br><span style="color: var(--warning);">tab-switch ×' . $viol . ' (−' . $viol . ')</span>';
@@ -370,6 +376,69 @@ function intervention_result_row(array $r): string {
         }
     }
     $html .= '<td style="max-width: 320px;">' . ($written ? $e(implode(' | ', $written)) : '<span style="color: var(--muted);">none</span>') . '</td>';
+    $html .= '</tr>';
+    return $html;
+}
+
+/**
+ * One feedback response as a table row. Ratings render inline (with an
+ * average), written answers hide inside <details> so the table stays
+ * scannable. $csrf is the admin CSRF token for the per-row delete form.
+ */
+function feedback_response_row(array $r, string $csrf): string {
+    $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+    $answers = json_decode($r['answers_json'] ?? '{}', true);
+    if (!is_array($answers)) $answers = [];
+
+    $ratings = [];
+    $sum = 0;
+    foreach (['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'] as $k) {
+        $v = (int) ($answers[$k] ?? 0);
+        if ($v >= 1 && $v <= 5) {
+            $ratings[] = $v;
+            $sum += $v;
+        }
+    }
+    $avg = $ratings ? round($sum / count($ratings), 1) : '–';
+
+    $html = '<tr>';
+    $html .= '<td style="white-space: nowrap;">' . $e($r['updated_at'] ?? '') . '</td>';
+    $html .= '<td><strong>' . $e($r['username'] !== '' ? $r['username'] : '(blank)') . '</strong>'
+        . '<br><span style="color: var(--muted);">' . $e($r['email'] !== '' ? $r['email'] : '(blank)') . '</span></td>';
+    $html .= '<td>' . $e(($r['grade'] ?? '') !== '' ? $r['grade'] : '–')
+        . ' · ' . $e(($r['strand'] ?? '') !== '' ? $r['strand'] : '–') . '</td>';
+    $html .= '<td style="white-space: nowrap;"><strong>avg ' . $e((string) $avg) . '</strong>'
+        . '<br><span style="color: var(--muted); font-size: .78rem;">' . $e(implode('·', $ratings)) . '</span></td>';
+
+    $written = [];
+    foreach (['q11','q12','q13','q14','q15','q16','q17','q18'] as $k) {
+        $text = trim((string) ($answers[$k] ?? ''));
+        if ($text !== '') $written[$k] = mb_substr($text, 0, 2000);
+    }
+    $meta = [];
+    foreach (['q19','q20','q23','q24'] as $k) {
+        $text = trim((string) ($answers[$k] ?? ''));
+        if ($text !== '') $meta[] = strtoupper($k) . ': ' . $text;
+    }
+    $cell = $meta ? '<div style="color: var(--muted); font-size: .78rem;">' . $e(implode(' · ', $meta)) . '</div>' : '';
+    if ($written) {
+        $cell .= '<details><summary style="cursor: pointer; color: var(--accent2); font-size: .82rem;">Written (' . count($written) . ')</summary>';
+        foreach ($written as $k => $text) {
+            $cell .= '<div style="margin-top: 6px;"><strong style="font-size: .78rem;">' . $e(strtoupper($k)) . '</strong>'
+                . '<div style="white-space: pre-wrap; font-size: .82rem;">' . nl2br($e($text)) . '</div></div>';
+        }
+        $cell .= '</details>';
+    } else {
+        $cell .= '<span style="color: var(--muted);">no written answers</span>';
+    }
+    $html .= '<td style="max-width: 380px;">' . $cell . '</td>';
+
+    $html .= '<td><form method="POST" onsubmit="return confirm(\'Delete this response? This cannot be undone.\');">'
+        . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
+        . '<input type="hidden" name="action" value="feedback_delete">'
+        . '<input type="hidden" name="result_id" value="' . (int) $r['id'] . '">'
+        . '<button type="submit" class="delete-btn">Delete</button>'
+        . '</form></td>';
     $html .= '</tr>';
     return $html;
 }

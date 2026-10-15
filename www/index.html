@@ -295,6 +295,37 @@ $aghiCsrfToken = csrf_token();
     box-shadow: 0 0 10px rgba(85, 241, 248, 0.8);
   }
 
+  /* Temporary feedback entry: deliberately distinct (dashed separator +
+     accent pill) so it reads as a limited-time item, not a core section.
+     Remove this block + the nav markup + the status fetch when retiring. */
+  .feedback-sep {
+    border-top: 1px dashed var(--line-soft);
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  .rail-link.feedback-link {
+    border: 1px solid rgba(85, 241, 248, 0.35);
+    background: rgba(85, 241, 248, 0.07);
+  }
+  .rail-link.feedback-link .feedback-dot {
+    margin-left: auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px rgba(85, 241, 248, 0.9);
+    flex: none;
+  }
+  .rail-link.feedback-link.is-paused {
+    border-color: transparent;
+    background: transparent;
+    color: var(--steel);
+  }
+  .rail-link.feedback-link.is-paused .feedback-dot {
+    background: var(--steel);
+    box-shadow: none;
+  }
+
   .sidebar-foot {
     margin-top: 20px;
     border-top: 1px dashed var(--line-soft);
@@ -1289,6 +1320,8 @@ $aghiCsrfToken = csrf_token();
     <a class="rail-link" href="creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
     <span class="nav-section">Entertainment</span>
     <a class="rail-link" href="games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
+    <span class="nav-section feedback-sep">Temporary</span>
+    <a class="rail-link feedback-link" href="feedback.php" id="feedbackLink"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span id="feedbackLinkText">Share feedback</span><span class="feedback-dot" aria-hidden="true"></span></a>
   </nav>
   <div class="sidebar-foot">
     <a class="side-fb" href="https://www.facebook.com/people/Aghimuan-Club/61566410825100/" target="_blank" rel="noopener" aria-label="Aghimuan on Facebook">
@@ -1588,6 +1621,22 @@ $aghiCsrfToken = csrf_token();
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeSidebar();
   });
+
+  // ---------- temporary feedback link state ----------
+  // Static page, so the enabled/paused label comes from the API.
+  // Fail-soft: any error leaves the default "Share feedback" label.
+  try {
+    fetch('api/feedback.php', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || d.enabled !== false) return;
+        const link = document.getElementById('feedbackLink');
+        const text = document.getElementById('feedbackLinkText');
+        if (link) link.classList.add('is-paused');
+        if (text) text.textContent = 'Feedback paused';
+      })
+      .catch(() => {});
+  } catch (_) { /* leave default label */ }
 
   // ---------- announcements ----------
   let galleryStore = [];

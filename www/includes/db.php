@@ -344,6 +344,47 @@ function get_db(): PDO {
         $pdo->exec('ALTER TABLE intervention_results ADD COLUMN violations INTEGER NOT NULL DEFAULT 0');
     }
 
+    // Feedback form: temporary, admin-toggleable (ships disabled). Same
+    // unconditional/every-connection pattern as intervention_settings above.
+    // - feedback_settings: page_enabled ('0'/'1') + page_notice +
+    //   closed_message shown when the form is paused.
+    // - feedback_responses: exactly ONE row per user (UNIQUE on user_id) —
+    //   resubmitting UPDATES the row via upsert, never inserts a second one.
+    //   email/username are snapshots of what the user actually submitted
+    //   (prefill is editable AND blankable — a blank stays blank, the
+    //   session value is never silently re-attached). answers_json holds
+    //   the q1..q24 answers; renderers must escape at output time.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS feedback_settings (
+            key         TEXT PRIMARY KEY,
+            value       TEXT NOT NULL,
+            updated_at  TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec(
+        "INSERT OR IGNORE INTO feedback_settings (key, value) VALUES ('page_enabled', '0')"
+    );
+    $pdo->exec(
+        "INSERT OR IGNORE INTO feedback_settings (key, value) VALUES ('page_notice', '')"
+    );
+    $pdo->exec(
+        "INSERT OR IGNORE INTO feedback_settings (key, value) VALUES ('closed_message', 'We''re not looking for feedbacks yet. Check back soon!')"
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS feedback_responses (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id      INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            email        TEXT NOT NULL DEFAULT \'\',
+            username     TEXT NOT NULL,
+            grade        TEXT,
+            strand       TEXT,
+            answers_json TEXT NOT NULL,
+            created_at   TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at   TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )'
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_feedback_updated ON feedback_responses(updated_at)');
+
     if (!$isNew) {
         // Auto-migrate users table for role system and profile fields
         $userCols = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_COLUMN, 1);
