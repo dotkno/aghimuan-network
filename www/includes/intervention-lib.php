@@ -37,13 +37,18 @@ const INTERVENTION_MAX_SECTION_LENGTH = 20;
 // Starts alnum, then alnum/space/dot/dash (covers "STEM-A", "12 St. Mary").
 const INTERVENTION_SECTION_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9 .\-]*$/u';
 
-// Timed attempts (v2): per-question server-side budgets. Written items get
-// longer (owner-confirmed 100s). The total grace absorbs the untimed profile
-// step, rendering, and network jitter on top of the summed budgets.
-const INTERVENTION_MCQ_SECONDS = 30;
-const INTERVENTION_WRITTEN_SECONDS = 100;
+// Timed attempts (v2): every question gets the same budget (owner-confirmed
+// 60s for both multiple-choice and written). The total grace absorbs the
+// untimed profile step, rendering, and network jitter on top of the budgets.
+const INTERVENTION_SECONDS_PER_ITEM = 60;
 const INTERVENTION_TOTAL_GRACE_SECONDS = 180;
 const INTERVENTION_TAB_GRACE_SECONDS = 3; // hidden shorter than this: no violation
+
+// Mastery bands (teacher-set, absolute correct-answer cutoffs, clamped to
+// the test's own MCQ total so small tests keep reachable tiers).
+// Mastered and Developing both count as passed; Struggling fails.
+const INTERVENTION_MASTERED_MIN = 24;
+const INTERVENTION_DEVELOPING_MIN = 18;
 
 // Export column headers — exact order, shared by xlsx + csv builders.
 // The trailing "Written Responses" column concatenates free-text answers
@@ -51,7 +56,7 @@ const INTERVENTION_TAB_GRACE_SECONDS = 3; // hidden shorter than this: no violat
 const INTERVENTION_EXPORT_HEADERS = [
     'Submitted At (Asia/Manila)', 'Email', 'Full Name', 'Grade Level',
     'Section', 'Assessment Title', 'Correct', 'Total', 'Score %', 'Passed',
-    'Written Responses', 'Focus Violations',
+    'Level', 'Written Responses', 'Focus Violations',
 ];
 
 /** Page on/off state + admin-set notice. Ships disabled (see db.php seed). */
@@ -243,9 +248,32 @@ function intervention_attempt_clear(int $testId): void {
     unset($_SESSION['intervention_attempt'][intervention_attempt_key($testId)]);
 }
 
-/** Seconds allowed for one question row (written items get longer). */
+/** Seconds allowed for one question row (uniform for all item types). */
 function intervention_question_budget(array $question): int {
-    return empty($question['choices']) ? INTERVENTION_WRITTEN_SECONDS : INTERVENTION_MCQ_SECONDS;
+    return INTERVENTION_SECONDS_PER_ITEM;
+}
+
+/**
+ * Mastery level for a deducted score. Returns [level, passed] where level
+ * is one of 'Mastered', 'Developing', 'Struggling'.
+ */
+function intervention_level(int $correct, int $totalMcq): array {
+    $mastered = min(INTERVENTION_MASTERED_MIN, $totalMcq);
+    $developing = min(INTERVENTION_DEVELOPING_MIN, $totalMcq);
+    if ($correct >= $mastered) {
+        return ['Mastered', 1];
+    }
+    if ($correct >= $developing) {
+        return ['Developing', 1];
+    }
+    return ['Struggling', 0];
+}
+
+/** Short band scale for test cards, e.g. "Mastered 24+ · Developing 18+". */
+function intervention_band_scale(int $totalMcq): string {
+    $mastered = min(INTERVENTION_MASTERED_MIN, $totalMcq);
+    $developing = min(INTERVENTION_DEVELOPING_MIN, $totalMcq);
+    return 'Mastered ' . $mastered . '+ · Developing ' . $developing . '+';
 }
 
 /** Whole-attempt budget: summed per-item budgets + grace. */
@@ -468,8 +496,8 @@ function intervention_build_xlsx(PDO $pdo, ?int $testId = null): string {
         }
     }
 
-    $widths = [22, 30, 26, 12, 14, 34, 10, 10, 10, 10, 40, 18]; // per-column readable widths
-    $colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    $widths = [22, 30, 26, 12, 14, 34, 10, 10, 10, 10, 14, 40, 18]; // per-column readable widths
+    $colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
 
     $contentTypes = '<?xml version="1.0" encoding="UTF-8"?>'
         . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -554,6 +582,7 @@ function intervention_build_xlsx(PDO $pdo, ?int $testId = null): string {
                 ['t' => 'n', 'v' => (string) (int) ($row['total'] ?? 0)],
                 ['t' => 'p', 'v' => number_format($frac, 4, '.', '')],
                 ['t' => 's', 'v' => !empty($row['passed']) ? 'PASSED' : 'FAILED'],
+                ['t' => 's', 'v' => intervention_level((int) ($row['correct'] ?? 0), max(1, (int) ($row['total'] ?? 0)))[0]],
                 ['t' => 's', 'v' => $writtenCell],
                 ['t' => 's', 'v' => intervention_violations_export((int) ($row['violations'] ?? 0))],
             ];
@@ -571,7 +600,7 @@ function intervention_build_xlsx(PDO $pdo, ?int $testId = null): string {
             }
             $xml .= '</row>';
         }
-        $lastRef = 'L' . max($r, 1);
+        $lastRef = 'M' . max($r, 1);
         $xml .= '</sheetData><autoFilter ref="A1:' . $lastRef . '"/></worksheet>';
         $sheetXml[$n] = $xml;
     }
@@ -638,6 +667,7 @@ function intervention_build_csv(PDO $pdo, ?int $testId = null): string {
                 (int) ($row['total'] ?? 0),
                 round(((int) ($row['correct'] ?? 0)) / $total * 100, 1),
                 !empty($row['passed']) ? 'PASSED' : 'FAILED',
+                intervention_level((int) ($row['correct'] ?? 0), $total)[0],
                 $writtenCell,
                 intervention_violations_export((int) ($row['violations'] ?? 0)),
             ]);

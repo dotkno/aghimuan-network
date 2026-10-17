@@ -458,6 +458,7 @@ footer .foot-social a .ic{width:15px;height:15px}
     <a class="rail-link" href="../creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
     <span class="nav-section">Entertainment</span>
     <a class="rail-link" href="../games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
+    <a class="rail-link" href="../feedback.php" id="feedbackLink" style="margin-top:14px;border:1px solid rgba(85,241,248,.35);background:rgba(85,241,248,.07);"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span id="feedbackLinkText">Share feedback</span><span aria-hidden="true" id="feedbackDot" style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#55F1F8;box-shadow:0 0 8px rgba(85,241,248,.9);flex:none;"></span></a>
   </nav>
   <div class="sidebar-foot">
     <a class="side-fb" href="https://www.facebook.com/AghimuanClub/" target="_blank" rel="noopener" aria-label="Aghimuan on Facebook">
@@ -1049,6 +1050,19 @@ window.addEventListener('keydown', e => {
 $('#menuBtn').addEventListener('click', openSidebar);
 $('#sidebarClose').addEventListener('click', closeSidebar);
 $('#sidebarOverlay').addEventListener('click', closeSidebar);
+
+// Feedback pill: show paused state when the form is off. Fail-soft,
+// any error leaves the default label.
+try {
+  fetch('../api/feedback.php', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || d.enabled !== false) return;
+        var link = document.getElementById('feedbackLink');
+        if (link) link.style.display = 'none';
+      })
+    .catch(function (e) {});
+} catch (e) {}
 
 boot();
 })();

@@ -3,16 +3,14 @@
  * GET  /api/feedback.php  -> form status + (when logged in) prefill + own response.
  *                            Public: guests get status/closed_message so the page
  *                            can render its closed state. NO other user's data,
- *                            ever — only the caller's own row.
+ *                            ever. Only the caller's own row.
  * POST /api/feedback.php  -> submit/update YOUR OWN response, auth + CSRF required.
- *                            body: JSON { email?, username?, grade?, strand?,
+ *                            body: JSON { grade?, strand?,
  *                            answers { q1..q20, q23, q24 }, csrf_token }
+ *                            Identity (gmail/username) always comes from the
+ *                            login session. Client-sent values are ignored.
  *                            One row per user (upsert on user_id). Rejected with
  *                            403 while the form is paused.
- *
- * Identity fields are editable AND blankable: a key present-but-blank stores
- * blank; only a MISSING key falls back to the session value. The session
- * value is never silently re-attached over an explicit blank.
  */
 
 declare(strict_types=1);
@@ -94,18 +92,11 @@ if ($method === 'POST') {
         json_error(422, $valid['error']);
     }
 
-    // Editable + blankable identity: missing key -> session value,
-    // present-but-blank -> stored blank. Never re-attach silently.
-    $email = array_key_exists('email', $body)
-        ? mb_substr(trim((string) $body['email']), 0, FEEDBACK_MAX_EMAIL_LENGTH)
-        : (string) ($currentUser['email'] ?? '');
-    $username = array_key_exists('username', $body)
-        ? mb_substr(trim((string) $body['username']), 0, FEEDBACK_MAX_USERNAME_LENGTH)
-        : (string) ($currentUser['username'] ?? '');
-
-    if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-        json_error(422, 'That email address does not look valid (or leave it blank).');
-    }
+    // Identity is locked to the login session. Only grade/strand are
+    // user-supplied (both optional). Anything else the client sends
+    // for email/username is ignored.
+    $email = (string) ($currentUser['email'] ?? '');
+    $username = (string) ($currentUser['username'] ?? '');
 
     $stmt = $pdo->prepare(
         'INSERT INTO feedback_responses (user_id, email, username, grade, strand, answers_json, created_at, updated_at)

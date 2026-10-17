@@ -1,6 +1,6 @@
 <?php
-// feedback.php — temporary feedback form. Session + CSRF bootstrapped here,
-// BEFORE any output (same rule as index.html: csrf_token() first).
+// feedback.php: temporary feedback form. Session and CSRF start here,
+// before any output (same rule as index.html).
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/feedback-lib.php';
@@ -16,26 +16,8 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
 
 $prefillEmail = $user ? (string) ($user['email'] ?? '') : '';
 $prefillName = $user ? (string) ($user['username'] ?? '') : '';
-if ($own) {
-    // Editing: show what was actually submitted (editable snapshot),
-    // not the live session values.
-    $row = $pdo->prepare('SELECT email, username FROM feedback_responses WHERE user_id = :u');
-    $row->execute([':u' => (int) $user['id']]);
-    if ($prev = $row->fetch()) {
-        $prefillEmail = (string) ($prev['email'] ?? '');
-        $prefillName = (string) ($prev['username'] ?? '');
-    }
-}
 $prefillGrade = $own ? ($own['grade'] ?? '') : ($user['grade'] ?? '');
 $prefillStrand = $own ? ($own['strand'] ?? '') : ($user['strand'] ?? '');
-
-// Human labels for choice values (stored values stay lowercase codes).
-$choiceLabels = [
-    'q19' => ['daily' => 'Daily', 'few-times-a-week' => 'A few times a week', 'weekly' => 'Weekly', 'rarely' => 'Rarely'],
-    'q20' => ['phone' => 'Phone', 'desktop' => 'Desktop', 'both' => 'Both'],
-    'q23' => ['et' => 'ET', 'css' => 'CSS', 'cp' => 'CP', 'mil' => 'MIL', 'vgd' => 'VGD', 'none' => "I haven't used them"],
-    'q24' => ['yes' => 'Yes, you may email me', 'no' => 'No'],
-];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,7 +62,7 @@ textarea { min-height:86px; resize:vertical; }
 .picks input { position:absolute; opacity:0; pointer-events:none; }
 .picks label:has(input:checked) { border-color:var(--accent2); color:var(--accent2); background:rgba(85,241,248,.08); }
 .idgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (max-width:560px){ .idgrid { grid-template-columns:1fr; } }
+.idval { padding:11px 13px; background:#05060c; border:1px solid var(--border); border-radius:8px; font-size:.92rem; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }@media (max-width:560px){ .idgrid { grid-template-columns:1fr; } }
 .flabel { display:block; color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
 .btn { background:linear-gradient(135deg,var(--accent),#2478a3); color:#fff; border:none; padding:13px; width:100%; border-radius:8px; font-weight:700; font-size:.95rem; cursor:pointer; }
 .btn:hover { filter:brightness(1.12); }
@@ -106,7 +88,7 @@ textarea { min-height:86px; resize:vertical; }
     <?php elseif (!$user): ?>
         <div class="card">
             <h1>Share feedback <span class="tmp">Temporary</span></h1>
-            <p class="lede">Please log in first so we can attach your response to your account (one response per person). Your gmail and username are prefilled — grade and strand are optional.</p>
+            <p class="lede">Please log in first so we can attach your response to your account (one response per person). Your gmail and username come prefilled. Grade and strand are optional.</p>
             <?php if ($st['notice'] !== ''): ?><div class="notice"><?php echo $e($st['notice']); ?></div><?php endif; ?>
             <div style="display:flex; gap:10px; margin-top:16px;">
                 <a class="btn" style="text-align:center; text-decoration:none;" href="login.php">Log in</a>
@@ -117,7 +99,7 @@ textarea { min-height:86px; resize:vertical; }
     <?php else: ?>
         <div class="card">
             <h1><?php echo $own ? 'Update your feedback' : 'Share feedback'; ?> <span class="tmp">Temporary</span></h1>
-            <p class="lede">Hi, <?php echo $e($user['username']); ?>! At least 20 questions about your experience — especially our interactive reviewers: what helps, what should we improve or remove. Takes ~5 minutes.</p>
+            <p class="lede">Hi, <?php echo $e($user['username']); ?>! 24 quick questions about your experience here, mostly about our interactive reviewers. What helps, what should change, what should go. Takes about 5 minutes.</p>
             <?php if ($st['notice'] !== ''): ?><div class="notice"><?php echo $e($st['notice']); ?></div><?php endif; ?>
         </div>
 
@@ -127,10 +109,10 @@ textarea { min-height:86px; resize:vertical; }
             <fieldset>
                 <legend>About you (prefilled)</legend>
                 <div class="idgrid">
-                    <div><label class="flabel" for="fbEmail">Gmail (editable — blank stays blank)</label><input type="email" id="fbEmail" maxlength="254" value="<?php echo $e($prefillEmail); ?>" autocomplete="email"></div>
-                    <div><label class="flabel" for="fbName">Username (editable)</label><input type="text" id="fbName" maxlength="20" value="<?php echo $e($prefillName); ?>" autocomplete="username"></div>
-                    <div><label class="flabel" for="fbGrade">Grade (optional)</label><input type="text" id="fbGrade" maxlength="40" placeholder="e.g. G11 — or leave blank" value="<?php echo $e($prefillGrade); ?>"></div>
-                    <div><label class="flabel" for="fbStrand">Strand (optional)</label><input type="text" id="fbStrand" maxlength="40" placeholder="e.g. ICT — or leave blank" value="<?php echo $e($prefillStrand); ?>"></div>
+                    <div><span class="flabel">Gmail (your account)</span><div class="idval"><?php echo $e($prefillEmail !== '' ? $prefillEmail : 'No gmail on file'); ?></div></div>
+                    <div><span class="flabel">Username (your account)</span><div class="idval"><?php echo $e($prefillName); ?></div></div>
+                    <div><label class="flabel" for="fbGrade">Grade (optional)</label><input type="text" id="fbGrade" maxlength="40" placeholder="Optional, e.g. G11" value="<?php echo $e($prefillGrade); ?>"></div>
+                    <div><label class="flabel" for="fbStrand">Strand (optional)</label><input type="text" id="fbStrand" maxlength="40" placeholder="Optional, e.g. ICT" value="<?php echo $e($prefillStrand); ?>"></div>
                 </div>
             </fieldset>
 
@@ -156,7 +138,7 @@ textarea { min-height:86px; resize:vertical; }
                     <div class="q">
                         <label class="q-label" for="ta-<?php echo $e($q['key']); ?>"><?php echo $e($q['label']); ?><?php echo !empty($q['required']) ? '<span class="req">required</span>' : '<span class="req">optional</span>'; ?></label>
                         <textarea id="ta-<?php echo $e($q['key']); ?>" name="answers[<?php echo $e($q['key']); ?>]" maxlength="<?php echo FEEDBACK_MAX_TEXT_LENGTH; ?>" data-count><?php echo $e($ownAnswers[$q['key']] ?? ''); ?></textarea>
-                        <div class="hint"><span>Be honest — specifics help most.</span><span><span data-count-for="<?php echo $e($q['key']); ?>"><?php echo mb_strlen((string) ($ownAnswers[$q['key']] ?? '')); ?></span> / <?php echo FEEDBACK_MAX_TEXT_LENGTH; ?></span></div>
+                        <div class="hint"><span>Specifics help most. Be honest.</span><span><span data-count-for="<?php echo $e($q['key']); ?>"><?php echo mb_strlen((string) ($ownAnswers[$q['key']] ?? '')); ?></span> / <?php echo FEEDBACK_MAX_TEXT_LENGTH; ?></span></div>
                     </div>
                 <?php endforeach; ?>
             </fieldset>
@@ -168,7 +150,7 @@ textarea { min-height:86px; resize:vertical; }
                     <div class="q">
                         <span class="q-label"><?php echo $e($q['label']); ?><span class="req">required</span></span>
                         <div class="picks" role="radiogroup" aria-label="<?php echo $e($q['label']); ?>">
-                            <?php foreach (($choiceLabels[$q['key']] ?? []) as $val => $lab): ?>
+                            <?php foreach ((FEEDBACK_CHOICE_LABELS[$q['key']] ?? []) as $val => $lab): ?>
                                 <label><input type="radio" name="answers[<?php echo $e($q['key']); ?>]" value="<?php echo $e($val); ?>"<?php echo (isset($ownAnswers[$q['key']]) && (string) $ownAnswers[$q['key']] === (string) $val) ? ' checked' : ''; ?>><?php echo $e($lab); ?></label>
                             <?php endforeach; ?>
                         </div>
@@ -177,7 +159,7 @@ textarea { min-height:86px; resize:vertical; }
             </fieldset>
 
             <button type="submit" class="btn" id="fbSubmit"><?php echo $own ? 'Update feedback' : 'Send feedback'; ?></button>
-            <p class="priv">One response per person — sending again updates yours. Only club admins can see responses; you can blank your gmail above and it stays blank.</p>
+            <p class="priv">Your name and gmail come straight from your account. Only grade and strand are optional. Only club admins can see responses. One response per person. Send again to update yours.</p>
             <a class="back" href="index.html">&larr; Back home</a>
         </form>
 
@@ -223,8 +205,6 @@ textarea { min-height:86px; resize:vertical; }
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         csrf_token: csrf,
-                        email: document.getElementById('fbEmail').value,
-                        username: document.getElementById('fbName').value,
                         grade: document.getElementById('fbGrade').value,
                         strand: document.getElementById('fbStrand').value,
                         answers: answers

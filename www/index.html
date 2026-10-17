@@ -295,15 +295,12 @@ $aghiCsrfToken = csrf_token();
     box-shadow: 0 0 10px rgba(85, 241, 248, 0.8);
   }
 
-  /* Temporary feedback entry: deliberately distinct (dashed separator +
-     accent pill) so it reads as a limited-time item, not a core section.
-     Remove this block + the nav markup + the status fetch when retiring. */
-  .feedback-sep {
-    border-top: 1px dashed var(--line-soft);
-    margin-top: 14px;
-    padding-top: 14px;
-  }
+  /* Temporary feedback entry: styled as a distinct pill (accent border +
+     glowing dot) instead of its own section, so it stands out without
+     looking like a category. Remove this block + the nav markup + the
+     status fetch when retiring. */
   .rail-link.feedback-link {
+    margin-top: 14px;
     border: 1px solid rgba(85, 241, 248, 0.35);
     background: rgba(85, 241, 248, 0.07);
   }
@@ -315,15 +312,6 @@ $aghiCsrfToken = csrf_token();
     background: var(--cyan);
     box-shadow: 0 0 8px rgba(85, 241, 248, 0.9);
     flex: none;
-  }
-  .rail-link.feedback-link.is-paused {
-    border-color: transparent;
-    background: transparent;
-    color: var(--steel);
-  }
-  .rail-link.feedback-link.is-paused .feedback-dot {
-    background: var(--steel);
-    box-shadow: none;
   }
 
   .sidebar-foot {
@@ -1320,7 +1308,6 @@ $aghiCsrfToken = csrf_token();
     <a class="rail-link" href="creations/index.html"><svg class="ic" aria-hidden="true"><use href="#i-chip"/></svg><span>Creations Hub</span></a>
     <span class="nav-section">Entertainment</span>
     <a class="rail-link" href="games/index.html"><svg class="ic" aria-hidden="true"><use href="#i-game"/></svg><span>Games</span></a>
-    <span class="nav-section feedback-sep">Temporary</span>
     <a class="rail-link feedback-link" href="feedback.php" id="feedbackLink"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span id="feedbackLinkText">Share feedback</span><span class="feedback-dot" aria-hidden="true"></span></a>
   </nav>
   <div class="sidebar-foot">
@@ -1631,9 +1618,7 @@ $aghiCsrfToken = csrf_token();
       .then((d) => {
         if (!d || d.enabled !== false) return;
         const link = document.getElementById('feedbackLink');
-        const text = document.getElementById('feedbackLinkText');
-        if (link) link.classList.add('is-paused');
-        if (text) text.textContent = 'Feedback paused';
+        if (link) link.style.display = 'none';
       })
       .catch(() => {});
   } catch (_) { /* leave default label */ }

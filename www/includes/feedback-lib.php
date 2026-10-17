@@ -1,9 +1,9 @@
 <?php
 /**
- * feedback-lib.php — shared logic for the temporary Feedback form.
+ * feedback-lib.php: shared logic for the temporary Feedback form.
  *
  * The form lives at www/feedback.php behind the MAIN site session
- * (includes/session.php) — NOT the library reviewer session, NOT Atlas.
+ * (includes/session.php). Not the library reviewer session, not Atlas.
  * Call sites require db.php themselves (same convention as
  * creations-lib.php and resources-lib.php):
  *   require_once __DIR__ . '/../includes/db.php';
@@ -11,13 +11,13 @@
  *   require_once __DIR__ . '/../includes/feedback-lib.php';
  *
  * PRIVACY: responses are visible ONLY to logged-in admins inside admin.php.
- * There is no public listing — api/feedback.php returns at most the
+ * There is no public listing. api/feedback.php returns at most the
  * caller's OWN row. Never log response bodies; never put response text
  * into error messages.
  *
  * One row per user: feedback_responses.user_id is UNIQUE, submissions
- * upsert. email/username are snapshots of what the user submitted —
- * prefill is editable AND blankable, a blank stays blank.
+ * upsert. email/username always come from the login session (the API
+ * ignores client-sent values). Only grade/strand are user-supplied.
  *
  * Question keys are stable (q1..q24). Wording changes = code edit; stored
  * answers_json keys never change, so old rows keep their meaning.
@@ -43,7 +43,7 @@ const FEEDBACK_REVIEWER_OPTIONS = ['et', 'css', 'cp', 'mil', 'vgd', 'none'];
 const FEEDBACK_FOLLOWUP_OPTIONS = ['yes', 'no'];
 
 // The locked 24. type is rating|text|choice|meta. meta rows (q21/q22)
-// document the grade/strand identity columns — they are submitted as
+// document the grade/strand identity columns. They are submitted as
 // top-level fields, NOT inside answers_json (validate() strips them if
 // a client sends them there anyway).
 const FEEDBACK_QUESTIONS = [
@@ -64,7 +64,7 @@ const FEEDBACK_QUESTIONS = [
     ['key' => 'q15', 'type' => 'text', 'label' => 'Which reviewer subject helped you most, and WHY?', 'required' => true],
     ['key' => 'q16', 'type' => 'text', 'label' => 'Which reviewer topic was confusing or wrong, and what should change?', 'required' => false],
     ['key' => 'q17', 'type' => 'text', 'label' => 'What reviewer subject/topic is MISSING that we should add?', 'required' => false],
-    ['key' => 'q18', 'type' => 'text', 'label' => 'Any other thoughts — open floor', 'required' => false],
+    ['key' => 'q18', 'type' => 'text', 'label' => 'Any other thoughts? Open floor.', 'required' => false],
     ['key' => 'q19', 'type' => 'choice', 'label' => 'How often do you visit?', 'required' => true, 'options' => FEEDBACK_VISIT_OPTIONS],
     ['key' => 'q20', 'type' => 'choice', 'label' => 'How do you usually access the site?', 'required' => true, 'options' => FEEDBACK_DEVICE_OPTIONS],
     ['key' => 'q21', 'type' => 'meta', 'label' => 'Grade', 'required' => false, 'column' => 'grade'],
@@ -73,18 +73,13 @@ const FEEDBACK_QUESTIONS = [
     ['key' => 'q24', 'type' => 'choice', 'label' => 'May we follow up over email about your answers?', 'required' => true, 'options' => FEEDBACK_FOLLOWUP_OPTIONS],
 ];
 
-// Short CSV column labels, same order as FEEDBACK_QUESTIONS.
-const FEEDBACK_EXPORT_HEADERS = [
-    'Submitted At (Asia/Manila)', 'Email', 'Username', 'Grade', 'Strand',
-    'Q1 Overall (1-5)', 'Q2 Navigation (1-5)', 'Q3 Speed (1-5)',
-    'Q4 Announcements (1-5)', 'Q5 Events (1-5)', 'Q6 Resource Hub (1-5)',
-    'Q7 Creations Hub (1-5)', 'Q8 Reviewers helpful (1-5)',
-    'Q9 Reviewer readability (1-5)', 'Q10 Recommend (1-5)',
-    'Q11 Enjoyed most', 'Q12 Confused by', 'Q13 Improve', 'Q14 Remove',
-    'Q15 Best reviewer + why', 'Q16 Confusing topic', 'Q17 Missing topic',
-    'Q18 Other thoughts', 'Q19 Visit frequency', 'Q20 Device',
-    'Q21 Grade', 'Q22 Strand', 'Q23 Most-used reviewer', 'Q24 Follow-up ok',
-    'Updated At (Asia/Manila)',
+// Human labels for choice values (stored values stay lowercase codes).
+// Single source: feedback.php renders its radios from this too.
+const FEEDBACK_CHOICE_LABELS = [
+    'q19' => ['daily' => 'Daily', 'few-times-a-week' => 'A few times a week', 'weekly' => 'Weekly', 'rarely' => 'Rarely'],
+    'q20' => ['phone' => 'Phone', 'desktop' => 'Desktop', 'both' => 'Both'],
+    'q23' => ['et' => 'ET', 'css' => 'CSS', 'cp' => 'CP', 'mil' => 'MIL', 'vgd' => 'VGD', 'none' => "I haven't used them"],
+    'q24' => ['yes' => 'Yes, you may email me', 'no' => 'No'],
 ];
 
 /** Page on/off state + admin-set notice/closed message. Ships disabled (see db.php seed). */
@@ -98,7 +93,7 @@ function feedback_status(PDO $pdo): array {
     ];
 }
 
-/** Persists the admin toggle. Returns nothing — throws PDOException on failure. */
+/** Persists the admin toggle. Returns nothing. Throws PDOException on failure. */
 function feedback_save_status(PDO $pdo, bool $enabled, string $notice, string $closed): void {
     $stmt = $pdo->prepare(
         "UPDATE feedback_settings SET value = :v, updated_at = datetime('now') WHERE key = :k"
@@ -113,7 +108,7 @@ function feedback_save_status(PDO $pdo, bool $enabled, string $notice, string $c
  * the optional top-level identity fields (null/'' = not given).
  * Returns ['answers'=>normalized, 'grade'=>?string, 'strand'=>?string]
  * or ['error' => message]. Over-long text is REJECTED (422 upstream),
- * never silently truncated — the user should see what didn't fit.
+ * never silently truncated. The user should see what didn't fit.
  */
 function feedback_validate(array $answers, $grade, $strand): array {
     $out = [];
@@ -215,44 +210,100 @@ function feedback_delete(PDO $pdo, int $id): bool {
     return $stmt->rowCount() > 0;
 }
 
-/** Manila-timestamped download filename, e.g. feedback-responses-20261016-0930.csv */
-function feedback_export_filename(): string {
-    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
-    return 'feedback-responses-' . $now->format('Ymd-Hi') . '.csv';
+/** Deletes ALL response rows (admin test reset). Returns how many were removed. */
+function feedback_delete_all(PDO $pdo): int {
+    return (int) $pdo->exec('DELETE FROM feedback_responses');
 }
 
-/** CSV export (Excel-compatible via BOM). Same headers as FEEDBACK_EXPORT_HEADERS. */
-function feedback_build_csv(PDO $pdo): string {
+/** Manila-timestamped download filename, e.g. feedback-responses-20261016-0930.md */
+function feedback_export_filename(string $ext = 'md'): string {
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $ext = $ext === 'md' ? 'md' : 'txt';
+    return 'feedback-responses-' . $now->format('Ymd-Hi') . '.' . $ext;
+}
+
+/** Escapes one markdown table cell (pipes and newlines would break the row). */
+function feedback_md_cell(string $s): string {
+    return str_replace(['|', "\r", "\n"], ['\\|', ' ', ' '], trim($s));
+}
+
+/**
+ * Markdown export: one clean section per response, oldest first.
+ * Ratings render as a table, written answers as labeled blockquotes,
+ * choices with their human labels.
+ */
+function feedback_build_md(PDO $pdo): string {
     $rows = $pdo->query(
         'SELECT * FROM feedback_responses ORDER BY created_at ASC, id ASC'
     )->fetchAll();
-    $fh = fopen('php://temp', 'r+');
-    if ($fh === false) {
-        throw new RuntimeException('Could not build the CSV export.');
-    }
-    fwrite($fh, "\xEF\xBB\xBF"); // BOM so Excel detects UTF-8 (ñ, accents)
-    fputcsv($fh, FEEDBACK_EXPORT_HEADERS);
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $md = '# Member Feedback' . "\n\n";
+    $md .= 'Exported ' . $now->format('Y-m-d H:i') . ' (Asia/Manila). ';
+    $md .= count($rows) . ' response(s).' . "\n";
+
+    $n = 0;
     foreach ($rows as $row) {
+        $n++;
         $answers = json_decode($row['answers_json'] ?? '{}', true);
         if (!is_array($answers)) $answers = [];
-        $a = fn($k) => isset($answers[$k]) ? (string) $answers[$k] : '';
-        fputcsv($fh, [
-            (string) ($row['created_at'] ?? ''),
-            (string) ($row['email'] ?? ''),
-            (string) ($row['username'] ?? ''),
-            (string) ($row['grade'] ?? ''),
-            (string) ($row['strand'] ?? ''),
-            $a('q1'), $a('q2'), $a('q3'), $a('q4'), $a('q5'),
-            $a('q6'), $a('q7'), $a('q8'), $a('q9'), $a('q10'),
-            $a('q11'), $a('q12'), $a('q13'), $a('q14'), $a('q15'),
-            $a('q16'), $a('q17'), $a('q18'), $a('q19'), $a('q20'),
-            (string) ($row['grade'] ?? ''), (string) ($row['strand'] ?? ''),
-            $a('q23'), $a('q24'),
-            (string) ($row['updated_at'] ?? ''),
-        ]);
+
+        $sum = 0;
+        $cnt = 0;
+        foreach (FEEDBACK_RATING_KEYS as $k) {
+            $v = (int) ($answers[$k] ?? 0);
+            if ($v >= 1 && $v <= 5) {
+                $sum += $v;
+                $cnt++;
+            }
+        }
+
+        $md .= "\n---\n\n";
+        $md .= '## ' . $n . '. ' . (($row['username'] ?? '') !== '' ? $row['username'] : '(no name)');
+        $md .= ' (' . (($row['email'] ?? '') !== '' ? $row['email'] : 'no email') . ')' . "\n\n";
+        $md .= '- Submitted: ' . ($row['created_at'] ?? '') . "\n";
+        $md .= '- Updated: ' . ($row['updated_at'] ?? '') . "\n";
+        $md .= '- Grade: ' . ((($row['grade'] ?? '') !== '') ? $row['grade'] : '-') . "\n";
+        $md .= '- Strand: ' . ((($row['strand'] ?? '') !== '') ? $row['strand'] : '-') . "\n";
+        $md .= '- Average rating: ' . ($cnt > 0 ? round($sum / $cnt, 1) . '/5' : '-') . "\n";
+
+        $md .= "\n### Ratings\n\n";
+        $md .= '| # | Question | Score |' . "\n" . '|---|---|---|' . "\n";
+        foreach (FEEDBACK_QUESTIONS as $q) {
+            if ($q['type'] !== 'rating') continue;
+            $v = (int) ($answers[$q['key']] ?? 0);
+            $md .= '| ' . strtoupper($q['key']) . ' | ' . feedback_md_cell($q['label'])
+                . ' | ' . (($v >= 1 && $v <= 5) ? $v . '/5' : '-') . ' |' . "\n";
+        }
+
+        $md .= "\n### Written answers\n\n";
+        foreach (FEEDBACK_QUESTIONS as $q) {
+            if ($q['type'] !== 'text') continue;
+            $text = trim((string) ($answers[$q['key']] ?? ''));
+            $md .= '#### ' . strtoupper($q['key']) . ': ' . $q['label'] . "\n\n";
+            if ($text === '') {
+                $md .= '_No answer._' . "\n\n";
+                continue;
+            }
+            foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
+                $line = rtrim($line);
+                $md .= ($line === '' ? '>' : '> ' . $line) . "\n";
+            }
+            $md .= "\n";
+        }
+
+        $md .= '### About' . "\n\n";
+        foreach (['q19', 'q20', 'q23', 'q24'] as $k) {
+            $label = $k;
+            foreach (FEEDBACK_QUESTIONS as $q) {
+                if ($q['key'] === $k) {
+                    $label = $q['label'];
+                    break;
+                }
+            }
+            $code = mb_strtolower(trim((string) ($answers[$k] ?? '')));
+            $human = FEEDBACK_CHOICE_LABELS[$k][$code] ?? ($code !== '' ? $code : '-');
+            $md .= '- ' . $label . ': ' . $human . "\n";
+        }
     }
-    rewind($fh);
-    $out = stream_get_contents($fh);
-    fclose($fh);
-    return $out === false ? '' : $out;
+    return $md;
 }

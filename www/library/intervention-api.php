@@ -271,11 +271,11 @@ if ($method === 'POST') {
     [$correct, $total, $pct, $passed] = intervention_grade_score($answers, $key, (int) $test['passing_score']);
 
     // Tab-switch penalty: -1 per confirmed violation, floor at zero, then
-    // the pass mark is re-checked against the deducted score.
+    // the mastery band (and pass mark) is read off the deducted score.
     $violations = max(0, (int) ($attempt['violations'] ?? 0));
     $correct = max(0, $correct - $violations);
     $pct = $total > 0 ? round($correct / $total * 100, 1) : 0.0;
-    $passed = ($correct >= (int) $test['passing_score']) ? 1 : 0;
+    [$level, $passed] = intervention_level($correct, $total);
 
     $flat = [];
     foreach ($attempt['answers'] as $pos => $entry) {
@@ -312,6 +312,7 @@ if ($method === 'POST') {
         'total' => $total,
         'score_pct' => $pct,
         'passed' => $passed === 1,
+        'level' => $level,
         'violations' => $violations,
         'email' => $email,
         'submitted_at' => $row['submitted_at'] ?? '',

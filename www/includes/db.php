@@ -348,11 +348,10 @@ function get_db(): PDO {
     // unconditional/every-connection pattern as intervention_settings above.
     // - feedback_settings: page_enabled ('0'/'1') + page_notice +
     //   closed_message shown when the form is paused.
-    // - feedback_responses: exactly ONE row per user (UNIQUE on user_id) —
-    //   resubmitting UPDATES the row via upsert, never inserts a second one.
-    //   email/username are snapshots of what the user actually submitted
-    //   (prefill is editable AND blankable — a blank stays blank, the
-    //   session value is never silently re-attached). answers_json holds
+    // - feedback_responses: exactly ONE row per user (UNIQUE on user_id).
+    //   Resubmitting updates the row, never adds a second one.
+    //   email/username always come from the login session. Only
+    //   grade/strand are user-supplied. answers_json holds
     //   the q1..q24 answers; renderers must escape at output time.
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS feedback_settings (

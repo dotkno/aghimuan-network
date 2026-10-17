@@ -56,7 +56,7 @@ function get_default_tab(): string {
         if (in_array($_POST['action'], ['intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export'])) {
             $default_tab = 'intervention';
         }
-        if (in_array($_POST['action'], ['feedback_toggle', 'feedback_delete', 'feedback_export'])) {
+        if (in_array($_POST['action'], ['feedback_toggle', 'feedback_delete', 'feedback_delete_all', 'feedback_export'])) {
             $default_tab = 'feedback';
         }
     }
@@ -285,11 +285,13 @@ function resource_admin_card(array $r, string $csrf): string {
 }
 
 /**
- * Renders one intervention test as an edit card. $t is a raw
- * intervention_tests row with `qcount` joined in; $questionsText is the
- * textarea serialization from intervention_questions_to_text().
+ * Renders one intervention test as a collapsed card. The summary row shows
+ * identity at a glance; expanding reveals the full edit form. $t is a raw
+ * intervention_tests row with `qcount`/`mcqcount` joined in; $questionsText
+ * is the textarea serialization from intervention_questions_to_text().
+ * $open reopens the card just saved (see admin.php call site).
  */
-function intervention_test_card(array $t, string $csrf, string $questionsText): string {
+function intervention_test_card(array $t, string $csrf, string $questionsText, bool $open = false): string {
     $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
     $id = (int) $t['id'];
     $active = !empty($t['is_active']);
@@ -306,13 +308,16 @@ function intervention_test_card(array $t, string $csrf, string $questionsText): 
         $gradeOpts .= '<option value="' . $g . '"' . $sel . '>' . $g . '</option>';
     }
 
-    $html = '<div class="post-card" style="margin-bottom: 12px;">';
-    $html .= '<div class="post-date">' . $e($t['subject'] ?? '') . ' · ' . $e($t['grade_label'] ?? '')
-        . ' · Part ' . (int) ($t['part'] ?? 1) . ' · <strong>' . ($active ? 'active' : 'hidden') . '</strong></div>';
-    $html .= '<div class="post-body" style="font-weight: 600; font-size: 1.02rem;">' . $e($t['title']) . '</div>';
-    $html .= '<div class="post-body" style="color: var(--muted); font-size: .85rem;">slug: ' . $e($t['slug'] ?? '')
-        . ' · ' . (int) ($t['qcount'] ?? 0) . ' item(s) · ' . $e(intervention_band_scale((int) ($t['mcqcount'] ?? $t['qcount'] ?? 0)))
-        . ' · attempts: ' . ($maxa > 0 ? $maxa . ' per student' : 'unlimited') . '</div>';
+    $html = '<details class="itest"' . ($open ? ' open' : '') . ' style="margin-bottom: 12px;">';
+    $html .= '<summary class="itest-summary">'
+        . '<span class="itest-dot" style="background: ' . ($active ? '#4dffa0' : '#5b6373') . ';" aria-hidden="true"></span>'
+        . '<strong>' . $e($t['title']) . '</strong>'
+        . '<span>' . $e($t['subject'] ?? '') . ' · ' . $e($t['grade_label'] ?? '') . ' · Part ' . (int) ($t['part'] ?? 1) . '</span>'
+        . '<span>' . (int) ($t['qcount'] ?? 0) . ' items · ' . $e(intervention_band_scale((int) ($t['mcqcount'] ?? $t['qcount'] ?? 0))) . '</span>'
+        . '<span>' . ($active ? 'shown' : 'hidden') . ' · ' . ($maxa > 0 ? $maxa . '/student' : 'unlimited') . '</span>'
+        . '</summary>';
+    $html .= '<div class="itest-body">';
+    $html .= '<div class="post-body" style="color: var(--muted); font-size: .85rem;">slug: ' . $e($t['slug'] ?? '') . '</div>';
 
     $html .= '<form method="POST" style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">'
         . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
@@ -338,13 +343,13 @@ function intervention_test_card(array $t, string $csrf, string $questionsText): 
         . '<input type="hidden" name="action" value="intervention_test_delete">'
         . '<input type="hidden" name="test_id" value="' . $id . '">'
         . '<button type="submit" class="delete-btn">Delete</button></form>'
-        . '</div></div>';
+        . '</div></div></details>';
     return $html;
 }
 
 /**
- * One submitted result as a table row. Written free-text answers render
- * beneath the score so teachers can grade them without opening the export.
+ * One submitted result as a trim table row: compact cells, written free-text
+ * answers behind an expandable block so the table stays scannable.
  */
 function intervention_result_row(array $r): string {
     $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
@@ -358,12 +363,12 @@ function intervention_result_row(array $r): string {
     $level = intervention_level((int) ($r['correct'] ?? 0), max(1, (int) ($r['total'] ?? 0)))[0];
     $levelColor = $level === 'Mastered' ? 'var(--success)' : ($level === 'Struggling' ? 'var(--danger)' : 'var(--warning)');
     $html .= '<span style="color: ' . $levelColor . '; font-weight: 700;">' . $e($level) . '</span>'
-        . ' <span style="color: var(--muted);">(' . (!empty($r['passed']) ? 'passed' : 'failed') . ')</span>';
+        . ' <span style="color: var(--muted);">(' . (!empty($r['passed']) ? 'passed' : 'failed') . ')</span>'
+        . '</td>';
     $viol = (int) ($r['violations'] ?? 0);
-    if ($viol > 0) {
-        $html .= '<br><span style="color: var(--warning);">tab-switch ×' . $viol . ' (−' . $viol . ')</span>';
-    }
-    $html .= '</td>';
+    $html .= '<td>' . ($viol > 0
+        ? '<span style="color: var(--warning); font-weight: 700;">×' . $viol . '</span>'
+        : '<span style="color: var(--muted);">none</span>') . '</td>';
     $written = [];
     $decoded = json_decode($r['answers_json'] ?? '', true);
     if (is_array($decoded)) {
@@ -371,74 +376,99 @@ function intervention_result_row(array $r): string {
             $text = trim((string) $val);
             if ($text === '') continue;
             if (!(strlen($text) === 1 && in_array(strtoupper($text), ['A', 'B', 'C', 'D'], true))) {
-                $written[] = 'Q' . ((int) $pos) . ': ' . mb_substr($text, 0, 300);
+                $written[] = 'Q' . ((int) $pos) . ': ' . $text;
             }
         }
     }
-    $html .= '<td style="max-width: 320px;">' . ($written ? $e(implode(' | ', $written)) : '<span style="color: var(--muted);">none</span>') . '</td>';
+    if (empty($written)) {
+        $html .= '<td><span style="color: var(--muted);">none</span></td>';
+    } else {
+        $full = implode(' | ', $written);
+        $html .= '<td><span>' . $e(mb_substr($full, 0, 120)) . (mb_strlen($full) > 120 ? '…' : '') . '</span>'
+            . ' <details class="iresult-written"><summary>expand</summary><div>' . $e($full) . '</div></details></td>';
+    }
     $html .= '</tr>';
     return $html;
 }
 
 /**
- * One feedback response as a table row. Ratings render inline (with an
- * average), written answers hide inside <details> so the table stays
- * scannable. $csrf is the admin CSRF token for the per-row delete form.
+ * One feedback response as a card. Ratings show as color-coded tiles
+ * (green 4-5, yellow 3, red 1-2), written answers as labeled blocks,
+ * identity and choices as chips. $csrf is the admin CSRF token for
+ * the per-row delete form.
  */
-function feedback_response_row(array $r, string $csrf): string {
+function feedback_response_card(array $r, string $csrf): string {
     $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+    $chip = fn($t) => '<span class="role-badge-preview" style="background:#455a64;color:#fff;">' . $e($t) . '</span>';
+    $tileColor = fn($v) => $v >= 4 ? 'var(--success)' : ($v === 3 ? 'var(--warning)' : 'var(--danger)');
     $answers = json_decode($r['answers_json'] ?? '{}', true);
     if (!is_array($answers)) $answers = [];
 
     $ratings = [];
     $sum = 0;
-    foreach (['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'] as $k) {
+    foreach (FEEDBACK_RATING_KEYS as $k) {
         $v = (int) ($answers[$k] ?? 0);
         if ($v >= 1 && $v <= 5) {
-            $ratings[] = $v;
+            $ratings[$k] = $v;
             $sum += $v;
         }
     }
-    $avg = $ratings ? round($sum / count($ratings), 1) : '–';
+    $avg = $ratings ? round($sum / count($ratings), 1) : null;
+    $avgColor = $avg === null ? 'var(--muted)' : ($avg >= 4 ? 'var(--success)' : ($avg >= 3 ? 'var(--warning)' : 'var(--danger)'));
 
-    $html = '<tr>';
-    $html .= '<td style="white-space: nowrap;">' . $e($r['updated_at'] ?? '') . '</td>';
-    $html .= '<td><strong>' . $e($r['username'] !== '' ? $r['username'] : '(blank)') . '</strong>'
-        . '<br><span style="color: var(--muted);">' . $e($r['email'] !== '' ? $r['email'] : '(blank)') . '</span></td>';
-    $html .= '<td>' . $e(($r['grade'] ?? '') !== '' ? $r['grade'] : '–')
-        . ' · ' . $e(($r['strand'] ?? '') !== '' ? $r['strand'] : '–') . '</td>';
-    $html .= '<td style="white-space: nowrap;"><strong>avg ' . $e((string) $avg) . '</strong>'
-        . '<br><span style="color: var(--muted); font-size: .78rem;">' . $e(implode('·', $ratings)) . '</span></td>';
-
-    $written = [];
-    foreach (['q11','q12','q13','q14','q15','q16','q17','q18'] as $k) {
-        $text = trim((string) ($answers[$k] ?? ''));
-        if ($text !== '') $written[$k] = mb_substr($text, 0, 2000);
+    $html = '<div class="post-card">';
+    $html .= '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">';
+    $html .= '<div><div style="font-size:.95rem;"><strong>' . $e(($r['username'] ?? '') !== '' ? $r['username'] : '(no name)') . '</strong>'
+        . ' <span style="color:var(--muted);font-size:.82rem;">' . $e(($r['email'] ?? '') !== '' ? $r['email'] : 'no email') . '</span></div>'
+        . '<div class="post-date">Updated ' . $e($r['updated_at'] ?? '') . ' · Submitted ' . $e($r['created_at'] ?? '') . '</div>'
+        . '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;">';
+    if (($r['grade'] ?? '') !== '') $html .= $chip($r['grade']);
+    if (($r['strand'] ?? '') !== '') $html .= $chip($r['strand']);
+    foreach (['q19', 'q20', 'q23', 'q24'] as $k) {
+        $code = mb_strtolower(trim((string) ($answers[$k] ?? '')));
+        $lab = FEEDBACK_CHOICE_LABELS[$k][$code] ?? null;
+        if ($lab !== null) $html .= $chip($lab);
     }
-    $meta = [];
-    foreach (['q19','q20','q23','q24'] as $k) {
-        $text = trim((string) ($answers[$k] ?? ''));
-        if ($text !== '') $meta[] = strtoupper($k) . ': ' . $text;
-    }
-    $cell = $meta ? '<div style="color: var(--muted); font-size: .78rem;">' . $e(implode(' · ', $meta)) . '</div>' : '';
-    if ($written) {
-        $cell .= '<details><summary style="cursor: pointer; color: var(--accent2); font-size: .82rem;">Written (' . count($written) . ')</summary>';
-        foreach ($written as $k => $text) {
-            $cell .= '<div style="margin-top: 6px;"><strong style="font-size: .78rem;">' . $e(strtoupper($k)) . '</strong>'
-                . '<div style="white-space: pre-wrap; font-size: .82rem;">' . nl2br($e($text)) . '</div></div>';
-        }
-        $cell .= '</details>';
-    } else {
-        $cell .= '<span style="color: var(--muted);">no written answers</span>';
-    }
-    $html .= '<td style="max-width: 380px;">' . $cell . '</td>';
-
-    $html .= '<td><form method="POST" onsubmit="return confirm(\'Delete this response? This cannot be undone.\');">'
+    $html .= '</div></div>';
+    $html .= '<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">'
+        . '<div style="text-align:right;"><span style="color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;">Average</span><br>'
+        . '<strong style="font-size:1.5rem;color:' . $avgColor . ';">' . ($avg === null ? '–' : $e((string) $avg)) . '</strong></div>'
+        . '<form method="POST" onsubmit="return confirm(\'Delete this response? This cannot be undone.\');">'
         . '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '">'
         . '<input type="hidden" name="action" value="feedback_delete">'
         . '<input type="hidden" name="result_id" value="' . (int) $r['id'] . '">'
         . '<button type="submit" class="delete-btn">Delete</button>'
-        . '</form></td>';
-    $html .= '</tr>';
+        . '</form></div>';
+    $html .= '</div>';
+
+    $html .= '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-top:12px;">';
+    foreach (FEEDBACK_QUESTIONS as $q) {
+        if ($q['type'] !== 'rating') continue;
+        $v = $ratings[$q['key']] ?? null;
+        $c = $v === null ? 'var(--muted)' : $tileColor($v);
+        $html .= '<div title="' . $e($q['label']) . '" style="border:1px solid ' . $c . ';border-radius:8px;padding:6px 4px;text-align:center;">'
+            . '<div style="font-size:.66rem;color:var(--muted);font-weight:700;">' . $e(strtoupper($q['key'])) . '</div>'
+            . '<div style="font-size:1.1rem;font-weight:800;color:' . $c . ';">' . ($v === null ? '–' : $v) . '</div></div>';
+    }
+    $html .= '</div>';
+
+    $written = 0;
+    $blocks = '';
+    foreach (FEEDBACK_QUESTIONS as $q) {
+        if ($q['type'] !== 'text') continue;
+        $text = trim((string) ($answers[$q['key']] ?? ''));
+        if ($text === '') continue;
+        $written++;
+        $blocks .= '<div style="background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:8px;padding:10px 12px;margin-top:8px;">'
+            . '<div style="font-size:.76rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">' . $e(strtoupper($q['key']) . ' · ' . $q['label']) . '</div>'
+            . '<div style="font-size:.88rem;white-space:pre-wrap;">' . nl2br($e(mb_substr($text, 0, 2000))) . '</div></div>';
+    }
+    if ($written > 0) {
+        $html .= '<details' . ($written <= 3 ? ' open' : '') . ' style="margin-top:12px;"><summary style="cursor:pointer;color:var(--accent2);font-size:.85rem;font-weight:600;">Written answers (' . $written . ')</summary>' . $blocks . '</details>';
+    } else {
+        $html .= '<p class="empty-hint" style="margin-top:12px;">No written answers.</p>';
+    }
+
+    $html .= '</div>';
     return $html;
 }

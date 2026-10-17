@@ -199,6 +199,21 @@ $default_tab = get_default_tab();
         }
         .card h3 { margin-bottom: 14px; color: var(--accent2); font-size: 1rem; display: flex; align-items: center; gap: 8px; }
 
+        /* ---------- Intervention tab (itest-/iresult- prefixed, panel-only) ---------- */
+        .itest-status-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .itest-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        details.itest { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 0 12px; }
+        details.itest summary.itest-summary { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; cursor: pointer; padding: 11px 0; font-size: 0.88rem; }
+        details.itest summary.itest-summary::-webkit-details-marker { display: none; }
+        details.itest summary.itest-summary::before { content: '+'; color: var(--accent2); font-weight: 700; }
+        details.itest[open] summary.itest-summary::before { content: '−'; }
+        details.itest .itest-body { padding-bottom: 12px; }
+        details.itest-new { border-style: dashed; }
+        .toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+        details.iresult-written { display: inline; }
+        details.iresult-written summary { display: inline; cursor: pointer; color: var(--accent2); font-size: 0.8rem; }
+        details.iresult-written div { margin-top: 6px; white-space: normal; }
+
         /* ---------- App shell ---------- */
         .app-shell { display: flex; min-height: 100vh; }
 
@@ -327,6 +342,15 @@ $default_tab = get_default_tab();
         .user-table .edit-btn:hover { background: var(--accent); color: #fff; }
         .user-table .mono-cell { font-family: monospace; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
         .mod-user-detail .post-card { border-left-color: var(--accent); }
+
+        .mod-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+        .mod-control { display: flex; flex-direction: column; gap: 5px; flex: 1 1 150px; min-width: 132px; }
+        .mod-control > span { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7590; }
+        .mod-control select { padding: 9px 10px; background: #05060c; color: #fff; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+        .mod-control select:focus { outline: none; border-color: var(--accent); }
+        .mod-toolbar .btn-ghost { flex: 0 0 auto; align-self: flex-end; }
+        .mod-count { font-size: 0.78rem; color: var(--muted); margin: -4px 0 12px; }
+        .mod-count.mod-count-empty { color: var(--danger); }
 
         .role-checklist { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; margin: 6px 0 14px; padding: 10px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; }
         .role-checklist label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -945,7 +969,47 @@ $default_tab = get_default_tab();
 
             <div class="card">
                 <h3><?php echo admin_icon('moderation'); ?> All Members</h3>
-                <input type="text" class="search-input" id="modSearchInput" placeholder="Search by username or gmail…" oninput="filterModTable()">
+                <input type="text" class="search-input" id="modSearchInput" placeholder="Search by username, gmail, or IP…" oninput="applyModFilters()">
+
+                <div class="mod-toolbar">
+                    <label class="mod-control">
+                        <span>Sort by</span>
+                        <select id="modSortSelect" onchange="applyModFilters()">
+                            <option value="newest">Signed up: newest first</option>
+                            <option value="oldest">Signed up: oldest first</option>
+                            <option value="name-asc">Username: A to Z</option>
+                            <option value="name-desc">Username: Z to A</option>
+                            <option value="comments">Most comments</option>
+                            <option value="ip">IP address: grouped together</option>
+                        </select>
+                    </label>
+
+                    <label class="mod-control">
+                        <span>Role</span>
+                        <select id="modRoleFilter" onchange="applyModFilters()">
+                            <option value="">All roles</option>
+                            <?php foreach (MAIN_ROLES as $mr): ?>
+                                <option value="<?php echo htmlspecialchars($mr); ?>"><?php echo htmlspecialchars($mr); ?></option>
+                            <?php endforeach; ?>
+                            <option value="__none">No role set</option>
+                        </select>
+                    </label>
+
+                    <label class="mod-control">
+                        <span>Grade</span>
+                        <select id="modGradeFilter" onchange="applyModFilters()">
+                            <option value="">All grades</option>
+                            <?php foreach (GRADES as $g): ?>
+                                <option value="<?php echo htmlspecialchars($g); ?>"><?php echo htmlspecialchars($g); ?></option>
+                            <?php endforeach; ?>
+                            <option value="__none">Not set</option>
+                        </select>
+                    </label>
+
+                    <button type="button" class="btn-ghost" onclick="resetModFilters()">Reset</button>
+                </div>
+
+                <p class="mod-count" id="modCount"></p>
 
                 <div class="user-table-wrap">
                     <table class="user-table">
@@ -962,7 +1026,13 @@ $default_tab = get_default_tab();
                         <tbody id="modTableBody">
                             <?php foreach ($all_users as $u): ?>
                                 <?php $uComments = $comments_by_user[(int) $u['id']] ?? []; ?>
-                                <tr data-username="<?php echo htmlspecialchars($u['username']); ?>" data-email="<?php echo htmlspecialchars($u['email'] ?? ''); ?>">
+                                <tr data-username="<?php echo htmlspecialchars($u['username']); ?>"
+                                    data-email="<?php echo htmlspecialchars($u['email'] ?? ''); ?>"
+                                    data-created="<?php echo htmlspecialchars($u['created_at'] ?? ''); ?>"
+                                    data-ip="<?php echo htmlspecialchars($u['ip_address'] ?? ''); ?>"
+                                    data-comments="<?php echo count($uComments); ?>"
+                                    data-role="<?php echo htmlspecialchars($u['main_role'] ?? ''); ?>"
+                                    data-grade="<?php echo htmlspecialchars($u['grade'] ?? ''); ?>">
                                     <td><?php echo htmlspecialchars($u['username']); ?></td>
                                     <td class="mono-cell" style="word-break:break-all;white-space:normal;"><?php echo !empty($u['email']) ? htmlspecialchars($u['email']) : '—'; ?></td>
                                     <td class="mono-cell"><?php echo htmlspecialchars($u['created_at'] ?? '—'); ?></td>
@@ -1160,42 +1230,58 @@ $default_tab = get_default_tab();
             <?php if (!empty($intervention_error)) echo "<div class='msg error'>" . htmlspecialchars($intervention_error) . "</div>"; ?>
             <?php if (!empty($intervention_success)) echo "<div class='msg success'>" . htmlspecialchars($intervention_success) . "</div>"; ?>
 
-            <div class="card">
-                <h3><?php echo admin_icon('intervention'); ?> Program Status</h3>
-                <p class="empty-hint">Pausing hides the library page and entry card. Tests, questions, and all submitted results are kept and come back when re-enabled.</p>
-                <form method="POST" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+            <div class="card itest-status">
+                <form method="POST" class="itest-status-row">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                     <input type="hidden" name="action" value="intervention_toggle">
-                    <label class="field-label" style="min-width: 160px;">Availability
-                        <select class="field-input" name="page_enabled">
-                            <option value="1"<?php echo !empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Live: students can take tests</option>
-                            <option value="0"<?php echo empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Paused: hidden from students</option>
-                        </select>
-                    </label>
-                    <label class="field-label" style="flex: 1; min-width: 220px;">Student notice (shown while paused, and as a heads-up while live)
-                        <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($intervention_settings['notice'] ?? ''); ?>" placeholder="e.g. Only answer if your teacher told you to">
-                    </label>
-                    <button type="submit" class="btn-submit">Save Status</button>
+                    <span class="itest-dot" style="background: <?php echo !empty($intervention_settings['enabled']) ? '#4dffa0' : '#5b6373'; ?>;" aria-hidden="true"></span>
+                    <strong><?php echo !empty($intervention_settings['enabled']) ? 'Live' : 'Paused'; ?></strong>
+                    <select class="field-input" name="page_enabled" aria-label="Program availability" style="max-width: 170px;">
+                        <option value="1"<?php echo !empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Live</option>
+                        <option value="0"<?php echo empty($intervention_settings['enabled']) ? ' selected' : ''; ?>>Paused</option>
+                    </select>
+                    <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($intervention_settings['notice'] ?? ''); ?>" placeholder="Student notice (e.g. Only answer if your teacher told you to)" aria-label="Student notice" style="flex: 1; min-width: 200px;">
+                    <button type="submit" class="btn-submit">Save</button>
                 </form>
             </div>
 
             <div class="card">
-                <h3><?php echo admin_icon('intervention'); ?> New Test</h3>
-                <p class="empty-hint">One line per item: <code>question || A || B || C || [D] || LETTER</code>. Or <code>question || written</code> for a teacher-graded free response. Max attempts 0 = unlimited.</p>
-                <form method="POST" style="display: flex; flex-direction: column; gap: 8px;">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
-                    <input type="hidden" name="action" value="intervention_test_save">
-                    <input type="hidden" name="test_id" value="0">
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <input class="field-input" type="text" name="title" maxlength="120" placeholder="Title (e.g. CP 11 Part 1 — Java Programming)" required style="flex: 2; min-width: 200px;">
-                        <input class="field-input" type="text" name="slug" maxlength="40" placeholder="slug (e.g. cp11-part1)" required style="flex: 1; min-width: 140px;">
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <select class="field-input" name="subject" style="flex: 1; min-width: 100px;">
-                            <option value="CP">CP</option>
-                            <option value="CSS">CSS</option>
-                            <option value="ET">ET</option>
-                        </select>
+                <h3><?php echo admin_icon('intervention'); ?> Tests <span class="count"><?php echo count($intervention_tests); ?></span></h3>
+                <?php
+                $postedAction = $_POST['action'] ?? '';
+                $openTestId = (int) ($_POST['test_id'] ?? 0);
+                $openSlug = trim((string) ($_POST['slug'] ?? ''));
+                ?>
+                <?php if (empty($intervention_tests)): ?>
+                    <p class="empty-hint">No tests yet. Add the first one below.</p>
+                <?php else: ?>
+                    <?php foreach ($intervention_tests as $t): ?>
+                        <?php
+                        $isOpen = $postedAction === 'intervention_test_save'
+                            && (($openTestId > 0 && (int) $t['id'] === $openTestId)
+                                || ($openTestId === 0 && $openSlug !== '' && ($t['slug'] ?? '') === $openSlug));
+                        ?>
+                        <?php echo intervention_test_card($t, $admin_csrf_token, intervention_questions_to_text($pdo, (int) $t['id']), $isOpen); ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <details class="itest itest-new">
+                    <summary class="itest-summary"><strong>+ Add new test</strong></summary>
+                    <div class="itest-body">
+                    <p class="empty-hint">One line per item: <code>question || A || B || C || [D] || LETTER</code>. Or <code>question || written</code> for a teacher-graded free response. Max attempts 0 = unlimited.</p>
+                    <form method="POST" style="display: flex; flex-direction: column; gap: 8px;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="intervention_test_save">
+                        <input type="hidden" name="test_id" value="0">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <input class="field-input" type="text" name="title" maxlength="120" placeholder="Title (e.g. CP 11 Part 1 — Java Programming)" required style="flex: 2; min-width: 200px;">
+                            <input class="field-input" type="text" name="slug" maxlength="40" placeholder="slug (e.g. cp11-part1)" required style="flex: 1; min-width: 140px;">
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <select class="field-input" name="subject" style="flex: 1; min-width: 100px;">
+                                <option value="CP">CP</option>
+                                <option value="CSS">CSS</option>
+                                <option value="ET">ET</option>
+                            </select>
                         <select class="field-input" name="grade_label" style="flex: 1; min-width: 100px;">
                             <option value="G11">G11</option>
                             <option value="G12">G12</option>
@@ -1205,20 +1291,11 @@ $default_tab = get_default_tab();
                         <input class="field-input" type="number" name="max_attempts" min="0" max="99" value="0" title="Max attempts (0 = unlimited)" style="flex: 1; min-width: 120px;">
                     </div>
                     <label style="font-size: .85rem; color: var(--muted);"><input type="checkbox" name="is_active" value="1" checked> Visible to students (when program is live)</label>
-                    <textarea class="field-input" name="questions_text" rows="8" style="font-family: monospace; font-size: .8rem;" placeholder="One per line: question || A || B || C || [D] || LETTER. Or: question || written" required></textarea>
-                    <button type="submit" class="btn-submit" style="align-self: flex-start;">Add Test</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h3><?php echo admin_icon('intervention'); ?> Tests <span class="count"><?php echo count($intervention_tests); ?></span></h3>
-                <?php if (empty($intervention_tests)): ?>
-                    <p class="empty-hint">No tests yet. Add the first one above.</p>
-                <?php else: ?>
-                    <?php foreach ($intervention_tests as $t): ?>
-                        <?php echo intervention_test_card($t, $admin_csrf_token, intervention_questions_to_text($pdo, (int) $t['id'])); ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                        <textarea class="field-input" name="questions_text" rows="8" style="font-family: monospace; font-size: .8rem;" placeholder="One per line: question || A || B || C || [D] || LETTER. Or: question || written" required></textarea>
+                        <button type="submit" class="btn-submit" style="align-self: flex-start;">Add Test</button>
+                    </form>
+                    </div>
+                </details>
             </div>
 
             <div class="card">
@@ -1229,14 +1306,15 @@ $default_tab = get_default_tab();
                     return $iresult_filter === 'all' || (string) ($r['test_id'] ?? 0) === $iresult_filter;
                 }));
                 ?>
-                <p class="empty-hint">Filter:
-                    <a href="admin.php?iresult_test=all" onclick="switchTab('intervention')">All</a>
-                    <?php foreach ($intervention_tests as $t): ?>
-                        · <a href="admin.php?iresult_test=<?php echo (int) $t['id']; ?>" onclick="switchTab('intervention')"><?php echo htmlspecialchars($t['title']); ?></a>
-                    <?php endforeach; ?>
-                    · Orphaned results (deleted tests) appear under All with an empty filter value.
-                </p>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                <div class="toolbar-row">
+                    <label class="field-label" style="margin-bottom: 0;">Filter
+                        <select class="field-input" style="min-width: 200px;" onchange="if (this.value !== '') { location.href = 'admin.php?iresult_test=' + encodeURIComponent(this.value); }">
+                            <option value="all"<?php echo $iresult_filter === 'all' ? ' selected' : ''; ?>>All tests</option>
+                            <?php foreach ($intervention_tests as $t): ?>
+                                <option value="<?php echo (int) $t['id']; ?>"<?php echo $iresult_filter === (string) (int) $t['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($t['title']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                         <input type="hidden" name="action" value="intervention_export">
@@ -1252,17 +1330,18 @@ $default_tab = get_default_tab();
                         <button type="submit" class="edit-btn">Download .csv</button>
                     </form>
                 </div>
+                <p class="empty-hint">Orphaned results (deleted tests) appear under All.</p>
                 <?php if (empty($iresult_shown)): ?>
                     <p class="empty-hint">No submissions yet.</p>
                 <?php else: ?>
                     <form method="POST" onsubmit="return confirm('Delete the selected results? This also resets those students\u2019 attempt counts.');">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                         <input type="hidden" name="action" value="intervention_result_delete">
-                        <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: .85rem;">
+                        <div class="user-table-wrap">
+                        <table class="user-table">
                             <thead>
-                                <tr style="text-align: left; color: var(--muted);">
-                                    <th></th><th>Submitted</th><th>Student</th><th>Grade · Section</th><th>Score</th><th>Written</th>
+                                <tr>
+                                    <th></th><th>Submitted</th><th>Student</th><th>Grade · Section</th><th>Score</th><th>Focus</th><th>Written</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1287,7 +1366,7 @@ $default_tab = get_default_tab();
 
             <div class="card">
                 <h3><?php echo admin_icon('feedback'); ?> Form Status</h3>
-                <p class="empty-hint">Pausing hides the form at <code>feedback.php</code> (visitors see “not looking for feedbacks yet”) and flips the side-panel link to “Feedback paused”. All responses are kept and come back when re-enabled.</p>
+                <p class="empty-hint">Pause the form and visitors see the closed message instead. The side panel link hides until you turn it back on. All responses stay saved.</p>
                 <form method="POST" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                     <input type="hidden" name="action" value="feedback_toggle">
@@ -1298,7 +1377,7 @@ $default_tab = get_default_tab();
                         </select>
                     </label>
                     <label class="field-label" style="flex: 1; min-width: 220px;">Notice (shown on the form while live)
-                        <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($feedback_settings['notice'] ?? ''); ?>" placeholder="e.g. Closes Friday — tell us everything">
+                        <input class="field-input" type="text" name="page_notice" maxlength="500" value="<?php echo htmlspecialchars($feedback_settings['notice'] ?? ''); ?>" placeholder="e.g. Closes Friday, tell us everything">
                     </label>
                     <label class="field-label" style="flex: 1; min-width: 220px;">Paused message (shown when hidden)
                         <input class="field-input" type="text" name="closed_message" maxlength="200" value="<?php echo htmlspecialchars($feedback_settings['closed_message'] ?? ''); ?>" placeholder="We're not looking for feedbacks yet. Check back soon!">
@@ -1309,32 +1388,26 @@ $default_tab = get_default_tab();
 
             <div class="card">
                 <h3><?php echo admin_icon('feedback'); ?> Responses <span class="count"><?php echo (int) $feedback_count; ?></span></h3>
-                <p class="empty-hint">Admins only — these answers (with gmails) never appear anywhere public. One row per member; re-submits update in place. Export the CSV as your archive, then delete rows here after the review window.</p>
+                <p class="empty-hint">Only admins can see this page. Answers never show anywhere public. One row per member. Download the .md file as your backup, then delete rows here when you are done reviewing.</p>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
                         <input type="hidden" name="action" value="feedback_export">
-                        <button type="submit" class="btn-submit">Download .csv</button>
+                        <button type="submit" class="btn-submit">Download .md</button>
+                    </form>
+                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete ALL feedback responses? Download the CSV first if you need them.');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($admin_csrf_token); ?>">
+                        <input type="hidden" name="action" value="feedback_delete_all">
+                        <button type="submit" class="delete-btn">Delete all</button>
                     </form>
                     <a class="btn-ghost" style="text-decoration: none; width: auto; padding: 11px 16px;" href="feedback.php" target="_blank" rel="noopener">Preview form</a>
                 </div>
                 <?php if (empty($feedback_responses)): ?>
                     <p class="empty-hint">No responses yet.</p>
                 <?php else: ?>
-                    <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: .85rem;">
-                        <thead>
-                            <tr style="text-align: left; color: var(--muted);">
-                                <th>Updated</th><th>Member</th><th>Grade · Strand</th><th>Ratings</th><th>Answers</th><th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($feedback_responses as $fr): ?>
-                                <?php echo feedback_response_row($fr, $admin_csrf_token); ?>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    </div>
+                    <?php foreach ($feedback_responses as $fr): ?>
+                        <?php echo feedback_response_card($fr, $admin_csrf_token); ?>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </div>
 
@@ -1475,7 +1548,7 @@ $default_tab = get_default_tab();
 
     (function initTab() {
         const serverDefault = <?php echo json_encode($default_tab); ?>;
-        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed', 'intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export', 'feedback_toggle', 'feedback_delete', 'feedback_export'])); ?>;
+        const forced = <?php echo json_encode(isset($_POST['action']) && in_array($_POST['action'], ['create_event', 'delete_event', 'create_custom_role', 'delete_custom_role', 'update_user_role', 'create_admin', 'delete_admin', 'change_password', 'delete_user', 'ban_ip', 'unban_ip', 'creation_review', 'creation_feature', 'creation_delete', 'resource_review', 'resource_feature', 'resource_delete', 'resource_seed', 'intervention_toggle', 'intervention_test_save', 'intervention_test_delete', 'intervention_result_delete', 'intervention_export', 'feedback_toggle', 'feedback_delete', 'feedback_delete_all', 'feedback_export'])); ?>;
         const isMain = <?php echo json_encode((bool) $me['is_main']); ?>;
         const remembered = localStorage.getItem('aghimuanAdminTab');
         let initial = forced ? serverDefault : (remembered || serverDefault);
@@ -1553,13 +1626,85 @@ $default_tab = get_default_tab();
         if (panel) panel.style.display = 'none';
     }
 
-    function filterModTable() {
-        const q = document.getElementById('modSearchInput').value.trim().toLowerCase();
-        document.querySelectorAll('#modTableBody tr').forEach(tr => {
-            const hay = ((tr.dataset.username || '') + ' ' + (tr.dataset.email || '')).toLowerCase();
-            tr.style.display = hay.includes(q) ? '' : 'none';
-        });
+    const MOD_NONE = '__none';
+
+    function modCompareIp(a, b) {
+        const pa = String(a.dataset.ip || '').split('.');
+        const pb = String(b.dataset.ip || '').split('.');
+        const okA = pa.length === 4 && pa.every(p => /^\d+$/.test(p));
+        const okB = pb.length === 4 && pb.every(p => /^\d+$/.test(p));
+        if (okA !== okB) return okA ? -1 : 1;
+        if (okA) {
+            for (let i = 0; i < 4; i++) {
+                const d = Number(pa[i]) - Number(pb[i]);
+                if (d !== 0) return d;
+            }
+        }
+        return String(a.dataset.username || '').localeCompare(String(b.dataset.username || ''));
     }
+
+    const MOD_SORTERS = {
+        'newest':    (a, b) => String(b.dataset.created || '').localeCompare(String(a.dataset.created || '')),
+        'oldest':    (a, b) => String(a.dataset.created || '').localeCompare(String(b.dataset.created || '')),
+        'name-asc':  (a, b) => String(a.dataset.username || '').localeCompare(String(b.dataset.username || ''), undefined, { sensitivity: 'base' }),
+        'name-desc': (a, b) => String(b.dataset.username || '').localeCompare(String(a.dataset.username || ''), undefined, { sensitivity: 'base' }),
+        'comments':  (a, b) => Number(b.dataset.comments || 0) - Number(a.dataset.comments || 0),
+        'ip':        modCompareIp,
+    };
+
+    function applyModFilters() {
+        const tbody = document.getElementById('modTableBody');
+        if (!tbody) return;
+
+        const q = (document.getElementById('modSearchInput').value || '').trim().toLowerCase();
+        const role = document.getElementById('modRoleFilter').value;
+        const grade = document.getElementById('modGradeFilter').value;
+        const sortKey = document.getElementById('modSortSelect').value;
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        let shown = 0;
+
+        rows.forEach(tr => {
+            const hay = [tr.dataset.username, tr.dataset.email, tr.dataset.ip].join(' ').toLowerCase();
+            let show = q === '' || hay.includes(q);
+
+            if (show && role !== '') {
+                const rowRole = String(tr.dataset.role || '').trim();
+                show = role === MOD_NONE ? rowRole === '' : rowRole === role;
+            }
+            if (show && grade !== '') {
+                const rowGrade = String(tr.dataset.grade || '').trim();
+                show = grade === MOD_NONE ? rowGrade === '' : rowGrade === grade;
+            }
+
+            tr.style.display = show ? '' : 'none';
+            if (show) shown++;
+        });
+
+        const sorter = MOD_SORTERS[sortKey] || MOD_SORTERS.newest;
+        rows.sort((a, b) => sorter(a, b) || String(a.dataset.username || '').localeCompare(String(b.dataset.username || '')));
+
+        const frag = document.createDocumentFragment();
+        rows.forEach(tr => frag.appendChild(tr));
+        tbody.appendChild(frag);
+
+        const countEl = document.getElementById('modCount');
+        if (countEl) {
+            const filtersOn = q !== '' || role !== '' || grade !== '';
+            countEl.textContent = 'Showing ' + shown + ' of ' + rows.length + ' members';
+            countEl.classList.toggle('mod-count-empty', filtersOn && shown === 0);
+        }
+    }
+
+    function resetModFilters() {
+        document.getElementById('modSearchInput').value = '';
+        document.getElementById('modSortSelect').value = 'newest';
+        document.getElementById('modRoleFilter').value = '';
+        document.getElementById('modGradeFilter').value = '';
+        applyModFilters();
+    }
+
+    applyModFilters();
 
     function execCmd(command, value = null) {
         document.execCommand(command, false, value);

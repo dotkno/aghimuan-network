@@ -190,7 +190,7 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
   <div id="take-root" class="window-card rounded-xl p-5 md:p-8 fade-up">
     <div class="text-[10px] font-display tracking-[0.25em] text-[#55F1F8]/80 uppercase"><?php echo $e($taking['subject']); ?> &middot; <?php echo $e($taking['grade_label']); ?> &middot; Part <?php echo (int) $taking['part']; ?></div>
     <h1 class="font-display font-black text-xl md:text-2xl mt-1"><?php echo $e($taking['title']); ?></h1>
-    <p class="text-white/60 text-sm mt-1"><?php echo (int) $taking['total_questions']; ?> items<?php echo $taking['mcq_count'] < $taking['total_questions'] ? ' (' . (int) $taking['mcq_count'] . ' auto-scored, rest teacher-graded)' : ''; ?> &middot; passing score <?php echo (int) $taking['passing_score']; ?><?php echo $taking['attempts_left'] !== null ? ' &middot; ' . (int) $taking['attempts_left'] . ' attempt(s) left' : ' &middot; unlimited attempts'; ?></p>
+    <p class="text-white/60 text-sm mt-1"><?php echo (int) $taking['total_questions']; ?> items<?php echo $taking['mcq_count'] < $taking['total_questions'] ? ' (' . (int) $taking['mcq_count'] . ' auto-scored, rest teacher-graded)' : ''; ?> &middot; <?php echo $e(intervention_band_scale((int) $taking['mcq_count'])); ?><?php echo $taking['attempts_left'] !== null ? ' &middot; ' . (int) $taking['attempts_left'] . ' attempt(s) left' : ' &middot; unlimited attempts'; ?></p>
     <div class="rounded-lg p-3 text-sm mt-3" style="border:1px solid rgba(255,206,107,.5); background:rgba(255,206,107,.07); color:#ffe1a1;"><?php echo $e($headsUp); ?></div>
 
     <div id="take-alert" class="hidden mt-4 rounded-lg p-3 text-sm"></div>
@@ -199,7 +199,7 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
     <div class="rules-card nocopy mt-3" aria-label="Test rules. Cheating is not allowed.">
       <h2>READ THIS FIRST. NO CHEATING.</h2>
       <ul>
-        <li><strong>30 seconds</strong> per question. <strong>100 seconds</strong> per written answer. Run out of time and it moves on. Blank counts as wrong.</li>
+        <li><strong>1 minute per question</strong>, including written answers. Run out of time and it moves on. Blank counts as wrong.</li>
         <li><strong>One question per page. No back button.</strong> Your answer locks the moment you move on.</li>
         <li><strong>Stay on this tab.</strong> Leave it for more than <strong>3 seconds</strong> and you lose <strong>1 point</strong>. Every single time. Each one shows on your screen and on your teacher's report.</li>
         <li><strong>Your question order is shuffled.</strong> It is not the same as your classmate's. Copying answers from each other will not match.</li>
@@ -255,7 +255,7 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
     <div class="rounded-xl border border-white/10 p-4 mt-3 nocopy" data-q="<?php echo (int) $q['position']; ?>"<?php echo $isWritten ? ' data-written="1"' : ''; ?>>
       <div class="font-semibold leading-snug text-lg"><?php echo nl2br($e($q['prompt'])); ?></div>
       <?php if ($isWritten): ?>
-        <textarea id="q-area" class="field-input mt-3" rows="4" maxlength="2000" placeholder="Write your answer here (graded by your teacher). 100 seconds."></textarea>
+        <textarea id="q-area" class="field-input mt-3" rows="4" maxlength="2000" placeholder="Write your answer here (graded by your teacher). 1 minute."></textarea>
       <?php else: ?>
       <div class="grid gap-2 mt-3" id="q-choices">
       <?php foreach (['A', 'B', 'C', 'D'] as $i => $letter): ?>
@@ -343,10 +343,11 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
       var viol = d.violations > 0
         ? 'Focus: ' + d.violations + ' violation(s) (\u2212' + d.violations + ')'
         : 'Focus: clean sheet';
-      card.innerHTML = '<div class="font-display text-xs tracking-[0.3em] text-white/50">YOUR SCORE</div>'
-        + '<div class="font-display font-black text-5xl mt-2 ' + (d.passed ? 'neon-cyan' : 'neon-pink') + '">'
-        + d.correct + '<span class="text-2xl text-white/50">/' + d.total + '</span></div>'
-          + '<div class="mt-1 text-white/70">' + d.score_pct + '%: ' + (d.passed ? 'PASSED' : 'NOT PASSED') + '</div>'
+      card.innerHTML = '<div class="font-display text-xs tracking-[0.3em] text-white/50">YOUR RESULT</div>'
+        + '<div class="font-display font-black text-4xl mt-2 ' + (d.level === 'Mastered' ? 'neon-cyan' : (d.level === 'Struggling' ? 'neon-pink' : '')) + '"'
+        + (d.level === 'Developing' ? ' style="color:#ffce6b;text-shadow:0 0 8px rgba(255,206,107,.6);"' : '') + '>'
+        + esc(String(d.level || '').toUpperCase()) + '</div>'
+        + '<div class="mt-1 text-white/70">' + d.correct + '/' + d.total + ' (' + d.score_pct + '%)</div>'
         + '<div class="mt-1 text-xs text-white/40">' + esc(viol) + '</div>'
         + '<div class="mt-1 text-xs text-white/40">Recorded under ' + esc(d.email) + ' · ' + esc(d.submitted_at) + ' (Manila)</div>'
         + '<a href="intervention.php" class="btn-neon inline-block mt-5 px-6 py-2.5 rounded-full border border-[#55F1F8]/50 text-[#55F1F8] font-display text-xs tracking-[0.2em]">BACK TO TESTS</a>';
@@ -580,7 +581,7 @@ $e = fn($s) => htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
           <div class="flex-1 min-w-0">
             <div class="text-[10px] font-display tracking-[0.25em] uppercase" style="color:#55F1F8;"><?php echo $e($t['subject']); ?> &middot; <?php echo $e($t['grade_label']); ?> &middot; Part <?php echo (int) $t['part']; ?></div>
             <div class="font-display font-bold text-lg mt-0.5"><?php echo $e($t['title']); ?></div>
-            <div class="text-white/55 text-sm mt-0.5"><?php echo (int) $t['total_questions']; ?> items<?php echo $t['mcq_count'] < $t['total_questions'] ? ' (' . (int) $t['mcq_count'] . ' auto-scored)' : ''; ?> &middot; passing <?php echo (int) $t['passing_score']; ?><?php echo $t['attempts_left'] !== null ? ' &middot; ' . (int) $t['attempts_left'] . ' of ' . (int) $t['max_attempts'] . ' attempt(s) left' : ' &middot; unlimited attempts'; ?></div>
+            <div class="text-white/55 text-sm mt-0.5"><?php echo (int) $t['total_questions']; ?> items<?php echo $t['mcq_count'] < $t['total_questions'] ? ' (' . (int) $t['mcq_count'] . ' auto-scored)' : ''; ?> &middot; <?php echo $e(intervention_band_scale((int) $t['mcq_count'])); ?><?php echo $t['attempts_left'] !== null ? ' &middot; ' . (int) $t['attempts_left'] . ' of ' . (int) $t['max_attempts'] . ' attempt(s) left' : ' &middot; unlimited attempts'; ?></div>
           </div>
           <?php if ($t['attempts_left'] === 0): ?>
             <span class="text-white/40 font-display text-xs tracking-[0.2em]">LIMIT REACHED</span>
